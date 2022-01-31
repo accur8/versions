@@ -1,6 +1,6 @@
 package a8.appinstaller
 
-import a8.shared.Meta.{CaseClassParm, Constructors, Generator}
+import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 /**
 

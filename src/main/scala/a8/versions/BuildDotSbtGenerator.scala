@@ -41,7 +41,7 @@ class BuildDotSbtGenerator(codeRootDir: Directory) {
   lazy val sbtGitVersion: String =
     getVersionFromDotProperties("sbtGitVersion", "0.9.3")
   lazy val sbtA8Version: String =
-    getVersionFromDotProperties("sbtA8Version", "1.1.0-20210930_1248")
+    getVersionFromDotProperties("sbtA8Version", "1.2.0-20220113_1040")
   lazy val sbtVersion: String =
     getVersionFromDotProperties("sbtVersion", "1.5.3")
   lazy val partialUnificationVersion: String =
@@ -126,6 +126,12 @@ import sbtcrossproject.CrossType
 
 object Common extends a8.sbt_a8.SharedSettings with a8.sbt_a8.HaxeSettings with a8.sbt_a8.SassSettings with a8.sbt_a8.dobby.DobbySettings {
 
+${
+      if ( firstRepo.astRepo.public )
+        "  override def settings: Seq[Def.Setting[_]] = Seq()\n"
+      else
+        ""
+}
   def crossProject(artifactName: String, dir: java.io.File, id: String) =
     sbtcrossproject.CrossProject(id, dir)(JSPlatform, JVMPlatform)
       .crossType(CrossType.Full)
@@ -187,15 +193,23 @@ addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "${scalaJsCross
 //addSbtPlugin("io.get-coursier" % "sbt-coursier" % "${coursierJsVersion}")
 //addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "${sbtDependencyGraphVersion}")
 
+${
+    if ( firstRepo.astRepo.public )
+      ""
+    else
+"""
 resolvers += "a8-sbt-plugins" at readRepoUrl()
 credentials += readRepoCredentials()
+"""
+}
 
 //libraryDependencies += "org.slf4j" % "slf4j-nop" % "${slf4jNopVersion}"
 //addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "${sbtGitVersion}")
 
-// use this one if you need dobby
+addSbtPlugin("io.accur8" % "sbt-a8" % "${sbtA8Version}")
+// old plugin
 //addSbtPlugin("a8" % "sbt-a8" % "1.1.0-20210702_1452")
-addSbtPlugin("a8" % "sbt-a8" % "${sbtA8Version}")
+
 
 // This plugin can be removed when using Scala 2.13.0 or above
 addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "${partialUnificationVersion}")
@@ -218,6 +232,8 @@ ${
         header(scalaComment, true)
 }
 
+val appVersion = a8.sbt_a8.versionStamp(file("."))
+
 ${
   firstRepo
     .variables
@@ -237,17 +253,24 @@ ${
 
 scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
 
+${
+  if ( firstRepo.astRepo.public ) {
+    s"""
+publishTo in Global := sonatypePublishToBundle.value
+credentials in Global += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
+"""
+  } else {
+s"""
 resolvers in Global += "a8-repo" at Common.readRepoUrl()
-
 publishTo in Global := Some("a8-repo-releases" at Common.readRepoUrl())
-//publishTo in Global := sonatypePublishToBundle.value
-//credentials in Global += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
-
+"""
+      }
+}
 scalaVersion in Global := scalaLibVersion
 
 organization in Global := "${firstRepo.astRepo.organization}"
 
-version in Global := a8.sbt_a8.versionStamp(file("."))
+version in Global := appVersion
 
 versionScheme in Global := Some("strict")
 
@@ -276,7 +299,7 @@ ${
           s"""
 lazy val root =
   Common.jvmProject("root", file("target/root"), id = "root")
-    .settings( publish := {} )
+    .settings( publish := {} )${if (firstRepo.astRepo.public) "\n        .settings( com.jsuereth.sbtpgp.PgpKeys.publishSigned := {} )" else "" }
     ${
           val aggregateMethod = "aggregate"
           //      val aggregateMethod = "dependsOn"

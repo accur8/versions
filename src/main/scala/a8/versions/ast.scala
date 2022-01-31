@@ -17,6 +17,7 @@ object ast {
     header: Option[String] = None,
     organization: String,
     gradle: Boolean = false,
+    public: Boolean = false,
     modules: Iterable[Module],
   )
 

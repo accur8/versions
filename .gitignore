@@ -26,3 +26,5 @@ target
 /out/
 /.gradle
 /.bsp
+.envrc
+.direnv

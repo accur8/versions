@@ -4,31 +4,23 @@
 // 
 // This file is generated from modules.conf using `a8-versions build_dot_sbt`
 // 
-// It was generated at 2021-06-11 10:35:34.051 -0500 by raph on ENNS-PC
+// It was generated at 2022-01-31T17:30:59.184901500 by glen on fullfillment
 // 
 // a8-versions build/versioning info follows
 // 
-//        build_date : Fri Jun 11 06:56:33 EDT 2021
-//        build_machine : mini
-//        build_machine_ip : 127.0.0.1
-//        build_java_version : 1.8.0_261
-//        build_user : glen
-//        version_number : 1.0.0-20210611_0656_master
-//        project_name : a8-versions
-//        build_os : Mac OS X
+// 
 // 
 //      
 
-val scalaLibVersion = "2.13.6"
-val model3Version = "2.7.1-20210602_1321_master"
 val appVersion = a8.sbt_a8.versionStamp(file("."))
 
+val scalaLibVersion = "2.12.12"
+val model3Version = "2.7.1-20210602_1321_master"
 
 scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
 
-//resolvers in Global += "a8-repo" at Common.readRepoUrl()
 
-//publishTo in Global := sonatypePublishToBundle.value
+publishTo in Global := sonatypePublishToBundle.value
 credentials in Global += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
 
 scalaVersion in Global := scalaLibVersion
@@ -36,6 +28,8 @@ scalaVersion in Global := scalaLibVersion
 organization in Global := "a8"
 
 version in Global := appVersion
+
+versionScheme in Global := Some("strict")
 
 serverConnectionType in Global := ConnectionType.Local
 
@@ -46,14 +40,14 @@ lazy val versions =
     .settings(
       libraryDependencies ++= Seq(
         "ant" % "ant" % "1.6.2" % "compile",
-        "io.get-coursier" %% "coursier" % "2.0.16" % "compile",
-        "io.get-coursier" %% "coursier-cache" % "2.0.16" % "compile",
-        "com.softwaremill.sttp" %% "core" % "1.7.2" % "compile",
-//        "org.scala-lang.modules" %% "scala-xml" % "1.1.0" % "compile",
-        "org.scalameta" %% "fastparse" % "1.0.1",
-//        "com.beachape" %% "enumeratum-play-json" % "1.5.14" % "compile",
-        "org.rogach" %% "scallop" % "4.1.0" % "compile",
+        "io.get-coursier" %% "coursier" % "2.0.0-RC6" % "compile",
+        "io.get-coursier" %% "coursier-cache" % "2.0.0-RC6" % "compile",
+        "com.softwaremill.sttp" %% "core" % "1.1.11" % "compile",
+        "org.scala-lang.modules" %% "scala-xml" % "1.1.0" % "compile",
+        "com.geirsson" %% "fastparse" % "1.0.0" % "compile",
         "io.accur8" %% "a8-sync-api" % "1.0.0-20220120_1124_master",
+        "com.beachape" %% "enumeratum-play-json" % "1.5.14" % "compile",
+        "org.rogach" %% "scallop" % "3.1.2" % "compile",
       )
     )
 

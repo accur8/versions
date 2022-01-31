@@ -120,7 +120,7 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     try {
-      val main = new Main(args)
+      val main = new Main(args.toIndexedSeq)
       main.run()
       System.exit(0)
     } catch {

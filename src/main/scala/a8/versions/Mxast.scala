@@ -24,13 +24,14 @@ object Mxast {
         .addField(_.header)
         .addField(_.organization)
         .addField(_.gradle)
+        .addField(_.public)
         .addField(_.modules)
         .build
     
     implicit val catsEq: cats.Eq[Repo] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[Repo,parameters.type] =  {
-      val constructors = Constructors[Repo](4, unsafe.iterRawConstruct)
+      val constructors = Constructors[Repo](5, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -38,7 +39,8 @@ object Mxast {
       lazy val header: CaseClassParm[Repo,Option[String]] = CaseClassParm[Repo,Option[String]]("header", _.header, (d,v) => d.copy(header = v), Some(()=> None), 0)
       lazy val organization: CaseClassParm[Repo,String] = CaseClassParm[Repo,String]("organization", _.organization, (d,v) => d.copy(organization = v), None, 1)
       lazy val gradle: CaseClassParm[Repo,Boolean] = CaseClassParm[Repo,Boolean]("gradle", _.gradle, (d,v) => d.copy(gradle = v), Some(()=> false), 2)
-      lazy val modules: CaseClassParm[Repo,Iterable[Module]] = CaseClassParm[Repo,Iterable[Module]]("modules", _.modules, (d,v) => d.copy(modules = v), None, 3)
+      lazy val public: CaseClassParm[Repo,Boolean] = CaseClassParm[Repo,Boolean]("public", _.public, (d,v) => d.copy(public = v), Some(()=> false), 3)
+      lazy val modules: CaseClassParm[Repo,Iterable[Module]] = CaseClassParm[Repo,Iterable[Module]]("modules", _.modules, (d,v) => d.copy(modules = v), None, 4)
     }
     
     
@@ -49,7 +51,8 @@ object Mxast {
           header = values(0).asInstanceOf[Option[String]],
           organization = values(1).asInstanceOf[String],
           gradle = values(2).asInstanceOf[Boolean],
-          modules = values(3).asInstanceOf[Iterable[Module]],
+          public = values(3).asInstanceOf[Boolean],
+          modules = values(4).asInstanceOf[Iterable[Module]],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): Repo = {
@@ -58,14 +61,15 @@ object Mxast {
             header = values.next().asInstanceOf[Option[String]],
             organization = values.next().asInstanceOf[String],
             gradle = values.next().asInstanceOf[Boolean],
+            public = values.next().asInstanceOf[Boolean],
             modules = values.next().asInstanceOf[Iterable[Module]],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(header: Option[String], organization: String, gradle: Boolean, modules: Iterable[Module]): Repo =
-        Repo(header, organization, gradle, modules)
+      def typedConstruct(header: Option[String], organization: String, gradle: Boolean, public: Boolean, modules: Iterable[Module]): Repo =
+        Repo(header, organization, gradle, public, modules)
     
     }
     
