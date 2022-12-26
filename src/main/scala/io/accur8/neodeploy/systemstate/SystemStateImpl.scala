@@ -3,6 +3,7 @@ package io.accur8.neodeploy.systemstate
 
 import a8.shared.{FileSystem, StringValue, ZFileSystem}
 import a8.shared.SharedImports._
+import a8.shared.app.LoggingF
 import a8.sync.qubes.QubesApiClient
 import io.accur8.neodeploy.ApplicationInstallSync.Installer
 import io.accur8.neodeploy.systemstate.Interpreter.ActionNeededCache
@@ -15,7 +16,7 @@ import java.nio.file.Files
 import java.nio.file.attribute.PosixFileAttributeView
 import scala.collection.immutable.Vector
 
-object SystemStateImpl {
+object SystemStateImpl extends LoggingF {
 
   def dryRunUninstall(statesToUninstall: Vector[SystemState]): Vector[String] = {
     val dryRunUninstallLogs =
@@ -181,8 +182,13 @@ object SystemStateImpl {
         }
     }
 
+
+    loggerF.debug(s"starting actionNeededCache ${newState.resolvedSyncState.syncName} ${newState.resolvedSyncState.resolvedName}") *>
     impl(newState.systemState)
       .map(ActionNeededCache.apply)
+      .tap(_ =>
+        loggerF.debug(s"completed actionNeededCache ${newState.resolvedSyncState.syncName} ${newState.resolvedSyncState.resolvedName}")
+      )
   }
 
   def isEmpty(state: SystemState): Boolean =

@@ -34,7 +34,7 @@ object Systemd {
 
   case class TimerFile(
     onCalendar: OnCalendarValue,
-    persistent: Option[Boolean],
+    persistent: Option[Boolean] = None,
   ) {
     def timerLines = (
       Some(z"OnCalendar=${onCalendar}")

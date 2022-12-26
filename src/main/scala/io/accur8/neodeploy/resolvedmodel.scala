@@ -12,7 +12,6 @@ import a8.shared.json.ast.{JsDoc, JsObj, JsVal}
 import io.accur8.neodeploy.Sync.SyncName
 import zio.{Chunk, Task, UIO, ZIO}
 import PredefAssist._
-import a8.versions.model.ResolvedPersonnel
 import com.typesafe.config.{Config, ConfigFactory, ConfigValue}
 import io.accur8.neodeploy.resolvedmodel.ResolvedPgbackrestServer
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
@@ -24,6 +23,15 @@ object resolvedmodel extends LoggingF {
     home: Directory,
     server: ResolvedServer,
   ) {
+
+    def resolveLoginKeys: Task[Vector[ResolvedAuthorizedKey]] =
+      publicKey
+        .flatMap {
+          case Some(pk) =>
+            zsucceed(Vector(ResolvedAuthorizedKey(qualifiedUserName.value, pk.asAuthorizedKey)))
+          case None =>
+            server.repository.publicKeys(qualifiedUserName)
+        }
 
     lazy val gitAppsDirectory =
       server.gitServerDirectory.subdir(descriptor.login.value)
@@ -86,32 +94,29 @@ object resolvedmodel extends LoggingF {
     def sshPublicKeyFileInHome =
       home.subdir(".ssh").file("id_ed25519.pub")
 
-    def publicKeys: Task[Vector[AuthorizedKey]] =
+    def publicKey: Task[Option[PublicKey]] =
       sshPublicKeyFileInRepo
         .readAsStringOpt
         .map(
-          _.map(line => Vector(AuthorizedKey(line)))
+          _.map(line => PublicKey(line))
         )
-        .flatMap {
-          case Some(v) =>
-            zsucceed(v)
-          case None =>
-            server.repository.authorizedKeys(qualifiedUserName)
-        }
 
-    def resolvedAuthorizedKeys = {
-      for {
-        pak <- plugins.authorizedKeys
-        dak <- descriptorAuthorizedKeys
-      } yield pak ++ dak
+    def resolvedAuthorizedKeys(stack: Set[QualifiedUserName]): Task[Vector[ResolvedAuthorizedKey]] = {
+      if ( stack(qualifiedUserName) ) {
+        zsucceed(Vector.empty)
+      } else {
+        val newStack = stack + qualifiedUserName
+        for {
+          pak <- plugins.resolveAuthorizedKeys
+          dak <-
+            descriptor
+              .authorizedKeys
+              .map(id => server.repository.resolvedAuthorizedKeys(id, newStack))
+              .sequence
+              .map(_.flatten)
+        } yield pak ++ dak
+      }
     }
-
-    def descriptorAuthorizedKeys: Task[Vector[AuthorizedKey]] =
-      descriptor
-        .authorizedKeys
-        .map(n => server.repository.authorizedKeys(n))
-        .sequence
-        .map(_.flatten)
 
   }
 
@@ -275,54 +280,63 @@ object resolvedmodel extends LoggingF {
         .find(_.name == serverName)
         .getOrError(z"server ${serverName} not found")
 
-    def authorizedKeys(id: QualifiedUserName): Task[Vector[AuthorizedKey]] = {
-
-      def personnelFinderZ =
-        personnel
-          .find(_.id === id)
-          .map(_.resolvedKeysZ)
-          .getOrElse(zsucceed(Vector.empty))
-
-      def publicKeysFinderZ =
-        gitRootDirectory
-          .subdir("public-keys")
-          .file(id.value)
-          .readAsStringOpt
-          .map {
-            case Some(contents) =>
-              val keys =
-                contents
-                  .linesIterator
-                  .filterNot(_.isBlank)
-                  .map(AuthorizedKey.apply)
-                  .toVector
-              Vector(AuthorizedKey(s"# start ${id}")) ++ keys ++ Vector(AuthorizedKey(s"# end ${id}"))
-            case None =>
-              Vector.empty
-          }
-
-      def usersFinderZ =
-        users
-          .find(_.qualifiedUserName === id)
-          .map(_.publicKeys)
-          .getOrElse(zsucceed(Vector.empty))
-
-      for {
-        personnelFinder <- personnelFinderZ
-        publicKeys <- publicKeysFinderZ
-        usersKeys <- usersFinderZ
-      } yield {
-        val result = personnelFinder ++ publicKeys ++ usersKeys
-
-        result match {
-          case v if v.nonEmpty =>
-            v
-          case _ =>
-            logger.warn(s"unable to find keys for ${id}")
+    def publicKeys(id: QualifiedUserName) =
+      gitRootDirectory
+        .subdir("public-keys")
+        .file(id.value)
+        .readAsStringOpt
+        .map {
+          case Some(contents) =>
+            val keys =
+              contents
+                .linesIterator
+                .filterNot(_.isBlank)
+                .map(AuthorizedKey.apply)
+                .toVector
+            Vector(
+              ResolvedAuthorizedKey(
+                s"public key ${id}",
+                keys,
+              )
+            )
+          case None =>
             Vector.empty
         }
-      }
 
+    /**
+     * authorized keys from personnel and public-keys folder in the rpo
+     */
+    def resolvedAuthorizedKeys(id: QualifiedUserName, stack: Set[QualifiedUserName]): Task[Vector[ResolvedAuthorizedKey]] = {
+
+      if (stack(id)) {
+        zsucceed(Vector.empty)
+      } else {
+
+        val stackWithId = stack + id
+
+        def personnelFinderZ =
+          personnel
+            .find(_.id === id)
+            .map(_.resolveKeys(stackWithId))
+            .getOrElse(zsucceed(Vector.empty))
+
+        for {
+          _ <- loggerF.debug(s"rawAuthorizedKeys(${id})")
+          personnelFinder <- personnelFinderZ
+          publicKeys <- publicKeys(id)
+        } yield {
+          val result = personnelFinder ++ publicKeys
+
+          result match {
+            case v if v.nonEmpty =>
+              v
+            case _ =>
+              logger.warn(s"unable to find keys for ${id}")
+              Vector.empty
+          }
+        }
+
+      }
     }
 
     lazy val resolvedPgbackrestServerOpt =
@@ -400,16 +414,19 @@ object resolvedmodel extends LoggingF {
         }
         .mkString("\n")
 
-    override def authorizedKeys: Task[Vector[AuthorizedKey]] =
+
+    override def resolveAuthorizedKeysImpl: Task[Vector[ResolvedAuthorizedKey]] =
       user
         .server
         .repository
         .userPlugins
         .map {
           case rss: ResolvedRSnapshotServer =>
-            rss.user.publicKeys
+            rss
+              .user
+              .resolveLoginKeys
           case _ =>
-            zsucceed(Vector.empty)
+            zsucceed(None)
         }
         .sequence
         .map(_.flatten)
@@ -461,14 +478,15 @@ object resolvedmodel extends LoggingF {
         .resolvedPgbackrestServerOpt
         .getOrError("must have a pgbackrest server configured")
 
-    override def authorizedKeys: Task[Vector[AuthorizedKey]] =
+
+    override def resolveAuthorizedKeysImpl: Task[Vector[ResolvedAuthorizedKey]] =
       user
         .server
         .repository
         .userPlugins
         .map {
           case rps: ResolvedPgbackrestServer =>
-            rps.user.publicKeys
+            rps.user.resolveLoginKeys
           case _ =>
             zsucceed(Vector.empty)
         }
@@ -491,14 +509,15 @@ object resolvedmodel extends LoggingF {
 
     override def name: String = "pgbackrestServer"
 
-    override def authorizedKeys: Task[Vector[AuthorizedKey]] =
+
+    override def resolveAuthorizedKeysImpl: Task[Vector[ResolvedAuthorizedKey]] =
       user
         .server
         .repository
         .userPlugins
         .map {
           case rpc: ResolvedPgbackrestClient =>
-            rpc.user.publicKeys
+            rpc.user.resolveLoginKeys
           case _ =>
             zsucceed(Vector.empty)
         }
@@ -517,6 +536,70 @@ object resolvedmodel extends LoggingF {
             rc
         }
 
+  }
+
+  case class ResolvedPersonnel(
+    repository: ResolvedRepository,
+    descriptor: Personnel,
+  ) {
+
+    val id = descriptor.id
+
+    def resolveKeys(stack: Set[QualifiedUserName]): Task[Vector[ResolvedAuthorizedKey]] = {
+
+      val keysFromUrl: Seq[ResolvedAuthorizedKey] =
+        descriptor
+          .authorizedKeysUrl
+          .toVector
+          .map { url =>
+            ResolvedAuthorizedKey(
+              s"from ${url}",
+              CodeBits.downloadKeys(url),
+            )
+          }
+
+      val keysFromMembersZ: ZIO[Any, Throwable, Vector[ResolvedAuthorizedKey]] =
+        descriptor
+          .members
+          .map(member =>
+            repository.resolvedAuthorizedKeys(member, stack)
+          )
+          .sequence
+          .map(_.flatten.toVector)
+
+      keysFromMembersZ
+        .map( keysFromMembers =>
+          (descriptor.resolvedAuthorizedKeys ++ keysFromUrl ++ keysFromMembers)
+            .map(_.withParent(id.value))
+            .toVector
+        )
+
+    }
+  }
+
+  object ResolvedAuthorizedKey {
+
+    def apply(source: String, keys: Vector[AuthorizedKey]): ResolvedAuthorizedKey =
+      ResolvedAuthorizedKey(
+        Vector(source),
+        keys,
+      )
+
+    def apply(source: String, key: AuthorizedKey): ResolvedAuthorizedKey =
+      ResolvedAuthorizedKey(
+        Vector(source),
+        Vector(key),
+      )
+
+  }
+
+  case class ResolvedAuthorizedKey(
+    source: Vector[String],
+    keys: Vector[AuthorizedKey],
+  ) {
+    def withParent(parent: String) = copy(source = parent +: source)
+    def lines =
+      Vector(s"# ${source.mkString(" -> ")}") ++ keys.map(_.value)
   }
 
 }

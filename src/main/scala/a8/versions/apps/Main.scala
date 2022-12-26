@@ -48,6 +48,16 @@ object Main extends Logging {
     val debug = opt[Boolean](descr = "show debug level logging, all logging except trace")
     val trace = opt[Boolean](descr = "show trace level logging, this has the most detail and include debug logging")
 
+    lazy val defaultLogLevel =
+      (debug.toOption, trace.toOption) match {
+        case (_, Some(true)) =>
+          LogLevel.TRACE
+        case (Some(true), _) =>
+          LogLevel.DEBUG
+        case _ =>
+          LogLevel.INFO
+      }
+
     def setupVerbosity(): Unit = {
 
       val categories =
@@ -55,20 +65,14 @@ object Main extends Logging {
           "io.accur8.neodeploy",
           "a8.versions",
         )
-      val level =
-        (debug.toOption, trace.toOption) match {
-          case (_, Some(true)) =>
-            LogLevel.TRACE
-          case (Some(true), _) =>
-            LogLevel.DEBUG
-          case _ =>
-            LogLevel.INFO
-        }
 
       categories
         .foreach(c =>
-          wvlet.log.Logger(c).setLogLevel(level)
+          wvlet.log.Logger(c).setLogLevel(defaultLogLevel)
         )
+
+
+      System.setProperty("defaultLogLevel", defaultLogLevel.name)
 
     }
 
@@ -164,6 +168,7 @@ object Main extends Logging {
           debug.toOption.getOrElse(false),
           trace.toOption.getOrElse(false),
           (rr, parms) => PushRemoteSyncSubCommand(rr, parms).run,
+          defaultLogLevel = defaultLogLevel,
         ).unsafeRun()
       }
 
@@ -174,7 +179,7 @@ object Main extends Logging {
       descr("will validate the server app config repo, for example creating any missing ssh keys")
 
       override def run(main: Main) =
-        NeodeployRunner(runnerFn = (rr, parms) => ValidateRepo(rr).run)
+        NeodeployRunner(runnerFn = (rr, parms) => ValidateRepo(rr).run, defaultLogLevel = defaultLogLevel)
           .unsafeRun()
 
     }
@@ -205,6 +210,7 @@ object Main extends Logging {
           io.accur8.neodeploy.LocalUserSyncSubCommand(
             resolveArgs[ApplicationName](app, apps),
             resolveArgs[SyncName](sync, syncs),
+            defaultLogLevel,
           )
         runLocalServer.main(Array.empty)
       }

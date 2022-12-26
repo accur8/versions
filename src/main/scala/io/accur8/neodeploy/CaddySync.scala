@@ -23,7 +23,7 @@ case class CaddySync(caddyDir: CaddyDirectory) extends Sync[ResolvedApp] {
 
   def caddyConfigContents(applicationDescriptor: model.ApplicationDescriptor): Option[String] = {
     import applicationDescriptor._
-    val result0 =
+    def result0 =
       for {
         listenPort <- applicationDescriptor.listenPort.toIterable
         _ <- applicationDescriptor.resolvedDomainNames.nonEmpty.toOption(())
@@ -35,17 +35,11 @@ ${applicationDescriptor.resolvedDomainNames.map(_.value).mkString(", ")} {
 }
 """.trim
 
-    val result1 =
-      applicationDescriptor
-        .caddyConfig
-        .toVector
-
-    (result0 ++ result1) match {
-      case r if r.isEmpty =>
-        None
-      case r =>
-        Some(r.mkString("\n\n"))
-    }
+    applicationDescriptor
+      .caddyConfig
+      .orElse(
+        result0.mkString("\n\n").some
+      )
 
   }
 

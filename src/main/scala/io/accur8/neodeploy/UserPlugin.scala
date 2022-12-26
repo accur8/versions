@@ -3,11 +3,11 @@ package io.accur8.neodeploy
 
 import a8.shared.json.{JsonCodec, ast}
 import a8.shared.json.ast.{JsArr, JsDoc, JsNothing, JsStr, JsVal}
-import io.accur8.neodeploy.resolvedmodel.{ResolvedPgbackrestClient, ResolvedPgbackrestServer, ResolvedRSnapshotClient, ResolvedRSnapshotServer, ResolvedUser}
+import io.accur8.neodeploy.resolvedmodel.{ResolvedAuthorizedKey, ResolvedPgbackrestClient, ResolvedPgbackrestServer, ResolvedRSnapshotClient, ResolvedRSnapshotServer, ResolvedUser}
 import org.typelevel.ci.CIString
 import a8.shared.SharedImports._
 import a8.shared.app.Logging
-import io.accur8.neodeploy.model.AuthorizedKey
+import io.accur8.neodeploy.model.{AuthorizedKey, QualifiedUserName}
 import zio.Task
 
 object UserPlugin extends Logging {
@@ -51,17 +51,11 @@ object UserPlugin extends Logging {
           .toList
       )
 
-    def authorizedKeys: Task[Vector[AuthorizedKey]] =
+    def resolveAuthorizedKeys: Task[Vector[ResolvedAuthorizedKey]] =
       pluginInstances
         .map { plugin =>
           plugin
-            .authorizedKeys
-            .map {
-              case v if v.isEmpty =>
-                v
-              case v =>
-                Vector(AuthorizedKey(s"# start from ${plugin.name}")) ++ v ++ Vector(AuthorizedKey(s"# end from ${plugin.name}"))
-            }
+            .resolveAuthorizedKeys
         }
         .sequence
         .map(_.flatten)
@@ -153,8 +147,16 @@ object UserPlugin extends Logging {
 
 
 trait UserPlugin {
+
   def name: String
   def descriptorJson: JsVal
-  def authorizedKeys: Task[Vector[AuthorizedKey]] = zsucceed(Vector.empty)
+
+  final def resolveAuthorizedKeys: Task[Vector[ResolvedAuthorizedKey]] =
+    resolveAuthorizedKeysImpl
+      .map(_.map(_.withParent(name)))
+
+  def resolveAuthorizedKeysImpl: Task[Vector[ResolvedAuthorizedKey]] =
+    zsucceed(Vector.empty)
+
 }
 

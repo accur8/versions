@@ -244,6 +244,8 @@ object Mxmodel {
         a8.shared.json.JsonObjectCodecBuilder(generator)
           .addField(_.unitName)
           .addField(_.environment)
+          .addField(_.onCalendar)
+          .addField(_.persistent)
           .addField(_.Type)
       )
       .build
@@ -253,14 +255,16 @@ object Mxmodel {
     implicit val catsEq: cats.Eq[SystemdDescriptor] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[SystemdDescriptor,parameters.type] =  {
-      val constructors = Constructors[SystemdDescriptor](3, unsafe.iterRawConstruct)
+      val constructors = Constructors[SystemdDescriptor](5, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
     object parameters {
       lazy val unitName: CaseClassParm[SystemdDescriptor,Option[String]] = CaseClassParm[SystemdDescriptor,Option[String]]("unitName", _.unitName, (d,v) => d.copy(unitName = v), Some(()=> None), 0)
-      lazy val environment: CaseClassParm[SystemdDescriptor,Map[String,String]] = CaseClassParm[SystemdDescriptor,Map[String,String]]("environment", _.environment, (d,v) => d.copy(environment = v), Some(()=> Map.empty), 1)
-      lazy val Type: CaseClassParm[SystemdDescriptor,String] = CaseClassParm[SystemdDescriptor,String]("Type", _.Type, (d,v) => d.copy(Type = v), Some(()=> "simple"), 2)
+      lazy val environment: CaseClassParm[SystemdDescriptor,Vector[String]] = CaseClassParm[SystemdDescriptor,Vector[String]]("environment", _.environment, (d,v) => d.copy(environment = v), Some(()=> Vector.empty), 1)
+      lazy val onCalendar: CaseClassParm[SystemdDescriptor,Option[OnCalendarValue]] = CaseClassParm[SystemdDescriptor,Option[OnCalendarValue]]("onCalendar", _.onCalendar, (d,v) => d.copy(onCalendar = v), Some(()=> None), 2)
+      lazy val persistent: CaseClassParm[SystemdDescriptor,Option[Boolean]] = CaseClassParm[SystemdDescriptor,Option[Boolean]]("persistent", _.persistent, (d,v) => d.copy(persistent = v), Some(()=> None), 3)
+      lazy val Type: CaseClassParm[SystemdDescriptor,String] = CaseClassParm[SystemdDescriptor,String]("Type", _.Type, (d,v) => d.copy(Type = v), Some(()=> "simple"), 4)
     }
     
     
@@ -269,23 +273,27 @@ object Mxmodel {
       def rawConstruct(values: IndexedSeq[Any]): SystemdDescriptor = {
         SystemdDescriptor(
           unitName = values(0).asInstanceOf[Option[String]],
-          environment = values(1).asInstanceOf[Map[String,String]],
-          Type = values(2).asInstanceOf[String],
+          environment = values(1).asInstanceOf[Vector[String]],
+          onCalendar = values(2).asInstanceOf[Option[OnCalendarValue]],
+          persistent = values(3).asInstanceOf[Option[Boolean]],
+          Type = values(4).asInstanceOf[String],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): SystemdDescriptor = {
         val value =
           SystemdDescriptor(
             unitName = values.next().asInstanceOf[Option[String]],
-            environment = values.next().asInstanceOf[Map[String,String]],
+            environment = values.next().asInstanceOf[Vector[String]],
+            onCalendar = values.next().asInstanceOf[Option[OnCalendarValue]],
+            persistent = values.next().asInstanceOf[Option[Boolean]],
             Type = values.next().asInstanceOf[String],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(unitName: Option[String], environment: Map[String,String], Type: String): SystemdDescriptor =
-        SystemdDescriptor(unitName, environment, Type)
+      def typedConstruct(unitName: Option[String], environment: Vector[String], onCalendar: Option[OnCalendarValue], persistent: Option[Boolean], Type: String): SystemdDescriptor =
+        SystemdDescriptor(unitName, environment, onCalendar, persistent, Type)
     
     }
     

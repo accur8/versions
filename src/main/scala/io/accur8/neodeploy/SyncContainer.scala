@@ -23,7 +23,8 @@ object SyncContainer extends LoggingF {
 
   case class Prefix(value: String)
 
-  def loadState(stateDirectory: ZFileSystem.Directory, prefix: Prefix): Task[Vector[PreviousState]] =
+  def loadState(stateDirectory: ZFileSystem.Directory, prefix: Prefix): Task[Vector[PreviousState]] = {
+    loggerF.debug(s"loading state ${stateDirectory}  prefix = ${prefix}") *>
     stateDirectory
       .files
       .flatMap { files =>
@@ -39,12 +40,14 @@ object SyncContainer extends LoggingF {
                     loggerF.warn("error loading previous state", e)
                       .as(None)
                   case Right(ps) =>
-                    zsucceed(ps.some)
+                    loggerF.debug(s"loaded previous state -- \n${ps.prettyJson}")
+                      .as(ps.some)
                 }
               )
         ZIO.collectAll(effect)
           .map(_.flatten)
       }
+  }
 }
 
 abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
@@ -94,6 +97,7 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
   }
 
   def run: ZIO[Environ, Nothing, Either[Throwable,Unit]] =
+    loggerF.debug(s"running allNamePairs = ${allNamePairs}") *>
     allNamePairs
       .map { pair =>
         val previousState: PreviousState =
@@ -115,7 +119,10 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
       (
         (syncOpt, resolvedOpt) match {
           case (Some(sync), Some(resolved)) =>
-            sync.systemState(resolved)
+            traceLog(
+              s"systemState(${namePair})",
+              sync.systemState(resolved)
+            )
           case _ =>
             zsucceed(SystemState.Empty)
         }
@@ -123,11 +130,17 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
 
     val effect: M[Unit] =
       for {
+        _ <- loggerF.debug(s"starting run(${namePair})")
         newState <- newStateEffect
+        _ <- loggerF.debug(s"new state calculated ${namePair}")
         interpretter <- systemstate.Interpreter(newState, previousState)
+        _ <- loggerF.debug(s"interpreter created ${namePair}")
         _ <- interpretter.dryRunLog.map(m => loggerF.info(m)).getOrElse(zunit)
+        _ <- loggerF.debug(s"applying new start ${namePair}")
         _ <- interpretter.runApplyNewState
+        _ <- loggerF.debug(s"uninstalling obsolete ${namePair}")
         _ <- interpretter.runUninstallObsolete
+        _ <- loggerF.debug(s"updating state ${namePair}")
         _ <- updateState(newState)
       } yield ()
 

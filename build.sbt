@@ -20,12 +20,12 @@ val scalaLibVersion = "2.13.6"
 
 scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
 
-// resolvers in Global += "a8-repo" at Common.readRepoUrl()
-// publishTo in Global := Some("a8-repo-releases" at Common.readRepoUrl())
-// credentials in Global += Common.readRepoCredentials()
+resolvers in Global += "a8-repo" at Common.readRepoUrl()
+publishTo in Global := Some("a8-repo-releases" at Common.readRepoUrl())
+credentials in Global += Common.readRepoCredentials()
 
-publishTo in Global := sonatypePublishToBundle.value
-credentials in Global += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
+//publishTo in Global := sonatypePublishToBundle.value
+//credentials in Global += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
 
 
 scalaVersion in Global := scalaLibVersion
@@ -49,7 +49,8 @@ lazy val versions =
         "io.get-coursier" %% "coursier-cache" % "2.0.0-RC6",
         "com.softwaremill.sttp" %% "core" % "1.7.2",
         "org.scalameta" %% "fastparse" % "1.0.1",
-        "io.accur8" %% "a8-sync-api" % "1.0.0-20221219_0837_master",
+        "io.accur8" %% "a8-sync-api" % "1.0.0-20221226_1148_master" +
+          "",
         "org.rogach" %% "scallop" % "4.1.0",
         "dev.zio" %% "zio-process" % "0.7.1",
         "org.typelevel" %% "cats-parse" % "0.3.8",

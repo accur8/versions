@@ -63,7 +63,8 @@ case class LocalUserSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicat
 
   }
 
-  def appSyncRun: ZIO[Environ, Nothing, Either[Throwable, Unit]] =
+  def appSyncRun: ZIO[Environ, Nothing, Either[Throwable, Unit]] = {
+    loggerF.trace("appSyncRun") *> loggerF.debug("appSyncRun") *>
     resolvedUser
       .resolvedAppsM
       .either
@@ -82,8 +83,10 @@ case class LocalUserSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicat
           loggerF.error("unable to process apps", e) *>
             zsucceed(Left(e))
       }
+  }
 
   def userSyncRun: ZIO[Environ, Nothing, Either[Throwable, Unit]] =
+    loggerF.trace("userSyncRun") *> loggerF.debug("userSyncRun") *>
     SyncContainer.loadState(stateDirectory, SyncContainer.Prefix("user"))
       .either
       .flatMap {

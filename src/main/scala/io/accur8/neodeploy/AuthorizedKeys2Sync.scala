@@ -22,8 +22,11 @@ object AuthorizedKeys2Sync extends Sync[ResolvedUser] with Logging {
 
   def contents(input: ResolvedUser): Task[String] =
     input
-      .resolvedAuthorizedKeys
-      .map(_.map(_.value).mkString("\n"))
+      .resolvedAuthorizedKeys(Set.empty)
+      .map(
+        _.flatMap(_.lines)
+          .mkString("\n")
+      )
 
 
   override def systemState(user: ResolvedUser): M[SystemState] =

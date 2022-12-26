@@ -329,41 +329,4 @@ object model {
       coursier.Module(coursier.Organization(organization), coursier.ModuleName(artifact))
   }
 
-  case class ResolvedPersonnel(
-    repository: ResolvedRepository,
-    descriptor: Personnel,
-  ) {
-
-    val id = descriptor.id
-
-    lazy val resolvedKeysZ: Task[Vector[AuthorizedKey]] = {
-
-      val keysFromUrl =
-        descriptor
-          .authorizedKeysUrl
-          .toVector
-          .flatMap { url =>
-            Vector(AuthorizedKey(s"# from ${url}")) ++ CodeBits.downloadKeys(url)
-          }
-
-      val keysFromMembersZ =
-        descriptor
-          .members
-          .map(member =>
-            repository.authorizedKeys(member)
-          )
-          .sequence
-          .map(_.flatten.toVector)
-
-      keysFromMembersZ.map ( keysFromMembers =>
-        Vector(AuthorizedKey(s"# start for ${descriptor.id.value}"))
-          ++ descriptor.authorizedKeys
-          ++ keysFromUrl
-          ++ keysFromMembers
-          ++ Vector(AuthorizedKey(s"# end for ${descriptor.id.value}"))
-      )
-
-    }
-  }
-
 }

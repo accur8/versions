@@ -90,15 +90,19 @@ case class PushRemoteSyncSubCommand(
       resolvedRepository.allUsers.map { user =>
         for {
           _ <- publicKeysDir.makeDirectories
-          publicKeys <- user.publicKeys
+          publicKeyOpt <- user.publicKey
           _ <-
-            user
-              .qualifiedUserNames
-              .map(qualifiedUserName =>
-                publicKeysDir
-                  .file(qualifiedUserName.value)
-                  .write(publicKeys.map(_.value).mkString("\n"))
-              ).sequencePar
+            publicKeyOpt
+              .map { publicKey =>
+                user
+                  .qualifiedUserNames
+                  .map(qualifiedUserName =>
+                    publicKeysDir
+                      .file(qualifiedUserName.value)
+                      .write(publicKey.value)
+                  ).sequencePar
+              }
+              .getOrElse(zunit)
         } yield ()
       }
     writes

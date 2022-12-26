@@ -4,7 +4,7 @@ import a8.shared.ZFileSystem
 import a8.shared.ZString
 import a8.shared.ZString.ZStringer
 import a8.shared.app.LoggerF
-import zio.Trace
+import zio.{Trace, ZIO}
 
 object PredefAssist {
 
@@ -35,5 +35,16 @@ object PredefAssist {
         )
 
   }
+
+  def traceLog[R,E,A](context: String, effect: ZIO[R,E,A])(implicit loggerF: LoggerF, trace: Trace): ZIO[R,E,A] =
+    loggerF.debug(s"start ${context}")
+      .flatMap(_ => effect)
+      .flatMap { v =>
+        loggerF.debug(s"success ${context} -- ${v}")
+          .as(v)
+      }
+      .onError { cause =>
+        loggerF.debug(s"error ${context}", cause)
+      }
 
 }

@@ -12,7 +12,7 @@ import a8.shared.json.{EnumCodecBuilder, JsonCodec, JsonTypedCodec, UnionCodecBu
 import a8.versions.RepositoryOps.RepoConfigPrefix
 import com.softwaremill.sttp.Uri
 import io.accur8.neodeploy.Sync.SyncName
-import io.accur8.neodeploy.resolvedmodel.ResolvedApp
+import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedAuthorizedKey}
 import zio.process.CommandError
 import zio.process.CommandError.NonZeroErrorCode
 import zio.{Chunk, ExitCode, UIO, ZIO}
@@ -200,7 +200,9 @@ object model extends LoggingF {
   @CompanionGen
   case class SystemdDescriptor(
     unitName: Option[String] = None,
-    environment: Map[String,String] = Map.empty,
+    environment: Vector[String] = Vector.empty,
+    onCalendar: Option[OnCalendarValue] = None,
+    persistent: Option[Boolean] = None,
     Type: String = "simple",
   ) extends Launcher
 
@@ -344,6 +346,11 @@ object model extends LoggingF {
   object AuthorizedKey extends StringValue.Companion[AuthorizedKey]
   case class AuthorizedKey(value: String) extends StringValue
 
+  object PublicKey extends StringValue.Companion[PublicKey]
+  case class PublicKey(value: String) extends StringValue {
+    def asAuthorizedKey = AuthorizedKey(value)
+  }
+
   object RepositoryDescriptor extends MxRepositoryDescriptor
   @CompanionGen
   case class RepositoryDescriptor(
@@ -363,6 +370,10 @@ object model extends LoggingF {
     authorizedKeysUrl: Option[String] = None,
     authorizedKeys: Iterable[AuthorizedKey] = None,
     members: Iterable[QualifiedUserName] = Iterable.empty,
-  )
+  ) {
+    lazy val resolvedAuthorizedKeys =
+      authorizedKeys
+        .map(ak => ResolvedAuthorizedKey(id.value, ak))
+  }
 
 }
