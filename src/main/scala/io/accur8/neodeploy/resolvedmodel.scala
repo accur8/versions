@@ -321,7 +321,6 @@ object resolvedmodel extends LoggingF {
             .getOrElse(zsucceed(Vector.empty))
 
         for {
-          _ <- loggerF.debug(s"rawAuthorizedKeys(${id})")
           personnelFinder <- personnelFinderZ
           publicKeys <- publicKeys(id)
         } yield {

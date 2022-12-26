@@ -37,14 +37,14 @@ object PredefAssist {
   }
 
   def traceLog[R,E,A](context: String, effect: ZIO[R,E,A])(implicit loggerF: LoggerF, trace: Trace): ZIO[R,E,A] =
-    loggerF.debug(s"start ${context}")
+    loggerF.trace(s"start ${context}")
       .flatMap(_ => effect)
       .flatMap { v =>
-        loggerF.debug(s"success ${context} -- ${v}")
+        loggerF.trace(s"success ${context} -- ${v}")
           .as(v)
       }
       .onError { cause =>
-        loggerF.debug(s"error ${context}", cause)
+        loggerF.trace(s"error ${context}", cause)
       }
 
 }

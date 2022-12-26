@@ -44,8 +44,6 @@ case class LocalUserSyncSubCommand(appsFilter: Filter[ApplicationName], syncsFil
 
   override def runT: ZIO[BootstrapEnv, Throwable, Unit] = {
     import Layers._
-    ZIO.attemptBlocking(Logger.setDefaultLogLevel(LogLevel.ALL)) *>
-    this.loggerF.trace("trace") *> this.loggerF.debug("debug") *> zfail(new RuntimeException("boom")) *>
     runM
       .provide(
         configL,

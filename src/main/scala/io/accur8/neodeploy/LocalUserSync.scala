@@ -86,7 +86,6 @@ case class LocalUserSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicat
   }
 
   def userSyncRun: ZIO[Environ, Nothing, Either[Throwable, Unit]] =
-    loggerF.trace("userSyncRun") *> loggerF.debug("userSyncRun") *>
     SyncContainer.loadState(stateDirectory, SyncContainer.Prefix("user"))
       .either
       .flatMap {

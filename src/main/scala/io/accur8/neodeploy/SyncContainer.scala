@@ -130,17 +130,17 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
 
     val effect: M[Unit] =
       for {
-        _ <- loggerF.debug(s"starting run(${namePair})")
+        _ <- loggerF.trace(s"starting run(${namePair})")
         newState <- newStateEffect
-        _ <- loggerF.debug(s"new state calculated ${namePair}")
+        _ <- loggerF.trace(s"new state calculated ${namePair}")
         interpretter <- systemstate.Interpreter(newState, previousState)
-        _ <- loggerF.debug(s"interpreter created ${namePair}")
+        _ <- loggerF.trace(s"interpreter created ${namePair}")
         _ <- interpretter.dryRunLog.map(m => loggerF.info(m)).getOrElse(zunit)
-        _ <- loggerF.debug(s"applying new start ${namePair}")
+        _ <- loggerF.trace(s"applying new start ${namePair}")
         _ <- interpretter.runApplyNewState
-        _ <- loggerF.debug(s"uninstalling obsolete ${namePair}")
+        _ <- loggerF.trace(s"uninstalling obsolete ${namePair}")
         _ <- interpretter.runUninstallObsolete
-        _ <- loggerF.debug(s"updating state ${namePair}")
+        _ <- loggerF.trace(s"updating state ${namePair}")
         _ <- updateState(newState)
       } yield ()
 
@@ -152,6 +152,7 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
         case Left(th) =>
           loggerF.error(s"error processing ${namePair}", th)
       }
+      .correlateWith(s"SyncContainer.run(${namePair})")
 
   }
 
