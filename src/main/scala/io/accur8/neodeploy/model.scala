@@ -21,6 +21,7 @@ import scala.collection.Iterable
 import PredefAssist._
 import io.accur8.neodeploy.model.DockerDescriptor.UninstallAction
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
+import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
 
 object model extends LoggingF {
 
@@ -36,8 +37,33 @@ object model extends LoggingF {
   object ApplicationName extends StringValue.Companion[ApplicationName]
   case class ApplicationName(value: String) extends StringValue
 
-  object DomainName extends StringValue.Companion[DomainName]
-  case class DomainName(value: String) extends StringValue
+  object DomainName extends StringValue.Companion[DomainName] {
+
+    def fromZoneFile(str: String): DomainName =
+      if ( str.endsWith(".")) {
+        DomainName(str.substring(0, str.length-1))
+      } else {
+        DomainName(str)
+      }
+
+  }
+
+  case class DomainName(value: String) extends StringValue {
+
+    def isSubDomainOf(topLevelDomain: DomainName): Boolean =
+      value.toLowerCase.endsWith(topLevelDomain.value.toLowerCase)
+
+    def asDottedName = value + "."
+
+    lazy val topLevelDomain =
+      DomainName(
+        value
+          .splitList("\\.")
+          .drop(1)
+          .mkString(".")
+      )
+
+  }
 
   object Organization extends StringValue.Companion[Organization]
   case class Organization(value: String) extends StringValue
@@ -247,12 +273,12 @@ object model extends LoggingF {
     stopServerCommand: Option[Command] = None,
     startServerCommand: Option[Command] = None,
     domainName: Option[DomainName] = None,
-    domainNames: Iterable[DomainName] = Iterable.empty,
+    domainNames: Vector[DomainName] = Vector.empty,
 //    restartOnCalendar: Option[OnCalendarValue] = None,
 //    startOnCalendar: Option[OnCalendarValue] = None,
     launcher: Launcher = SupervisorDescriptor.empty
   ) {
-    def resolvedDomainNames = domainName ++ domainNames
+    def resolvedDomainNames = domainNames ++ domainName
   }
 
   object UserLogin extends StringValue.Companion[UserLogin] {
@@ -351,12 +377,39 @@ object model extends LoggingF {
     def asAuthorizedKey = AuthorizedKey(value)
   }
 
+  object AwsSecretKey extends StringValue.Companion[AwsSecretKey]
+  case class AwsSecretKey(value: String) extends StringValue
+
+  object AwsAccessKey extends StringValue.Companion[AwsAccessKey]
+  case class AwsAccessKey(value: String) extends StringValue
+
+  object AwsCredentials extends MxAwsCredentials
+  @CompanionGen
+  case class AwsCredentials(
+    awsSecretKey: AwsSecretKey,
+    awsAccessKey: AwsAccessKey,
+  ) {
+
+    def asAmazonSdkCredentials =
+      AwsBasicCredentials.create(awsAccessKey.value, awsSecretKey.value)
+
+    def asAmazonSdkCredentialsProvider =
+      StaticCredentialsProvider.create(asAmazonSdkCredentials)
+
+  }
+
+  object ManagedDomain extends MxManagedDomain
+  @CompanionGen
+  case class ManagedDomain(topLevelDomains: Vector[DomainName], awsCredentials: AwsCredentials)
+
   object RepositoryDescriptor extends MxRepositoryDescriptor
   @CompanionGen
   case class RepositoryDescriptor(
     publicKeys: Iterable[Personnel] = Iterable.empty,
     servers: Vector[ServerDescriptor],
     healthchecksApiToken: HealthchecksDotIo.ApiAuthToken,
+    managedDomains: Vector[ManagedDomain] = Vector.empty,
+    plugins: JsDoc = JsDoc.empty,
   )
 
   object QualifiedUserName extends StringValue.Companion[QualifiedUserName]

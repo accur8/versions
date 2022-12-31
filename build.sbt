@@ -53,6 +53,8 @@ lazy val versions =
         "org.rogach" %% "scallop" % "4.1.0",
         "dev.zio" %% "zio-process" % "0.7.1",
         "org.typelevel" %% "cats-parse" % "0.3.8",
+        "software.amazon.awssdk" % "apache-client" % "2.19.6",
+        "software.amazon.awssdk" % "route53" % "2.19.6",
         "org.scalatest" %% "scalatest" % "3.2.12" % "test",
       )
     )

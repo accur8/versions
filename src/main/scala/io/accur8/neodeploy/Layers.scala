@@ -6,9 +6,22 @@ import a8.shared.ZFileSystem
 import a8.shared.app.LoggingF
 import io.accur8.neodeploy.LocalUserSyncSubCommand.Config
 import io.accur8.neodeploy.resolvedmodel.{ResolvedRepository, ResolvedServer}
-import zio.ZLayer
+import io.accur8.neodeploy.systemstate.SystemStateModel.{Environ, M, SystemStateLogger}
+import zio.{Task, ZIO, ZLayer}
 
 object Layers extends LoggingF {
+
+  def provide[A](effect: ZIO[Environ, Throwable, A]): Task[A] =
+    effect
+      .provide(
+        DnsService.layer,
+        configL,
+        healthchecksDotIoL,
+        resolvedRepositoryL,
+        resolvedUserL,
+        resolvedServerL,
+        SystemStateLogger.simpleLayer,
+      )
 
   lazy val configFile =
     ZFileSystem

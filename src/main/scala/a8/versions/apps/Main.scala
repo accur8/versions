@@ -21,7 +21,7 @@ import io.accur8.neodeploy.model.{ApplicationName, ServerName, UserLogin}
 import wvlet.log.{LogLevel, Logger}
 
 import scala.annotation.tailrec
-import io.accur8.neodeploy.{PushRemoteSyncSubCommand, ValidateRepo, Runner => NeodeployRunner}
+import io.accur8.neodeploy.{InfrastructureSetupSubCommand, PushRemoteSyncSubCommand, ValidateRepo, Runner => NeodeployRunner}
 
 object Main extends Logging {
 
@@ -184,6 +184,16 @@ object Main extends Logging {
 
     }
 
+    val dnsSetup = new Subcommand("dns_setup") with Runner {
+
+      descr("will setup the various dns servers")
+
+      override def run(main: Main) =
+        NeodeployRunner(runnerFn = (rr, parms) => InfrastructureSetupSubCommand(rr).run, defaultLogLevel = defaultLogLevel)
+          .unsafeRun()
+
+    }
+
     def resolveArgs[A: FromString: ZStringer](singleArg: ScallopOption[String], csvArg: ScallopOption[String]): Filter[A] = {
       val values: Iterable[String] = singleArg.toOption ++ csvArg.toOption.toVector.flatMap(_.split(","))
       val fromString = implicitly[FromString[A]].fromString _
@@ -245,6 +255,7 @@ object Main extends Logging {
     addSubcommand(pushRemoteSync)
     addSubcommand(localUserSync)
     addSubcommand(validateServerAppConfigs)
+    addSubcommand(dnsSetup)
 
     verify()
 

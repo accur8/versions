@@ -1,17 +1,13 @@
-package io.accur8.neodeploy
+package io.accur8.neodeploy.plugin
 
-import a8.shared.ZFileSystem
 import a8.shared.SharedImports._
-import io.accur8.neodeploy.Systemd.{TimerFile, UnitFile}
-import io.accur8.neodeploy.resolvedmodel.{ResolvedPgbackrestClient, ResolvedPgbackrestServer, ResolvedRSnapshotServer, ResolvedUser}
+import a8.shared.ZFileSystem
+import io.accur8.neodeploy.resolvedmodel.ResolvedUser
 import io.accur8.neodeploy.systemstate.SystemState
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
-import zio.Task
 
 
-object PgbackrestConfgSync extends Sync[ResolvedUser] {
-
-  override val name: Sync.SyncName = Sync.SyncName("pgbackrestConfig")
+object PgbackrestConfig {
 
   def configFile(input: ResolvedUser): ZFileSystem.File =
     ZFileSystem.file(
@@ -29,14 +25,14 @@ object PgbackrestConfgSync extends Sync[ResolvedUser] {
       .plugins
       .pluginInstances
       .collect {
-        case rps: ResolvedPgbackrestServer =>
+        case rps: PgbackrestServerPlugin =>
           serverConfig(rps)
-        case rpc: ResolvedPgbackrestClient =>
+        case rpc: PgbackrestClientPlugin =>
           clientConfig(rpc)
       }
       .headOption
 
-  def clientConfig(resolvedClient: ResolvedPgbackrestClient): String = {
+  def clientConfig(resolvedClient: PgbackrestClientPlugin): String = {
 z"""
 [global]
 repo1-host=${resolvedClient.resolvedServer.user.server.descriptor.vpnDomainName}
@@ -60,7 +56,7 @@ pg1-path=${resolvedClient.descriptor.pgdata}
 """.ltrim
     }
 
-  def serverConfig(resolvedServer: ResolvedPgbackrestServer): String = {
+  def serverConfig(resolvedServer: PgbackrestServerPlugin): String = {
     lazy val clientConfigs =
       resolvedServer
         .clients
@@ -76,8 +72,7 @@ pg1-path=${resolvedClient.descriptor.pgdata}
     s"${resolvedServer.descriptor.configHeader}\n\n${clientConfigs}"
   }
 
-
-  override def systemState(input: ResolvedUser): M[SystemState] =
+  def systemState(input: ResolvedUser): M[SystemState] =
     fileContents(input) match {
       case Some(contents) =>
         zsucceed(

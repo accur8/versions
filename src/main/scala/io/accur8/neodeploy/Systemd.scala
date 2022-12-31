@@ -101,22 +101,22 @@ object Systemd {
 
     val daemonReloadCommand =
       Overrides.userSystemCtlCommand
-        .appendArgs("--user", "daemon-reload")
+        .appendArgs("daemon-reload")
         .asSystemStateCommand
 
     val enableTimerCommand =
       Overrides.userSystemCtlCommand
-        .appendArgs("--user", "enable", "--now", z"${unitName}.timer")
+        .appendArgs("enable", "--now", z"${unitName}.timer")
         .asSystemStateCommand
 
     val disableTimerCommand =
       Overrides.userSystemCtlCommand
-        .appendArgs("--user", "disable", z"${unitName}.timer")
+        .appendArgs("disable", z"${unitName}.timer")
         .asSystemStateCommand
 
     val stopTimerCommand =
       Overrides.userSystemCtlCommand
-        .appendArgs("--user", "stop", z"${unitName}.timer")
+        .appendArgs("stop", z"${unitName}.timer")
         .asSystemStateCommand
 
     val enableTimerCommands =

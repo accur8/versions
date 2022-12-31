@@ -15,6 +15,7 @@ import zio.ZIO
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFileAttributeView
 import scala.collection.immutable.Vector
+import io.accur8.neodeploy.PredefAssist._
 
 object SystemStateImpl extends LoggingF {
 
@@ -183,12 +184,12 @@ object SystemStateImpl extends LoggingF {
     }
 
 
-    loggerF.debug(s"starting actionNeededCache ${newState.resolvedSyncState.syncName} ${newState.resolvedSyncState.resolvedName}") *>
-    impl(newState.systemState)
-      .map(ActionNeededCache.apply)
-      .tap(_ =>
-        loggerF.debug(s"completed actionNeededCache ${newState.resolvedSyncState.syncName} ${newState.resolvedSyncState.resolvedName}")
-      )
+    traceLog(
+      s"actionNeededCache ${newState.resolvedSyncState.syncName} ${newState.resolvedSyncState.resolvedName}",
+      impl(newState.systemState)
+        .map(ActionNeededCache.apply)
+    )
+
   }
 
   def isEmpty(state: SystemState): Boolean =

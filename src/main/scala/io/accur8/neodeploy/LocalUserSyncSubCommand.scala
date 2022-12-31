@@ -42,19 +42,8 @@ case class LocalUserSyncSubCommand(appsFilter: Filter[ApplicationName], syncsFil
   override def defaultZioLogLevel: zio.LogLevel =
     LoggerF.impl.toZioLogLevel(defaultLogLevel)
 
-  override def runT: ZIO[BootstrapEnv, Throwable, Unit] = {
-    import Layers._
-    runM
-      .provide(
-        configL,
-        healthchecksDotIoL,
-        resolvedRepositoryL,
-        resolvedUserL,
-        resolvedServerL,
-        SystemStateLogger.simpleLayer,
-      )
-  }
-
+  override def runT: ZIO[BootstrapEnv, Throwable, Unit] =
+    Layers.provide(runM)
 
   def runM: M[Unit] =
     for {
@@ -64,6 +53,5 @@ case class LocalUserSyncSubCommand(appsFilter: Filter[ApplicationName], syncsFil
           .run
           .logVoid
     } yield ()
-
 
 }

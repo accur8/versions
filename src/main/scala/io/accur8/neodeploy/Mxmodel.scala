@@ -403,7 +403,7 @@ object Mxmodel {
       lazy val stopServerCommand: CaseClassParm[ApplicationDescriptor,Option[Command]] = CaseClassParm[ApplicationDescriptor,Option[Command]]("stopServerCommand", _.stopServerCommand, (d,v) => d.copy(stopServerCommand = v), Some(()=> None), 4)
       lazy val startServerCommand: CaseClassParm[ApplicationDescriptor,Option[Command]] = CaseClassParm[ApplicationDescriptor,Option[Command]]("startServerCommand", _.startServerCommand, (d,v) => d.copy(startServerCommand = v), Some(()=> None), 5)
       lazy val domainName: CaseClassParm[ApplicationDescriptor,Option[DomainName]] = CaseClassParm[ApplicationDescriptor,Option[DomainName]]("domainName", _.domainName, (d,v) => d.copy(domainName = v), Some(()=> None), 6)
-      lazy val domainNames: CaseClassParm[ApplicationDescriptor,Iterable[DomainName]] = CaseClassParm[ApplicationDescriptor,Iterable[DomainName]]("domainNames", _.domainNames, (d,v) => d.copy(domainNames = v), Some(()=> Iterable.empty), 7)
+      lazy val domainNames: CaseClassParm[ApplicationDescriptor,Vector[DomainName]] = CaseClassParm[ApplicationDescriptor,Vector[DomainName]]("domainNames", _.domainNames, (d,v) => d.copy(domainNames = v), Some(()=> Vector.empty), 7)
       lazy val launcher: CaseClassParm[ApplicationDescriptor,Launcher] = CaseClassParm[ApplicationDescriptor,Launcher]("launcher", _.launcher, (d,v) => d.copy(launcher = v), Some(()=> SupervisorDescriptor.empty), 8)
     }
     
@@ -419,7 +419,7 @@ object Mxmodel {
           stopServerCommand = values(4).asInstanceOf[Option[Command]],
           startServerCommand = values(5).asInstanceOf[Option[Command]],
           domainName = values(6).asInstanceOf[Option[DomainName]],
-          domainNames = values(7).asInstanceOf[Iterable[DomainName]],
+          domainNames = values(7).asInstanceOf[Vector[DomainName]],
           launcher = values(8).asInstanceOf[Launcher],
         )
       }
@@ -433,14 +433,14 @@ object Mxmodel {
             stopServerCommand = values.next().asInstanceOf[Option[Command]],
             startServerCommand = values.next().asInstanceOf[Option[Command]],
             domainName = values.next().asInstanceOf[Option[DomainName]],
-            domainNames = values.next().asInstanceOf[Iterable[DomainName]],
+            domainNames = values.next().asInstanceOf[Vector[DomainName]],
             launcher = values.next().asInstanceOf[Launcher],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(name: ApplicationName, install: Install, caddyConfig: Option[String], listenPort: Option[ListenPort], stopServerCommand: Option[Command], startServerCommand: Option[Command], domainName: Option[DomainName], domainNames: Iterable[DomainName], launcher: Launcher): ApplicationDescriptor =
+      def typedConstruct(name: ApplicationName, install: Install, caddyConfig: Option[String], listenPort: Option[ListenPort], stopServerCommand: Option[Command], startServerCommand: Option[Command], domainName: Option[DomainName], domainNames: Vector[DomainName], launcher: Launcher): ApplicationDescriptor =
         ApplicationDescriptor(name, install, caddyConfig, listenPort, stopServerCommand, startServerCommand, domainName, domainNames, launcher)
     
     }
@@ -893,6 +893,122 @@ object Mxmodel {
   
   
   
+  trait MxAwsCredentials {
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[AwsCredentials,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[AwsCredentials,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[AwsCredentials,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.awsSecretKey)
+          .addField(_.awsAccessKey)
+      )
+      .build
+    
+    implicit val zioEq: zio.prelude.Equal[AwsCredentials] = zio.prelude.Equal.default
+    
+    implicit val catsEq: cats.Eq[AwsCredentials] = cats.Eq.fromUniversalEquals
+    
+    lazy val generator: Generator[AwsCredentials,parameters.type] =  {
+      val constructors = Constructors[AwsCredentials](2, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val awsSecretKey: CaseClassParm[AwsCredentials,AwsSecretKey] = CaseClassParm[AwsCredentials,AwsSecretKey]("awsSecretKey", _.awsSecretKey, (d,v) => d.copy(awsSecretKey = v), None, 0)
+      lazy val awsAccessKey: CaseClassParm[AwsCredentials,AwsAccessKey] = CaseClassParm[AwsCredentials,AwsAccessKey]("awsAccessKey", _.awsAccessKey, (d,v) => d.copy(awsAccessKey = v), None, 1)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): AwsCredentials = {
+        AwsCredentials(
+          awsSecretKey = values(0).asInstanceOf[AwsSecretKey],
+          awsAccessKey = values(1).asInstanceOf[AwsAccessKey],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): AwsCredentials = {
+        val value =
+          AwsCredentials(
+            awsSecretKey = values.next().asInstanceOf[AwsSecretKey],
+            awsAccessKey = values.next().asInstanceOf[AwsAccessKey],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(awsSecretKey: AwsSecretKey, awsAccessKey: AwsAccessKey): AwsCredentials =
+        AwsCredentials(awsSecretKey, awsAccessKey)
+    
+    }
+    
+    
+    lazy val typeName = "AwsCredentials"
+  
+  }
+  
+  
+  
+  
+  trait MxManagedDomain {
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ManagedDomain,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ManagedDomain,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[ManagedDomain,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.topLevelDomains)
+          .addField(_.awsCredentials)
+      )
+      .build
+    
+    implicit val zioEq: zio.prelude.Equal[ManagedDomain] = zio.prelude.Equal.default
+    
+    implicit val catsEq: cats.Eq[ManagedDomain] = cats.Eq.fromUniversalEquals
+    
+    lazy val generator: Generator[ManagedDomain,parameters.type] =  {
+      val constructors = Constructors[ManagedDomain](2, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val topLevelDomains: CaseClassParm[ManagedDomain,Vector[DomainName]] = CaseClassParm[ManagedDomain,Vector[DomainName]]("topLevelDomains", _.topLevelDomains, (d,v) => d.copy(topLevelDomains = v), None, 0)
+      lazy val awsCredentials: CaseClassParm[ManagedDomain,AwsCredentials] = CaseClassParm[ManagedDomain,AwsCredentials]("awsCredentials", _.awsCredentials, (d,v) => d.copy(awsCredentials = v), None, 1)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): ManagedDomain = {
+        ManagedDomain(
+          topLevelDomains = values(0).asInstanceOf[Vector[DomainName]],
+          awsCredentials = values(1).asInstanceOf[AwsCredentials],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): ManagedDomain = {
+        val value =
+          ManagedDomain(
+            topLevelDomains = values.next().asInstanceOf[Vector[DomainName]],
+            awsCredentials = values.next().asInstanceOf[AwsCredentials],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(topLevelDomains: Vector[DomainName], awsCredentials: AwsCredentials): ManagedDomain =
+        ManagedDomain(topLevelDomains, awsCredentials)
+    
+    }
+    
+    
+    lazy val typeName = "ManagedDomain"
+  
+  }
+  
+  
+  
+  
   trait MxRepositoryDescriptor {
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[RepositoryDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[RepositoryDescriptor,parameters.type] = builder
@@ -903,6 +1019,8 @@ object Mxmodel {
           .addField(_.publicKeys)
           .addField(_.servers)
           .addField(_.healthchecksApiToken)
+          .addField(_.managedDomains)
+          .addField(_.plugins)
       )
       .build
     
@@ -911,7 +1029,7 @@ object Mxmodel {
     implicit val catsEq: cats.Eq[RepositoryDescriptor] = cats.Eq.fromUniversalEquals
     
     lazy val generator: Generator[RepositoryDescriptor,parameters.type] =  {
-      val constructors = Constructors[RepositoryDescriptor](3, unsafe.iterRawConstruct)
+      val constructors = Constructors[RepositoryDescriptor](5, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -919,6 +1037,8 @@ object Mxmodel {
       lazy val publicKeys: CaseClassParm[RepositoryDescriptor,Iterable[Personnel]] = CaseClassParm[RepositoryDescriptor,Iterable[Personnel]]("publicKeys", _.publicKeys, (d,v) => d.copy(publicKeys = v), Some(()=> Iterable.empty), 0)
       lazy val servers: CaseClassParm[RepositoryDescriptor,Vector[ServerDescriptor]] = CaseClassParm[RepositoryDescriptor,Vector[ServerDescriptor]]("servers", _.servers, (d,v) => d.copy(servers = v), None, 1)
       lazy val healthchecksApiToken: CaseClassParm[RepositoryDescriptor,HealthchecksDotIo.ApiAuthToken] = CaseClassParm[RepositoryDescriptor,HealthchecksDotIo.ApiAuthToken]("healthchecksApiToken", _.healthchecksApiToken, (d,v) => d.copy(healthchecksApiToken = v), None, 2)
+      lazy val managedDomains: CaseClassParm[RepositoryDescriptor,Vector[ManagedDomain]] = CaseClassParm[RepositoryDescriptor,Vector[ManagedDomain]]("managedDomains", _.managedDomains, (d,v) => d.copy(managedDomains = v), Some(()=> Vector.empty), 3)
+      lazy val plugins: CaseClassParm[RepositoryDescriptor,JsDoc] = CaseClassParm[RepositoryDescriptor,JsDoc]("plugins", _.plugins, (d,v) => d.copy(plugins = v), Some(()=> JsDoc.empty), 4)
     }
     
     
@@ -929,6 +1049,8 @@ object Mxmodel {
           publicKeys = values(0).asInstanceOf[Iterable[Personnel]],
           servers = values(1).asInstanceOf[Vector[ServerDescriptor]],
           healthchecksApiToken = values(2).asInstanceOf[HealthchecksDotIo.ApiAuthToken],
+          managedDomains = values(3).asInstanceOf[Vector[ManagedDomain]],
+          plugins = values(4).asInstanceOf[JsDoc],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): RepositoryDescriptor = {
@@ -937,13 +1059,15 @@ object Mxmodel {
             publicKeys = values.next().asInstanceOf[Iterable[Personnel]],
             servers = values.next().asInstanceOf[Vector[ServerDescriptor]],
             healthchecksApiToken = values.next().asInstanceOf[HealthchecksDotIo.ApiAuthToken],
+            managedDomains = values.next().asInstanceOf[Vector[ManagedDomain]],
+            plugins = values.next().asInstanceOf[JsDoc],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(publicKeys: Iterable[Personnel], servers: Vector[ServerDescriptor], healthchecksApiToken: HealthchecksDotIo.ApiAuthToken): RepositoryDescriptor =
-        RepositoryDescriptor(publicKeys, servers, healthchecksApiToken)
+      def typedConstruct(publicKeys: Iterable[Personnel], servers: Vector[ServerDescriptor], healthchecksApiToken: HealthchecksDotIo.ApiAuthToken, managedDomains: Vector[ManagedDomain], plugins: JsDoc): RepositoryDescriptor =
+        RepositoryDescriptor(publicKeys, servers, healthchecksApiToken, managedDomains, plugins)
     
     }
     

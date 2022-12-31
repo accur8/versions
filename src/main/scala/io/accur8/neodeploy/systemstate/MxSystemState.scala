@@ -11,7 +11,7 @@ package io.accur8.neodeploy.systemstate
 //====
 import a8.shared.ZFileSystem
 import io.accur8.neodeploy.HealthchecksDotIo
-import io.accur8.neodeploy.model.{ApplicationDescriptor, DockerDescriptor}
+import io.accur8.neodeploy.model.{ApplicationDescriptor, DockerDescriptor, DomainName}
 import io.accur8.neodeploy.model.Install.JavaApp
 import io.accur8.neodeploy.systemstate.SystemState._
 import io.accur8.neodeploy.systemstate.SystemStateModel._
@@ -314,6 +314,72 @@ object MxSystemState {
     
     
     lazy val typeName = "Composite"
+  
+  }
+  
+  
+  
+  
+  trait MxDnsRecord {
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[DnsRecord,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[DnsRecord,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[DnsRecord,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.name)
+          .addField(_.recordType)
+          .addField(_.values)
+          .addField(_.ttl)
+      )
+      .build
+    
+    implicit val zioEq: zio.prelude.Equal[DnsRecord] = zio.prelude.Equal.default
+    
+    implicit val catsEq: cats.Eq[DnsRecord] = cats.Eq.fromUniversalEquals
+    
+    lazy val generator: Generator[DnsRecord,parameters.type] =  {
+      val constructors = Constructors[DnsRecord](4, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val name: CaseClassParm[DnsRecord,DomainName] = CaseClassParm[DnsRecord,DomainName]("name", _.name, (d,v) => d.copy(name = v), None, 0)
+      lazy val recordType: CaseClassParm[DnsRecord,String] = CaseClassParm[DnsRecord,String]("recordType", _.recordType, (d,v) => d.copy(recordType = v), None, 1)
+      lazy val values: CaseClassParm[DnsRecord,Vector[String]] = CaseClassParm[DnsRecord,Vector[String]]("values", _.values, (d,v) => d.copy(values = v), None, 2)
+      lazy val ttl: CaseClassParm[DnsRecord,Long] = CaseClassParm[DnsRecord,Long]("ttl", _.ttl, (d,v) => d.copy(ttl = v), None, 3)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): DnsRecord = {
+        DnsRecord(
+          name = values(0).asInstanceOf[DomainName],
+          recordType = values(1).asInstanceOf[String],
+          values = values(2).asInstanceOf[Vector[String]],
+          ttl = values(3).asInstanceOf[Long],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): DnsRecord = {
+        val value =
+          DnsRecord(
+            name = values.next().asInstanceOf[DomainName],
+            recordType = values.next().asInstanceOf[String],
+            values = values.next().asInstanceOf[Vector[String]],
+            ttl = values.next().asInstanceOf[Long],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(name: DomainName, recordType: String, values: Vector[String], ttl: Long): DnsRecord =
+        DnsRecord(name, recordType, values, ttl)
+    
+    }
+    
+    
+    lazy val typeName = "DnsRecord"
   
   }
   

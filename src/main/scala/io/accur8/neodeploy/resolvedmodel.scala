@@ -8,13 +8,13 @@ import a8.shared.SharedImports._
 import a8.shared.ZString.ZStringer
 import a8.shared.app.LoggingF
 import a8.shared.json.JsonCodec
-import a8.shared.json.ast.{JsDoc, JsObj, JsVal}
+import a8.shared.json.ast.{JsDoc, JsNothing, JsObj, JsVal}
 import io.accur8.neodeploy.Sync.SyncName
 import zio.{Chunk, Task, UIO, ZIO}
 import PredefAssist._
 import com.typesafe.config.{Config, ConfigFactory, ConfigValue}
-import io.accur8.neodeploy.resolvedmodel.ResolvedPgbackrestServer
-import io.accur8.neodeploy.systemstate.SystemStateModel.M
+import io.accur8.neodeploy.plugin.{PgbackrestServerPlugin, RepositoryPlugins}
+import io.accur8.neodeploy.systemstate.SystemStateModel.{Environ, M}
 
 object resolvedmodel extends LoggingF {
 
@@ -36,7 +36,7 @@ object resolvedmodel extends LoggingF {
     lazy val gitAppsDirectory =
       server.gitServerDirectory.subdir(descriptor.login.value)
 
-    lazy val resolvedAppsM: M[Vector[ResolvedApp]] =
+    lazy val resolvedAppsT: Task[Vector[ResolvedApp]] =
       gitAppsDirectory
         .subdirs
         .flatMap(
@@ -45,7 +45,7 @@ object resolvedmodel extends LoggingF {
             .map(_.flatten.toVector)
         )
 
-    lazy val plugins = UserPlugin.UserPlugins(descriptor.plugins, this)
+    lazy val plugins = UserPlugin.UserPlugins(this)
 
     lazy val a8VersionsExec =
       descriptor
@@ -126,6 +126,33 @@ object resolvedmodel extends LoggingF {
     gitServerDirectory: GitServerDirectory,
     repository: ResolvedRepository,
   ) {
+
+    def virtualHosts = {
+      resolvedUsers
+        .map(_.resolvedAppsT)
+        .sequence
+        .map(_.flatten)
+        .map { apps =>
+          def impl(serverNameOpt: Option[DomainName]) =
+            serverNameOpt
+              .toVector
+              .flatMap { serverName =>
+                val tld = serverName.topLevelDomain
+                apps
+                  .flatMap { app =>
+                    app.descriptor.listenPort.map { listenPort =>
+                      VirtualHost(
+                        serverName = serverName,
+                        virtualNames = app.descriptor.resolvedDomainNames.filter(_.isSubDomainOf(tld)),
+                        listenPort = listenPort,
+                      )
+                    }
+                  }
+              }
+          impl(descriptor.publicDomainName) ++ impl(descriptor.vpnDomainName.some)
+        }
+
+    }
 
     def fetchUserZ(login: UserLogin): ZIO[Any, Throwable, ResolvedUser] =
       fetchUserOpt(login)
@@ -257,10 +284,44 @@ object resolvedmodel extends LoggingF {
 
   }
 
+  case class VirtualHost(
+    serverName: DomainName,
+    virtualNames: Vector[DomainName],
+    listenPort: ListenPort,
+  )
+
   case class ResolvedRepository(
     descriptor: RepositoryDescriptor,
     gitRootDirectory: GitRootDirectory,
   ) {
+
+
+    /**
+     * takes the domain name and if it is managed splits it out into the top level domain and the managed domain
+     *
+     * So if xyz.domain.com is the domainName passed in and domain.com is the managed domain then this returns
+     * Some("xyz", DomainName("domain.com"))
+     *
+     */
+    def findManagedDomain(domainName: DomainName): Option[ManagedDomain] = {
+      val tld = domainName.topLevelDomain
+      descriptor
+        .managedDomains
+        .find(_.topLevelDomains.contains(tld))
+    }
+    lazy val repositoryPlugins = RepositoryPlugins(this)
+
+    def virtualHosts: Task[Vector[VirtualHost]] =
+      servers
+        .map(_.virtualHosts)
+        .sequence
+        .map(_.flatten)
+
+    def applications: Task[Vector[ResolvedApp]] =
+      users
+        .map(_.resolvedAppsT)
+        .sequence
+        .map(_.flatten)
 
     def fetchUser(qname: QualifiedUserName): ResolvedUser =
       users
@@ -341,8 +402,8 @@ object resolvedmodel extends LoggingF {
     lazy val resolvedPgbackrestServerOpt =
       userPlugins
         .collect {
-          case rps: ResolvedPgbackrestServer =>
-            rps
+          case ps: PgbackrestServerPlugin =>
+            ps
         }
         .headOption
 
@@ -376,166 +437,6 @@ object resolvedmodel extends LoggingF {
 
   }
 
-  object ResolvedRSnapshotClient extends UserPlugin.Factory.AbstractFactory[RSnapshotClientDescriptor]("rsnapshotClient")
-
-  case class ResolvedRSnapshotClient(
-    descriptor: RSnapshotClientDescriptor,
-    user: ResolvedUser,
-  ) extends UserPlugin {
-
-    def descriptorJson = descriptor.toJsVal
-
-    def name = "rsnapshotClient"
-
-    lazy val server: ResolvedServer = user.server
-
-    // this makes sure there is a tab separate the include|exclude keyword and the path
-    lazy val resolvedIncludeExcludeLines =
-      descriptor
-        .includeExcludeLines
-        .map { line =>
-          line
-            .splitList("[ \t]", limit = 2)
-            .mkString("\t")
-        }
-        .mkString("\n")
-
-    lazy val sshUrl: String = z"${user.login}@${server.name}"
-
-    // this makes sure there is a tab separate the include|exclude keyword and the path
-    lazy val resolvedBackupLines =
-      descriptor
-        .directories
-        .map { directory =>
-          val parts = Seq("backup", z"${sshUrl}:${directory}", z"${user.server.name}/")
-          parts
-            .mkString("\t")
-        }
-        .mkString("\n")
-
-
-    override def resolveAuthorizedKeysImpl: Task[Vector[ResolvedAuthorizedKey]] =
-      user
-        .server
-        .repository
-        .userPlugins
-        .map {
-          case rss: ResolvedRSnapshotServer =>
-            rss
-              .user
-              .resolveLoginKeys
-          case _ =>
-            zsucceed(None)
-        }
-        .sequence
-        .map(_.flatten)
-
-  }
-
-  object ResolvedRSnapshotServer extends UserPlugin.Factory.AbstractFactory[RSnapshotServerDescriptor]("rsnapshotServer")
-
-  case class ResolvedRSnapshotServer(
-    descriptor: RSnapshotServerDescriptor,
-    user: ResolvedUser,
-  ) extends UserPlugin {
-
-    def descriptorJson = descriptor.toJsVal
-
-    def name = "rsnapshotServer"
-
-    lazy val server: ResolvedServer = user.server
-
-    lazy val clients =
-      user
-        .server
-        .repository
-        .userPlugins
-        .collect {
-          case rc: ResolvedRSnapshotClient =>
-            rc
-        }
-  }
-
-
-  object ResolvedPgbackrestClient extends UserPlugin.Factory.AbstractFactory[PgbackrestClientDescriptor]("pgbackrestClient")
-
-  case class ResolvedPgbackrestClient(
-    descriptor: PgbackrestClientDescriptor,
-    user: ResolvedUser,
-  ) extends UserPlugin {
-
-    def stanzaName = descriptor.stanzaNameOverride.getOrElse(user.server.name.value)
-
-    def descriptorJson = descriptor.toJsVal
-
-    override def name: String = "pgbackrestClient"
-
-    def resolvedServer: ResolvedPgbackrestServer =
-      user
-        .server
-        .repository
-        .resolvedPgbackrestServerOpt
-        .getOrError("must have a pgbackrest server configured")
-
-
-    override def resolveAuthorizedKeysImpl: Task[Vector[ResolvedAuthorizedKey]] =
-      user
-        .server
-        .repository
-        .userPlugins
-        .map {
-          case rps: ResolvedPgbackrestServer =>
-            rps.user.resolveLoginKeys
-          case _ =>
-            zsucceed(Vector.empty)
-        }
-        .sequence
-        .map(_.flatten)
-
-    lazy val server: ResolvedServer = user.server
-
-  }
-
-
-  object ResolvedPgbackrestServer extends UserPlugin.Factory.AbstractFactory[PgbackrestServerDescriptor]("pgbackrestServer")
-
-  case class ResolvedPgbackrestServer(
-    descriptor: PgbackrestServerDescriptor,
-    user: ResolvedUser,
-  ) extends UserPlugin {
-
-    def descriptorJson = descriptor.toJsVal
-
-    override def name: String = "pgbackrestServer"
-
-
-    override def resolveAuthorizedKeysImpl: Task[Vector[ResolvedAuthorizedKey]] =
-      user
-        .server
-        .repository
-        .userPlugins
-        .map {
-          case rpc: ResolvedPgbackrestClient =>
-            rpc.user.resolveLoginKeys
-          case _ =>
-            zsucceed(Vector.empty)
-        }
-        .sequence
-        .map(_.flatten)
-
-    lazy val server: ResolvedServer = user.server
-
-    lazy val clients =
-      user
-        .server
-        .repository
-        .userPlugins
-        .collect {
-          case rc: ResolvedPgbackrestClient =>
-            rc
-        }
-
-  }
 
   case class ResolvedPersonnel(
     repository: ResolvedRepository,

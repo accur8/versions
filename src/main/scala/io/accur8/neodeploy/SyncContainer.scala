@@ -3,7 +3,7 @@ package io.accur8.neodeploy
 
 import a8.shared.ZFileSystem.Directory
 import a8.shared.json.JsonCodec
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.{zservice, _}
 import a8.shared.{StringValue, ZFileSystem}
 import a8.shared.ZString.ZStringer
 import a8.shared.app.{Logging, LoggingF}
@@ -60,7 +60,11 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
 
   val previousStates: Vector[PreviousState]
   val newResolveds: Vector[Resolved]
-  val syncs: Seq[Sync[Resolved]]
+  val staticSyncs: Seq[Sync[Resolved]]
+  def resolvedSyncs(resolved: Resolved): Seq[Sync[Resolved]]
+
+  def syncs(resolved: Option[Resolved]) =
+    staticSyncs ++ resolved.toSeq.flatMap(resolvedSyncs)
 
   lazy val newResolvedsByName: Map[Name,Resolved] =
     newResolveds
@@ -81,7 +85,7 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
 
     val currentNamePairs: Vector[NamePair] =
       newResolveds.flatMap(resolved =>
-        syncs.map(sync =>
+        syncs(resolved.some).map(sync =>
           NamePair(sync.name, name(resolved))
         )
       )
@@ -113,7 +117,7 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
   def run(namePair: NamePair, previousState: PreviousState): M[Unit] = {
 
     val resolvedOpt = newResolveds.find(r => name(r) === namePair.resolvedName)
-    val syncOpt = syncs.find(_.name === namePair.syncName)
+    val syncOpt = syncs(resolvedOpt).find(_.name === namePair.syncName)
 
     val newStateEffect =
       (
@@ -141,6 +145,7 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
         _ <- loggerF.trace(s"uninstalling obsolete ${namePair}")
         _ <- interpretter.runUninstallObsolete
         _ <- loggerF.trace(s"updating state ${namePair}")
+        _ <- runSystemStateServicesCommit
         _ <- updateState(newState)
       } yield ()
 
@@ -155,6 +160,8 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
       .correlateWith(s"SyncContainer.run(${namePair})")
 
   }
+
+  def runSystemStateServicesCommit: M[Unit] = zunit
 
   def updateState(newState: NewState): Task[Unit] = {
     val isEmpty = newState.isEmpty

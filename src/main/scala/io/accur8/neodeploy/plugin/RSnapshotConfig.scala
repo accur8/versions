@@ -1,9 +1,6 @@
-package io.accur8.neodeploy
-
+package io.accur8.neodeploy.plugin
 
 import a8.shared.SharedImports._
-import io.accur8.neodeploy.resolvedmodel.{ResolvedRSnapshotClient, ResolvedRSnapshotServer}
-import PredefAssist._
 
 object RSnapshotConfig {
 
@@ -12,7 +9,7 @@ object RSnapshotConfig {
   def tabs(args: String*): String =
     args.mkString(tab)
 
-  def serverConfigForClient(serverConfig: ResolvedRSnapshotServer, client: ResolvedRSnapshotClient): String = {
+  def serverConfigForClient(serverConfig: RSnapshotServerPlugin, client: RSnapshotClientPlugin): String = {
 
     z"""
 #################################################

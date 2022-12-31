@@ -1,30 +1,46 @@
-package io.accur8.neodeploy
-
+package io.accur8.neodeploy.plugin
 
 import a8.shared.SharedImports._
-import io.accur8.neodeploy.resolvedmodel.{ResolvedRSnapshotServer, ResolvedServer, ResolvedUser}
-import zio.{Task, ZIO, ZLayer}
-import PredefAssist._
-import a8.shared.{CompanionGen, Synchronize}
-import a8.shared.json.ast.JsDoc
+import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.Systemd.{TimerFile, UnitFile}
-import io.accur8.neodeploy.model.{OnCalendarValue, QualifiedUserName, RSnapshotClientDescriptor, RSnapshotServerDescriptor}
+import io.accur8.neodeploy.model.{OnCalendarValue, RSnapshotServerDescriptor}
+import io.accur8.neodeploy.resolvedmodel.{ResolvedServer, ResolvedUser}
 import io.accur8.neodeploy.systemstate.SystemState
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
+import io.accur8.neodeploy.{HealthchecksDotIo, Systemd, UserPlugin}
 
-object RSnapshotServerSync extends Sync[ResolvedUser] {
+object RSnapshotServerPlugin extends UserPlugin.Factory[RSnapshotServerDescriptor]("rsnapshotServer")
+
+case class RSnapshotServerPlugin(
+  descriptor: RSnapshotServerDescriptor,
+  user: ResolvedUser,
+) extends UserPlugin {
+
+  def descriptorJson = descriptor.toJsVal
+
+  val name = SyncName("rsnapshotServer")
+
+  lazy val server: ResolvedServer = user.server
+
+  lazy val clients =
+    user
+      .server
+      .repository
+      .userPlugins
+      .collect {
+        case rcp: RSnapshotClientPlugin =>
+          rcp
+      }
+
 
   // for each rsnapshot client
-      // create rsnapshot config
-      // create healthchecks.io check
-      // create systemd unit and timer
+  // create rsnapshot config
+  // create healthchecks.io check
+  // create systemd unit and timer
 
   // on each servers rsnapshot user create authorized_keys2 file entry
-      // add proper scripts for ssh validations and invocation
-      // add proper sudo implementation so we can sudo
-
-  override val name: Sync.SyncName = Sync.SyncName("rsnapshotServer")
-
+  // add proper scripts for ssh validations and invocation
+  // add proper sudo implementation so we can sudo
 
   override def systemState(user: ResolvedUser): M[SystemState] =
     zsucceed(rawSystemState(user))
@@ -37,7 +53,7 @@ object RSnapshotServerSync extends Sync[ResolvedUser] {
       .getOrElse(SystemState.Empty)
 
 
-  def systemState(resolvedRSnapshotServer: ResolvedRSnapshotServer): SystemState =
+  def systemState(resolvedRSnapshotServer: RSnapshotServerPlugin): SystemState =
     SystemState.Composite(
       "setup rsnapshot server",
       resolvedRSnapshotServer
@@ -48,7 +64,7 @@ object RSnapshotServerSync extends Sync[ResolvedUser] {
     )
 
 
-  def setupClientSystemState(resolvedServer: resolvedmodel.ResolvedRSnapshotServer, client: resolvedmodel.ResolvedRSnapshotClient): SystemState = {
+  def setupClientSystemState(resolvedServer: RSnapshotServerPlugin, client: RSnapshotClientPlugin): SystemState = {
 
     lazy val rsnapshotConfigFile =
       resolvedServer
@@ -101,3 +117,4 @@ object RSnapshotServerSync extends Sync[ResolvedUser] {
   }
 
 }
+

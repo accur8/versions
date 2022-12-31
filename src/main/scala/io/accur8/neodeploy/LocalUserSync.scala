@@ -11,7 +11,7 @@ import a8.shared.json.ast
 import a8.shared.json.ast.{JsDoc, JsObj, JsVal}
 import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
 import io.accur8.neodeploy.Sync.SyncName
-import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedRSnapshotServer, ResolvedServer, ResolvedUser}
+import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedServer, ResolvedUser}
 import io.accur8.neodeploy.systemstate.SystemdSync
 import systemstate.SystemStateModel._
 
@@ -35,15 +35,14 @@ case class LocalUserSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicat
 
     override val newResolveds = Vector(resolvedUser)
 
-    override val syncs: Seq[Sync[ResolvedUser]] =
+    override val staticSyncs: Seq[Sync[ResolvedUser]] =
       Seq(
         AuthorizedKeys2Sync,
         ManagedSshKeysSync,
-        PgbackrestConfgSync,
-        PgbackrestServerSync,
-        RSnapshotServerSync,
       ).filter(s => syncsFilter.matches(s.name))
 
+    override def resolvedSyncs(resolved: ResolvedUser): Seq[Sync[ResolvedUser]] =
+      resolved.plugins.pluginInstances
 
   }
 
@@ -52,7 +51,7 @@ case class LocalUserSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicat
     override def name(resolved: ResolvedApp): ApplicationName = resolved.name
     override def nameFromStr(nameStr: String): ApplicationName = ApplicationName(nameStr)
 
-    override val syncs: Seq[Sync[ResolvedApp]] =
+    override val staticSyncs: Seq[Sync[ResolvedApp]] =
       Vector(
         CaddySync(resolvedServer.caddyDirectory),
         SupervisorSync(resolvedServer.supervisorDirectory),
@@ -61,12 +60,15 @@ case class LocalUserSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicat
         SystemdSync,
       ).filter(s => syncsFilter.include(s.name))
 
+    override def resolvedSyncs(resolved: ResolvedApp): Seq[Sync[ResolvedApp]] =
+      Seq.empty
+
   }
 
   def appSyncRun: ZIO[Environ, Nothing, Either[Throwable, Unit]] = {
     loggerF.trace("appSyncRun") *> loggerF.debug("appSyncRun") *>
     resolvedUser
-      .resolvedAppsM
+      .resolvedAppsT
       .either
       .flatMap {
         case Right(resolvedApps) =>

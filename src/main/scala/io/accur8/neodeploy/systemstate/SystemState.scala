@@ -6,7 +6,7 @@ import a8.shared.json.ast.JsObj
 import a8.shared.json.{JsonCodec, JsonTypedCodec, UnionCodecBuilder, ast}
 import io.accur8.neodeploy.{HealthchecksDotIo, LazyJsonCodec}
 import io.accur8.neodeploy.model.Install.JavaApp
-import io.accur8.neodeploy.model.{ApplicationDescriptor, DockerDescriptor, UserLogin}
+import io.accur8.neodeploy.model.{ApplicationDescriptor, DockerDescriptor, DomainName, UserLogin}
 import io.accur8.neodeploy.systemstate.MxSystemState._
 import io.accur8.neodeploy.systemstate.SystemStateModel._
 import zio.Chunk
@@ -79,6 +79,15 @@ object SystemState {
     override def subStates: Vector[SystemState] = states
   }
 
+  object DnsRecord extends MxDnsRecord
+  @CompanionGen
+  case class DnsRecord(
+    name: DomainName,
+    recordType: String,
+    values: Vector[String],
+    ttl: Long,
+  ) extends NoSubStates with DnsRecordMixin
+
   object HealthCheck extends MxHealthCheck
   @CompanionGen
   case class HealthCheck(
@@ -137,6 +146,7 @@ object SystemState {
         .addType[SecretsTextFile]("secretstextfile")
         .addType[TextFile]("textfile")
         .addType[TriggeredState]("triggeredstate")
+        .addType[DnsRecord]("dnsrecord")
         .build
     )
 

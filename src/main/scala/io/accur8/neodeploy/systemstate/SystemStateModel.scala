@@ -3,7 +3,7 @@ package io.accur8.neodeploy.systemstate
 
 import a8.shared.ZFileSystem.Directory
 import a8.shared.{CompanionGen, FileSystem, SecretValue, StringValue}
-import io.accur8.neodeploy.{HealthchecksDotIo, LocalUserSyncSubCommand}
+import io.accur8.neodeploy.{DnsService, HealthchecksDotIo, LocalUserSyncSubCommand}
 import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.systemstate.MxSystemStateModel._
 import zio.{&, Task, Trace, ZIO, ZLayer}
@@ -136,7 +136,7 @@ object SystemStateModel {
     def warn(message: String)(implicit trace: Trace): zio.Task[Unit]
   }
 
-  type Environ = SystemStateLogger with HealthchecksDotIo with ResolvedRepository with ResolvedServer with ResolvedUser
+  type Environ = SystemStateLogger with HealthchecksDotIo with ResolvedRepository with ResolvedServer with ResolvedUser with DnsService
 //  type Environ = SystemStateLogger & HealthchecksDotIo & SupervisorDirectory & CaddyDirectory & AppsRootDirectory
 
   type M[A] = zio.ZIO[Environ, Throwable, A]
