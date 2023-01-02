@@ -140,9 +140,9 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
         interpretter <- systemstate.Interpreter(newState, previousState)
         _ <- loggerF.trace(s"interpreter created ${namePair}")
         _ <- interpretter.dryRunLog.map(m => loggerF.info(m)).getOrElse(zunit)
-        _ <- loggerF.trace(s"applying new start ${namePair}")
+        _ <- loggerF.trace(s"applying new state ${namePair}")
         _ <- interpretter.runApplyNewState
-        _ <- loggerF.trace(s"uninstalling obsolete ${namePair}")
+        _ <- loggerF.trace(s"applying uninstall if obsolete state ${namePair}")
         _ <- interpretter.runUninstallObsolete
         _ <- loggerF.trace(s"updating state ${namePair}")
         _ <- runSystemStateServicesCommit

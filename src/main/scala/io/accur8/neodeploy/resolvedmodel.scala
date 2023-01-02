@@ -7,11 +7,12 @@ import model._
 import a8.shared.SharedImports._
 import a8.shared.ZString.ZStringer
 import a8.shared.app.LoggingF
-import a8.shared.json.JsonCodec
+import a8.shared.json.{JsonCodec, JsonReader}
 import a8.shared.json.ast.{JsDoc, JsNothing, JsObj, JsVal}
 import io.accur8.neodeploy.Sync.SyncName
 import zio.{Chunk, Task, UIO, ZIO}
 import PredefAssist._
+import a8.shared.json.JsonReader.ReadResult
 import com.typesafe.config.{Config, ConfigFactory, ConfigValue}
 import io.accur8.neodeploy.plugin.{PgbackrestServerPlugin, RepositoryPlugins}
 import io.accur8.neodeploy.systemstate.SystemStateModel.{Environ, M}
@@ -223,7 +224,7 @@ object resolvedmodel extends LoggingF {
       val baseConfig = ConfigFactory.parseMap(baseConfigMap.asJava)
 
       appDescriptorFilesZ
-        .map { appDescriptorFiles =>
+        .flatMap { appDescriptorFiles =>
           try {
             import HoconOps._
 
@@ -231,21 +232,36 @@ object resolvedmodel extends LoggingF {
               appDescriptorFiles
                 .map(f => HoconOps.impl.loadConfig(f.asNioPath))
             if (configs.isEmpty) {
-              None
+              zsucceed(None)
             } else {
               val resolvedConfig =
                 (configs ++ Vector(baseConfig))
                   .reduceLeft(_.resolveWith(_))
 
-              val descriptor =
-                resolvedConfig
-                  .read[ApplicationDescriptor]
-              ResolvedApp(descriptor, appConfigDir, resolvedUser).some
+              val readResult = JsonReader[ApplicationDescriptor].read(resolvedConfig)
+              def logWarnings =
+                if ( readResult.warnings.nonEmpty ) {
+                  loggerF.warn(s"found the following warnings reading the applicationDescriptor from ${appDescriptorFiles.mkString(" ")}\n${readResult.warnings.mkString("\n").indent("    ")}")
+                } else {
+                  zunit
+                }
+
+              val effect =
+                readResult match {
+                  case ReadResult.Success(descriptor, _) =>
+                    zsucceed(ResolvedApp(descriptor, appConfigDir, resolvedUser).some)
+                  case ReadResult.Error(re, _) =>
+                    loggerF.error(s"error reading application descriptor from ${appDescriptorFiles.mkString(" ")} -- ${re.prettyMessage}")
+                      .as(None)
+                }
+
+              logWarnings *> effect
+
             }
           } catch {
             case IsNonFatal(e) =>
-              logger.error(s"Failed to load application descriptor file: $appDescriptorFiles", e)
-              None
+              loggerF.error(s"Failed to load application descriptor file: $appDescriptorFiles", e)
+                .as(None)
           }
 
         }
