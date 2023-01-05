@@ -68,7 +68,7 @@ abstract class PluginManager[A,B <: Plugin[A]](outlet: A, jsd: JsDoc, factories:
       val nameCi = CIString(name)
       factories
         .find(_.name == nameCi)
-        .map(_.apply(pluginJsv.toDoc, outlet))
+        .map(_.apply(pluginJsv.toRootDoc, outlet))
         .getOrElse(Left(s"unable to resolve plugin named ${name} -- ${pluginJsv.compactJson}"))
     }
 
@@ -90,7 +90,7 @@ abstract class PluginManager[A,B <: Plugin[A]](outlet: A, jsd: JsDoc, factories:
           jsa
             .values
             .toVector
-            .flatMap(v => impl(v.toDoc))
+            .flatMap(v => impl(v.toRootDoc))
         case JsNothing =>
           Vector.empty
         case _ =>

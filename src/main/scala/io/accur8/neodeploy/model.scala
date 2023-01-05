@@ -134,7 +134,7 @@ object model extends LoggingF {
   case class GitRootDirectory(value: String) extends DirectoryValue
 
   sealed trait Install {
-    def execArgs(applicationDescriptor: ApplicationDescriptor, appDirectory: Directory, appsRootDirectory: AppsRootDirectory): Vector[String]
+    def command(applicationDescriptor: ApplicationDescriptor, appDirectory: Directory, appsRootDirectory: AppsRootDirectory): Command
     def description: String
   }
   object Install {
@@ -145,8 +145,15 @@ object model extends LoggingF {
         .defaultType[JavaApp]
         .addType[JavaApp]("javaapp")
         .addType[Manual]("manual")
+        .addSingleton("docker", Docker)
         .build
 
+
+    case object Docker extends Install {
+      override def command(applicationDescriptor: ApplicationDescriptor, appDirectory: Directory, appsRootDirectory: AppsRootDirectory): Command =
+        Command(Iterable.empty)
+      override def description: String = "docker"
+    }
 
     object JavaApp extends MxJavaApp
     @CompanionGen
@@ -164,8 +171,7 @@ object model extends LoggingF {
 
       override def description: String = s"$organization:$artifact:$version"
 
-
-      override def execArgs(applicationDescriptor: ApplicationDescriptor, appDirectory: Directory, appsRootDirectory: AppsRootDirectory): Vector[String] = {
+      override def command(applicationDescriptor: ApplicationDescriptor, appDirectory: Directory, appsRootDirectory: AppsRootDirectory): Command = {
         val appsRoot = appsRootDirectory
         val bin = appsRoot.subdir("bin").file(applicationDescriptor.name.value)
         val logsDir = appsRoot.subdir("logs")
@@ -184,22 +190,24 @@ object model extends LoggingF {
               z"-Dapp.name=${applicationDescriptor.name}",
               z"${mainClass}",
             ).map(_.toString())
-          baseArgs ++ appArgs
-
+        val args = baseArgs ++ appArgs
+        Command(
+          args,
+          appDir.some,
+        )
       }
 
     }
 
     object Manual extends MxManual {
-      val empty = Manual()
     }
     @CompanionGen
     case class Manual(
       description: String = "manual install",
-      execArgs: Vector[String] = Vector.empty,
+      command: Command,
     ) extends Install {
-      override def execArgs(applicationDescriptor: ApplicationDescriptor, appDirectory: Directory, appsRootDirectory: AppsRootDirectory): Vector[String] =
-        execArgs
+      override def command(applicationDescriptor: ApplicationDescriptor, appDirectory: Directory, appsRootDirectory: AppsRootDirectory): Command =
+        command
     }
 
   }
@@ -229,7 +237,7 @@ object model extends LoggingF {
     environment: Vector[String] = Vector.empty,
     onCalendar: Option[OnCalendarValue] = None,
     persistent: Option[Boolean] = None,
-    Type: String = "simple",
+    `type`: String = "simple",
   ) extends Launcher
 
   object DockerDescriptor extends MxDockerDescriptor {
@@ -267,7 +275,7 @@ object model extends LoggingF {
   @CompanionGen
   case class ApplicationDescriptor(
     name: ApplicationName,
-    install: Install = Install.Manual.empty,
+    install: Install,
     caddyConfig: Option[String] = None,
     listenPort: Option[ListenPort] = None,
     stopServerCommand: Option[Command] = None,
@@ -299,7 +307,10 @@ object model extends LoggingF {
     manageSshKeys: Boolean = true,
     appInstallDirectory: Option[AppsRootDirectory] = None,
     plugins: JsDoc = JsDoc.empty,
-  )
+  ) {
+    def resolvedAppsRootDirectory = appInstallDirectory.getOrElse(AppsRootDirectory(resolvedHome.subdir("apps").absolutePath))
+    def resolvedHome = home.getOrElse(dir(z"/home/${login}"))
+  }
 
 
   object ServerName extends StringValue.Companion[ServerName] {
@@ -410,7 +421,11 @@ object model extends LoggingF {
     healthchecksApiToken: HealthchecksDotIo.ApiAuthToken,
     managedDomains: Vector[ManagedDomain] = Vector.empty,
     plugins: JsDoc = JsDoc.empty,
-  )
+  ) {
+    def serversAndUsers =
+      servers
+        .flatMap(server => server.users.map(server -> _))
+  }
 
   object QualifiedUserName extends StringValue.Companion[QualifiedUserName]
   case class QualifiedUserName(value: String) extends StringValue

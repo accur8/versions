@@ -1,25 +1,36 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.json.JsonTypedCodec
+import a8.shared.json.{JsonCodec, JsonTypedCodec}
 import a8.shared.json.ast.{JsArr, JsStr}
 import zio.{Chunk, ExitCode, Trace, UIO, ZIO}
 import a8.shared.SharedImports._
 import PredefAssist._
+import a8.shared.CompanionGen
 import a8.shared.ZFileSystem.Directory
 import a8.shared.app.{LoggerF, LoggingF}
 import io.accur8.neodeploy.Command.CommandException
+import io.accur8.neodeploy.MxCommand.MxCommand
 import io.accur8.neodeploy.systemstate.SystemState.RunCommandState
 import zio.process.CommandError
 import zio.process.CommandError.NonZeroErrorCode
 
 object Command {
 
-  implicit val jsonCodec =
-    JsonTypedCodec.JsArr.dimap[Command](
-      arr => Command(arr.values.collect{ case JsStr(s) => s }),
-      cmd => JsArr(cmd.args.map(JsStr.apply).toList)
-    )
+  implicit val jsonCodec = {
+    val delegate = new MxCommand {}
+
+    val jsobjCodec = delegate.jsonCodec.asJsonCodec
+
+    val jsarrCodec =
+      JsonTypedCodec.JsArr.dimap[Command](
+        arr => Command(arr.values.collect{ case JsStr(s) => s }),
+        cmd => JsArr(cmd.args.map(JsStr.apply).toList)
+      ).asJsonCodec
+
+    JsonCodec.or(jsobjCodec, jsarrCodec)
+
+  }
 
   def apply(args: String*): Command =
     new Command(args)
@@ -33,6 +44,7 @@ object Command {
 
 }
 
+@CompanionGen
 case class Command(args: Iterable[String], workingDirectory: Option[Directory] = None) extends LoggingF {
 
   def asSystemStateCommand =

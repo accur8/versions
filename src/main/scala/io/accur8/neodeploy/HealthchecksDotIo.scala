@@ -2,6 +2,7 @@ package io.accur8.neodeploy
 
 import a8.shared.{CompanionGen, StringValue}
 import a8.shared.SharedImports._
+import a8.shared.app.LoggingF
 import io.accur8.neodeploy.HealthchecksDotIo.{ApiAuthToken, CheckReadOnly, CheckUpsertRequest, impl}
 import io.accur8.neodeploy.MxHealthchecksDotIo._
 import zio.{Task, ZIO}
@@ -116,7 +117,7 @@ object HealthchecksDotIo {
 
 }
 
-case class HealthchecksDotIo(apiAuthToken: ApiAuthToken) { self =>
+case class HealthchecksDotIo(apiAuthToken: ApiAuthToken) extends LoggingF { self =>
 
   def baseRequest =
     HttpRequest

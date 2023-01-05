@@ -48,6 +48,9 @@ object ApplicationInstallSync extends Logging with LoggingF {
         case _: Install.Manual =>
           zunit
 
+        case Install.Docker =>
+          zunit
+
       }
 
     def runInstallFromRepo(repo: JavaApp): Task[Unit] = (
@@ -172,6 +175,8 @@ case class ApplicationInstallSync(appsRootDirectory: AppsRootDirectory) extends 
 
   def rawSystemState(resolvedApp: ResolvedApp): SystemState =
     resolvedApp.descriptor.install match {
+      case Install.Docker =>
+        SystemState.Empty
       case fr: JavaApp =>
         SystemState.JavaAppInstall(
           gitAppDirectory = resolvedApp.gitDirectory,

@@ -1,7 +1,7 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.{CascadingHocon, CompanionGen, ConfigMojo, ConfigMojoOps, Exec, HoconOps, StringValue, ZString}
+import a8.shared.{CascadingHocon, CompanionGen, ConfigMojo, ConfigMojoOps, Exec, HoconOps, StringValue, ZRefreshable, ZString}
 import a8.shared.ZFileSystem.{Directory, File, dir, userHome}
 import model._
 import a8.shared.SharedImports._
@@ -10,12 +10,15 @@ import a8.shared.app.LoggingF
 import a8.shared.json.{JsonCodec, JsonReader}
 import a8.shared.json.ast.{JsDoc, JsNothing, JsObj, JsVal}
 import io.accur8.neodeploy.Sync.SyncName
-import zio.{Chunk, Task, UIO, ZIO}
+import zio.{Cause, Chunk, Task, UIO, ZIO}
 import PredefAssist._
 import a8.shared.json.JsonReader.ReadResult
 import com.typesafe.config.{Config, ConfigFactory, ConfigValue}
 import io.accur8.neodeploy.plugin.{PgbackrestServerPlugin, RepositoryPlugins}
+import io.accur8.neodeploy.resolvedmodel.ResolvedApp.LoadedApplicationDescriptor
+import io.accur8.neodeploy.resolvedmodel.ResolvedUser
 import io.accur8.neodeploy.systemstate.SystemStateModel.{Environ, M}
+import zio.cache.Lookup
 
 object resolvedmodel extends LoggingF {
 
@@ -23,6 +26,7 @@ object resolvedmodel extends LoggingF {
     descriptor: UserDescriptor,
     home: Directory,
     server: ResolvedServer,
+    loadedApplicationDescriptors: Vector[LoadedApplicationDescriptor],
   ) {
 
     def resolveLoginKeys: Task[Vector[ResolvedAuthorizedKey]] =
@@ -37,14 +41,9 @@ object resolvedmodel extends LoggingF {
     lazy val gitAppsDirectory =
       server.gitServerDirectory.subdir(descriptor.login.value)
 
-    lazy val resolvedAppsT: Task[Vector[ResolvedApp]] =
-      gitAppsDirectory
-        .subdirs
-        .flatMap(
-          _.map(appDir => server.loadResolvedAppFromDisk(appDir, this))
-            .sequence
-            .map(_.flatten.toVector)
-        )
+    lazy val resolvedApps: Vector[ResolvedApp] =
+      loadedApplicationDescriptors
+        .map(lad => ResolvedApp(lad, this))
 
     lazy val plugins = UserPlugin.UserPlugins(this)
 
@@ -129,30 +128,24 @@ object resolvedmodel extends LoggingF {
   ) {
 
     def virtualHosts = {
-      resolvedUsers
-        .map(_.resolvedAppsT)
-        .sequence
-        .map(_.flatten)
-        .map { apps =>
-          def impl(serverNameOpt: Option[DomainName]) =
-            serverNameOpt
-              .toVector
-              .flatMap { serverName =>
-                val tld = serverName.topLevelDomain
-                apps
-                  .flatMap { app =>
-                    app.descriptor.listenPort.map { listenPort =>
-                      VirtualHost(
-                        serverName = serverName,
-                        virtualNames = app.descriptor.resolvedDomainNames.filter(_.isSubDomainOf(tld)),
-                        listenPort = listenPort,
-                      )
-                    }
-                  }
+      val apps = resolvedUsers.flatMap(_.resolvedApps)
+      def impl(serverNameOpt: Option[DomainName]) =
+        serverNameOpt
+          .toVector
+          .flatMap { serverName =>
+            val tld = serverName.topLevelDomain
+            apps
+              .flatMap { app =>
+                app.descriptor.listenPort.map { listenPort =>
+                  VirtualHost(
+                    serverName = serverName,
+                    virtualNames = app.descriptor.resolvedDomainNames.filter(_.isSubDomainOf(tld)),
+                    listenPort = listenPort,
+                  )
+                }
               }
-          impl(descriptor.publicDomainName) ++ impl(descriptor.vpnDomainName.some)
-        }
-
+          }
+      impl(descriptor.publicDomainName) ++ impl(descriptor.vpnDomainName.some)
     }
 
     def fetchUserZ(login: UserLogin): ZIO[Any, Throwable, ResolvedUser] =
@@ -164,14 +157,15 @@ object resolvedmodel extends LoggingF {
       resolvedUsers
         .find(_.login == login)
 
-    lazy val resolvedUsers =
+    lazy val resolvedUsers: Vector[ResolvedUser] =
       descriptor
         .users
         .map( userDescriptor =>
           ResolvedUser(
             descriptor = userDescriptor,
-            home = userDescriptor.home.getOrElse(dir(z"/home/${userDescriptor.login}")),
+            home = userDescriptor.resolvedHome,
             server = this,
+            loadedApplicationDescriptors = repository.fetchLoadedApplicationDescriptors(this.name, userDescriptor.login),
           )
         )
 
@@ -196,7 +190,18 @@ object resolvedmodel extends LoggingF {
     def supervisorDirectory: SupervisorDirectory = descriptor.supervisorDirectory
     def caddyDirectory: CaddyDirectory = descriptor.caddyDirectory
 
-    def loadResolvedAppFromDisk(appConfigDir: Directory, resolvedUser: ResolvedUser): Task[Option[ResolvedApp]] = {
+  }
+
+  object ResolvedApp {
+
+    case class LoadedApplicationDescriptor(
+      appConfigDir: Directory,
+      serverName: ServerName,
+      userLogin: UserLogin,
+      descriptor: ApplicationDescriptor,
+    )
+
+    def loadDescriptorFromDisk(userLogin: UserLogin, serverName: ServerName, appConfigDir: Directory, appsRootDirectory: AppsRootDirectory): Task[Option[LoadedApplicationDescriptor]] = {
       val appDescriptorFilesZ =
         Vector(
           appConfigDir.file("secret.props.priv"),
@@ -212,7 +217,7 @@ object resolvedmodel extends LoggingF {
             }
           )
 
-      val appDir = resolvedUser.appsRootDirectory.subdir(appConfigDir.name)
+      val appDir = appsRootDirectory.subdir(appConfigDir.name)
 
 
       val baseConfigMap =
@@ -231,6 +236,7 @@ object resolvedmodel extends LoggingF {
             val configs =
               appDescriptorFiles
                 .map(f => HoconOps.impl.loadConfig(f.asNioPath))
+
             if (configs.isEmpty) {
               zsucceed(None)
             } else {
@@ -238,9 +244,10 @@ object resolvedmodel extends LoggingF {
                 (configs ++ Vector(baseConfig))
                   .reduceLeft(_.resolveWith(_))
 
-              val readResult = JsonReader[ApplicationDescriptor].read(resolvedConfig)
+              val readResult = JsonReader[ApplicationDescriptor].readResult(resolvedConfig)
+
               def logWarnings =
-                if ( readResult.warnings.nonEmpty ) {
+                if (readResult.warnings.nonEmpty) {
                   loggerF.warn(s"found the following warnings reading the applicationDescriptor from ${appDescriptorFiles.mkString(" ")}\n${readResult.warnings.mkString("\n").indent("    ")}")
                 } else {
                   zunit
@@ -248,11 +255,10 @@ object resolvedmodel extends LoggingF {
 
               val effect =
                 readResult match {
-                  case ReadResult.Success(descriptor, _) =>
-                    zsucceed(ResolvedApp(descriptor, appConfigDir, resolvedUser).some)
-                  case ReadResult.Error(re, _) =>
-                    loggerF.error(s"error reading application descriptor from ${appDescriptorFiles.mkString(" ")} -- ${re.prettyMessage}")
-                      .as(None)
+                  case ReadResult.Success(descriptor, _, _, _) =>
+                    zsucceed(LoadedApplicationDescriptor(appConfigDir, serverName, userLogin, descriptor).some)
+                  case ReadResult.Error(re, _, _) =>
+                    zfail(new RuntimeException(s"error reading application descriptor from ${appDescriptorFiles.mkString(" ")} -- ${re.prettyMessage}"))
                 }
 
               logWarnings *> effect
@@ -260,42 +266,53 @@ object resolvedmodel extends LoggingF {
             }
           } catch {
             case IsNonFatal(e) =>
-              loggerF.error(s"Failed to load application descriptor file: $appDescriptorFiles", e)
-                .as(None)
+              zfail(new RuntimeException(s"Failed to load application descriptor file: $appDescriptorFiles", e))
           }
 
         }
     }
   }
 
-  object ResolvedApp {
-  }
-
   case class ResolvedApp(
-    descriptor: ApplicationDescriptor,
-    gitDirectory: Directory,
+    loadedApplicationDescriptor: LoadedApplicationDescriptor,
     user: ResolvedUser,
   ) {
-    def server = user.server
-    def name = descriptor.name
-    def appDirectory = user.appsRootDirectory.subdir(descriptor.name.value)
+    val descriptor: ApplicationDescriptor = loadedApplicationDescriptor.descriptor
+    val gitDirectory: Directory = loadedApplicationDescriptor.appConfigDir
+    val server = user.server
+    val name = descriptor.name
+    val appDirectory = user.appsRootDirectory.subdir(descriptor.name.value)
   }
 
 
   object ResolvedRepository {
 
-    def loadFromDisk(gitRootDirectory: GitRootDirectory): ResolvedRepository = {
-      val cascadingHocon =
-        CascadingHocon
-          .loadConfigsInDirectory(gitRootDirectory.asNioPath, recurse = false)
-          .resolve
-      val configMojo =
-        ConfigMojoOps.impl.ConfigMojoRoot(
-          cascadingHocon.config.root(),
-          cascadingHocon,
-        )
-      val repositoryDescriptor = configMojo.as[RepositoryDescriptor]
-      ResolvedRepository(repositoryDescriptor, gitRootDirectory)
+    def loadFromDisk(gitRootDirectory: GitRootDirectory): Task[ResolvedRepository] = {
+      ZIO
+        .attemptBlocking {
+          val cascadingHocon =
+            CascadingHocon
+              .loadConfigsInDirectory(gitRootDirectory.asNioPath, recurse = false)
+              .resolve
+          ConfigMojoOps.impl.ConfigMojoRoot(
+            cascadingHocon.config.root(),
+            cascadingHocon,
+          )
+        }
+        .flatMap(_.asF[RepositoryDescriptor])
+        .flatMap { repositoryDescriptor =>
+          repositoryDescriptor
+            .serversAndUsers
+            .map { case (server, user) =>
+              val appConfDir = gitRootDirectory.subdir(server.name.value).subdir(user.login.value)
+              ResolvedApp.loadDescriptorFromDisk(user.login, server.name, appConfDir, user.resolvedAppsRootDirectory)
+            }
+            .sequencePar
+            .map(_.flatten)
+            .map { loadedApplicationDescriptors =>
+              ResolvedRepository(repositoryDescriptor, gitRootDirectory, loadedApplicationDescriptors)
+            }
+        }
     }
 
   }
@@ -309,7 +326,16 @@ object resolvedmodel extends LoggingF {
   case class ResolvedRepository(
     descriptor: RepositoryDescriptor,
     gitRootDirectory: GitRootDirectory,
+    loadedApplicationDescriptors: Vector[LoadedApplicationDescriptor],
   ) {
+
+    lazy val applicationDescriptorsByUserLogin: Map[(ServerName,UserLogin), Vector[LoadedApplicationDescriptor]] =
+      loadedApplicationDescriptors
+        .groupBy(lad => lad.serverName -> lad.userLogin)
+
+    def fetchLoadedApplicationDescriptors(serverName: ServerName, login: UserLogin): Vector[LoadedApplicationDescriptor] =
+      applicationDescriptorsByUserLogin
+        .getOrElse(serverName -> login, Vector.empty)
 
 
     /**
@@ -327,17 +353,11 @@ object resolvedmodel extends LoggingF {
     }
     lazy val repositoryPlugins = RepositoryPlugins(this)
 
-    def virtualHosts: Task[Vector[VirtualHost]] =
-      servers
-        .map(_.virtualHosts)
-        .sequence
-        .map(_.flatten)
+    def virtualHosts: Vector[VirtualHost] = servers.flatMap(_.virtualHosts)
 
-    def applications: Task[Vector[ResolvedApp]] =
+    def applications: Vector[ResolvedApp] =
       users
-        .map(_.resolvedAppsT)
-        .sequence
-        .map(_.flatten)
+        .flatMap(_.resolvedApps)
 
     def fetchUser(qname: QualifiedUserName): ResolvedUser =
       users

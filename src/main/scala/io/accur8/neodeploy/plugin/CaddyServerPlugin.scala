@@ -24,61 +24,58 @@ ${domains.map(_.value).mkString(", ")} {
 
   override def descriptorJson: JsVal = JsNothing
 
-  override def systemState(input: ResolvedUser): M[SystemState] = {
-    val file = ZFileSystem.file("/ec/caddy/CaddyFile")
-    input
-      .server
-      .resolvedUsers
-      .map(_.resolvedAppsT)
-      .sequencePar
-      .map(_.flatten)
-      .map { apps =>
-        val fileContents =
-          apps
-            .flatMap { app =>
-              (app.descriptor.caddyConfig, app.descriptor.listenPort) match {
-                case (Some(cc), _) =>
-                  cc.some
-                case (_, Some(listenPort)) =>
-                  app
-                    .descriptor
-                    .resolvedDomainNames
-                    .toNonEmpty
-                    .map { domains =>
-                      configSnippet(listenPort, domains).some
-                    }
-                case _ =>
-                  None
-              }
+  override def systemState(input: ResolvedUser): M[SystemState] =
+    zsucceed {
+      val file = ZFileSystem.file("/ec/caddy/CaddyFile")
+      val apps =
+        input
+          .server
+          .resolvedUsers
+          .flatMap(_.resolvedApps)
+      val fileContents =
+        apps
+          .flatMap { app =>
+            (app.descriptor.caddyConfig, app.descriptor.listenPort) match {
+              case (Some(cc), _) =>
+                cc.some
+              case (_, Some(listenPort)) =>
+                app
+                  .descriptor
+                  .resolvedDomainNames
+                  .toNonEmpty
+                  .map { domains =>
+                    configSnippet(listenPort, domains).some
+                  }
+              case _ =>
+                None
             }
-            .mkString("\n\n")
+          }
+          .mkString("\n\n")
 
-        val state =
-          SystemState.TextFile(
-            file,
-            fileContents,
-            UnixPerms.empty,
-          )
-
-        val reloadCaddy =
-          Vector(
-            Overrides.systemCtlCommand
-            .appendArgs("reload", "caddy")
-            .asSystemStateCommand
-          )
-
-        val runReloadCaddyCommand =
-          SystemState.RunCommandState(
-            installCommands = reloadCaddy,
-            uninstallCommands = reloadCaddy,
-          )
-
-        SystemState.TriggeredState(
-          triggerState = state,
-          postTriggerState = runReloadCaddyCommand,
+      val state =
+        SystemState.TextFile(
+          file,
+          fileContents,
+          UnixPerms.empty,
         )
 
-      }
-  }
+      val reloadCaddy =
+        Vector(
+          Overrides.systemCtlCommand
+            .appendArgs("reload", "caddy")
+            .asSystemStateCommand
+        )
+
+      val runReloadCaddyCommand =
+        SystemState.RunCommandState(
+          installCommands = reloadCaddy,
+          uninstallCommands = reloadCaddy,
+        )
+
+      SystemState.TriggeredState(
+        triggerState = state,
+        postTriggerState = runReloadCaddyCommand,
+      )
+    }
 
 }

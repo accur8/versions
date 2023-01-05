@@ -60,7 +60,7 @@ object Layers extends LoggingF {
 
   lazy val resolvedRepositoryZ =
     zservice[Config]
-      .map(config =>
+      .flatMap(config =>
         ResolvedRepository.loadFromDisk(config.gitRootDirectory)
       )
 

@@ -41,14 +41,15 @@ case class SupervisorSync(supervisorDir: SupervisorDirectory) extends Sync[Resol
     val logsDir = appsRoot.subdir("logs")
     val appDir = appsRoot.subdir(app.descriptor.name.value)
     val tempDir = appDir.subdir("tmp")
-    val commandArgs = app.descriptor.install.execArgs(app.descriptor, app.appDirectory, app.user.appsRootDirectory)
+    val command = app.descriptor.install.command(app.descriptor, appDir, appsRoot)
+    val workingDir: Directory = command.workingDirectory.getOrElse(appDir)
 
     z"""
 [program:${app.descriptor.name}]
 
-command = ${commandArgs.mkString(" ")}
+command = ${command.args.mkString(" ")}
 
-directory = ${appDir}
+directory = ${workingDir}
 
 autostart       = ${resolvedAutoStart}
 autorestart     = ${resolvedAutoRestart}

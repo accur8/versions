@@ -93,54 +93,56 @@ case class AmazonRoute53DnsApi(
 
 
   override def applyChangeSet(domainName: DomainName, upserts: Iterable[DomainNameSystem.Record], deletes: Iterable[DomainNameSystem.Record]): T[Unit] =
-    ZIO.attemptBlocking {
+    ZIO
+      .attemptBlocking {
 
-      def toChangeSet(records: Iterable[DomainNameSystem.Record], changeAction: ChangeAction): Iterable[Change] = {
-        records
-          .map { r =>
-            val rr = {
-              r.values.map { v =>
-                ResourceRecord
-                  .builder()
-                  .value(v)
-                  .build()
+        def toChangeSet(records: Iterable[DomainNameSystem.Record], changeAction: ChangeAction): Iterable[Change] = {
+          records
+            .map { r =>
+              val rr = {
+                r.values.map { v =>
+                  ResourceRecord
+                    .builder()
+                    .value(v)
+                    .build()
+                }
               }
+              val rrs =
+                ResourceRecordSet
+                  .builder()
+                  .name(r.name.asDottedName)
+                  .`type`(r.recordType)
+                  .ttl(r.ttl)
+                  .resourceRecords(rr:_*)
+                  .build()
+              Change
+                .builder()
+                .action(changeAction)
+                .resourceRecordSet(rrs)
+                .build()
             }
-            val rrs =
-              ResourceRecordSet
-                .builder()
-                .name(r.name.asDottedName)
-                .`type`(r.recordType)
-                .ttl(r.ttl)
-                .resourceRecords(rr:_*)
-                .build()
-            Change
+        }
+
+        val changes = (toChangeSet(upserts, ChangeAction.UPSERT) ++ toChangeSet(deletes, ChangeAction.DELETE)).toSeq
+  //      val changes = toChangeSet(upserts, ChangeAction.UPSERT).toSeq
+
+        val hostedZone = this.hostedZone(domainName)
+
+        client
+          .changeResourceRecordSets(
+            ChangeResourceRecordSetsRequest
               .builder()
-              .action(changeAction)
-              .resourceRecordSet(rrs)
+              .hostedZoneId(hostedZone.id())
+              .changeBatch(
+                ChangeBatch
+                  .builder()
+                  .changes(changes:_*)
+                  .build()
+              )
               .build()
-          }
+          )
       }
-
-      val changes = (toChangeSet(upserts, ChangeAction.UPSERT) ++ toChangeSet(deletes, ChangeAction.DELETE)).toSeq
-//      val changes = toChangeSet(upserts, ChangeAction.UPSERT).toSeq
-
-      val hostedZone = this.hostedZone(domainName)
-
-      client
-        .changeResourceRecordSets(
-          ChangeResourceRecordSetsRequest
-            .builder()
-            .hostedZoneId(hostedZone.id())
-            .changeBatch(
-              ChangeBatch
-                .builder()
-                .changes(changes:_*)
-                .build()
-            )
-            .build()
-        )
-
-    }
+      .as(())
+      .trace0(z"AmazonRoute53.applyChangeSet(${domainName}, ${upserts.toString}, ${deletes.toString})")
 
 }

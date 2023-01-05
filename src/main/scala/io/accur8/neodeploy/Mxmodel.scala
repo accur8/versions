@@ -119,7 +119,7 @@ object Mxmodel {
       jsonCodecBuilder(
         a8.shared.json.JsonObjectCodecBuilder(generator)
           .addField(_.description)
-          .addField(_.execArgs)
+          .addField(_.command)
       )
       .build
     
@@ -134,7 +134,7 @@ object Mxmodel {
     
     object parameters {
       lazy val description: CaseClassParm[Manual,String] = CaseClassParm[Manual,String]("description", _.description, (d,v) => d.copy(description = v), Some(()=> "manual install"), 0)
-      lazy val execArgs: CaseClassParm[Manual,Vector[String]] = CaseClassParm[Manual,Vector[String]]("execArgs", _.execArgs, (d,v) => d.copy(execArgs = v), Some(()=> Vector.empty), 1)
+      lazy val command: CaseClassParm[Manual,Command] = CaseClassParm[Manual,Command]("command", _.command, (d,v) => d.copy(command = v), None, 1)
     }
     
     
@@ -143,21 +143,21 @@ object Mxmodel {
       def rawConstruct(values: IndexedSeq[Any]): Manual = {
         Manual(
           description = values(0).asInstanceOf[String],
-          execArgs = values(1).asInstanceOf[Vector[String]],
+          command = values(1).asInstanceOf[Command],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): Manual = {
         val value =
           Manual(
             description = values.next().asInstanceOf[String],
-            execArgs = values.next().asInstanceOf[Vector[String]],
+            command = values.next().asInstanceOf[Command],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(description: String, execArgs: Vector[String]): Manual =
-        Manual(description, execArgs)
+      def typedConstruct(description: String, command: Command): Manual =
+        Manual(description, command)
     
     }
     
@@ -246,7 +246,7 @@ object Mxmodel {
           .addField(_.environment)
           .addField(_.onCalendar)
           .addField(_.persistent)
-          .addField(_.Type)
+          .addField(_.`type`)
       )
       .build
     
@@ -264,7 +264,7 @@ object Mxmodel {
       lazy val environment: CaseClassParm[SystemdDescriptor,Vector[String]] = CaseClassParm[SystemdDescriptor,Vector[String]]("environment", _.environment, (d,v) => d.copy(environment = v), Some(()=> Vector.empty), 1)
       lazy val onCalendar: CaseClassParm[SystemdDescriptor,Option[OnCalendarValue]] = CaseClassParm[SystemdDescriptor,Option[OnCalendarValue]]("onCalendar", _.onCalendar, (d,v) => d.copy(onCalendar = v), Some(()=> None), 2)
       lazy val persistent: CaseClassParm[SystemdDescriptor,Option[Boolean]] = CaseClassParm[SystemdDescriptor,Option[Boolean]]("persistent", _.persistent, (d,v) => d.copy(persistent = v), Some(()=> None), 3)
-      lazy val Type: CaseClassParm[SystemdDescriptor,String] = CaseClassParm[SystemdDescriptor,String]("Type", _.Type, (d,v) => d.copy(Type = v), Some(()=> "simple"), 4)
+      lazy val `type`: CaseClassParm[SystemdDescriptor,String] = CaseClassParm[SystemdDescriptor,String]("type", _.`type`, (d,v) => d.copy(`type` = v), Some(()=> "simple"), 4)
     }
     
     
@@ -276,7 +276,7 @@ object Mxmodel {
           environment = values(1).asInstanceOf[Vector[String]],
           onCalendar = values(2).asInstanceOf[Option[OnCalendarValue]],
           persistent = values(3).asInstanceOf[Option[Boolean]],
-          Type = values(4).asInstanceOf[String],
+          `type` = values(4).asInstanceOf[String],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): SystemdDescriptor = {
@@ -286,14 +286,14 @@ object Mxmodel {
             environment = values.next().asInstanceOf[Vector[String]],
             onCalendar = values.next().asInstanceOf[Option[OnCalendarValue]],
             persistent = values.next().asInstanceOf[Option[Boolean]],
-            Type = values.next().asInstanceOf[String],
+            `type` = values.next().asInstanceOf[String],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(unitName: Option[String], environment: Vector[String], onCalendar: Option[OnCalendarValue], persistent: Option[Boolean], Type: String): SystemdDescriptor =
-        SystemdDescriptor(unitName, environment, onCalendar, persistent, Type)
+      def typedConstruct(unitName: Option[String], environment: Vector[String], onCalendar: Option[OnCalendarValue], persistent: Option[Boolean], `type`: String): SystemdDescriptor =
+        SystemdDescriptor(unitName, environment, onCalendar, persistent, `type`)
     
     }
     
@@ -397,7 +397,7 @@ object Mxmodel {
     
     object parameters {
       lazy val name: CaseClassParm[ApplicationDescriptor,ApplicationName] = CaseClassParm[ApplicationDescriptor,ApplicationName]("name", _.name, (d,v) => d.copy(name = v), None, 0)
-      lazy val install: CaseClassParm[ApplicationDescriptor,Install] = CaseClassParm[ApplicationDescriptor,Install]("install", _.install, (d,v) => d.copy(install = v), Some(()=> Install.Manual.empty), 1)
+      lazy val install: CaseClassParm[ApplicationDescriptor,Install] = CaseClassParm[ApplicationDescriptor,Install]("install", _.install, (d,v) => d.copy(install = v), None, 1)
       lazy val caddyConfig: CaseClassParm[ApplicationDescriptor,Option[String]] = CaseClassParm[ApplicationDescriptor,Option[String]]("caddyConfig", _.caddyConfig, (d,v) => d.copy(caddyConfig = v), Some(()=> None), 2)
       lazy val listenPort: CaseClassParm[ApplicationDescriptor,Option[ListenPort]] = CaseClassParm[ApplicationDescriptor,Option[ListenPort]]("listenPort", _.listenPort, (d,v) => d.copy(listenPort = v), Some(()=> None), 3)
       lazy val stopServerCommand: CaseClassParm[ApplicationDescriptor,Option[Command]] = CaseClassParm[ApplicationDescriptor,Option[Command]]("stopServerCommand", _.stopServerCommand, (d,v) => d.copy(stopServerCommand = v), Some(()=> None), 4)

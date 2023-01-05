@@ -15,19 +15,25 @@ case object SystemdSync extends Sync[ResolvedApp] {
     SyncName("systemd")
 
 
+  /**
+   * https://www.freedesktop.org/software/systemd/man/systemd.service.html
+   * @param input
+   * @return
+   */
   override def systemState(input: ResolvedApp): M[SystemState] =
     zsucceed(
       input.descriptor.launcher match {
         case sd: SystemdDescriptor =>
+          val command = input.descriptor.install.command(input.descriptor, input.appDirectory, input.user.appsRootDirectory)
           Systemd.systemState(
             unitName = input.name.value,
             description = input.name.value,
             user = input.user,
             unitFile = UnitFile(
-              Type = sd.Type,
+              Type = sd.`type`,
               environment = sd.environment,
-              workingDirectory = input.appDirectory.absolutePath,
-              execStart = input.descriptor.install.execArgs(input.descriptor, input.appDirectory, input.user.appsRootDirectory).mkString(" "),
+              workingDirectory = command.workingDirectory.getOrElse(input.appDirectory).absolutePath,
+              execStart = command.args.mkString(" "),
             ),
             timerFileOpt =
               sd.onCalendar.map { onCalendar =>

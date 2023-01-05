@@ -45,11 +45,12 @@ lazy val versions =
     .settings(
       libraryDependencies ++= Seq(
         "ant" % "ant" % "1.6.2",
+        "dev.zio" %% "zio-cache" % "0.2.1",
         "io.get-coursier" %% "coursier" % "2.0.0-RC6",
         "io.get-coursier" %% "coursier-cache" % "2.0.0-RC6",
         "com.softwaremill.sttp" %% "core" % "1.7.2",
         "org.scalameta" %% "fastparse" % "1.0.1",
-        "io.accur8" %% "a8-sync-api" % "1.0.0-20230101_1050_master",
+        "io.accur8" %% "a8-sync-api" % "1.0.0-20230105_1152_master",
         "org.rogach" %% "scallop" % "4.1.0",
         "dev.zio" %% "zio-process" % "0.7.1",
         "org.typelevel" %% "cats-parse" % "0.3.8",

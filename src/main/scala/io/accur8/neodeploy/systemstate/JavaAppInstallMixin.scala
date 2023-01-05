@@ -2,6 +2,7 @@ package io.accur8.neodeploy.systemstate
 
 
 import a8.shared.SharedImports._
+import a8.shared.app.LoggingF
 import a8.shared.{FileSystem, ZFileSystem}
 import io.accur8.neodeploy.ApplicationInstallSync.Installer
 import io.accur8.neodeploy.model.ApplicationDescriptor
@@ -10,7 +11,7 @@ import zio.ZIO
 
 import java.nio.file.Files
 
-trait JavaAppInstallMixin extends SystemStateMixin { self: SystemState.JavaAppInstall =>
+trait JavaAppInstallMixin extends SystemStateMixin with LoggingF { self: SystemState.JavaAppInstall =>
 
   override def stateKey: Option[StateKey] = StateKey("app install", appInstallDir.absolutePath).some
   override def dryRunInstall: Vector[String] = Vector(s"app install into ${appInstallDir} -- ${self.fromRepo.compactJson}")
