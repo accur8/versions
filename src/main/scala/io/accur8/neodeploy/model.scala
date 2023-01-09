@@ -290,6 +290,7 @@ object model extends LoggingF {
   }
 
   object UserLogin extends StringValue.Companion[UserLogin] {
+    val root = UserLogin("root")
     def thisUser(): UserLogin =
       UserLogin(System.getProperty("user.name"))
   }

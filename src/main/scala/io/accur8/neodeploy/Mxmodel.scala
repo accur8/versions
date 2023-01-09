@@ -16,7 +16,6 @@ import com.softwaremill.sttp.Uri
 import io.accur8.neodeploy.model.DockerDescriptor.UninstallAction
 import io.accur8.neodeploy.model._
 import io.accur8.neodeploy.model.Install.{JavaApp, Manual}
-
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

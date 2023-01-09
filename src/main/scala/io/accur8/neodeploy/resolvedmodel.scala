@@ -14,6 +14,7 @@ import zio.{Cause, Chunk, Task, UIO, ZIO}
 import PredefAssist._
 import a8.shared.json.JsonReader.ReadResult
 import com.typesafe.config.{Config, ConfigFactory, ConfigValue}
+import io.accur8.neodeploy.Mxresolvedmodel.MxLoadedApplicationDescriptor
 import io.accur8.neodeploy.plugin.{PgbackrestServerPlugin, RepositoryPlugins}
 import io.accur8.neodeploy.resolvedmodel.ResolvedApp.LoadedApplicationDescriptor
 import io.accur8.neodeploy.resolvedmodel.ResolvedUser
@@ -194,6 +195,8 @@ object resolvedmodel extends LoggingF {
 
   object ResolvedApp {
 
+    object LoadedApplicationDescriptor extends MxLoadedApplicationDescriptor
+    @CompanionGen
     case class LoadedApplicationDescriptor(
       appConfigDir: Directory,
       serverName: ServerName,
@@ -304,8 +307,23 @@ object resolvedmodel extends LoggingF {
           repositoryDescriptor
             .serversAndUsers
             .map { case (server, user) =>
-              val appConfDir = gitRootDirectory.subdir(server.name.value).subdir(user.login.value)
-              ResolvedApp.loadDescriptorFromDisk(user.login, server.name, appConfDir, user.resolvedAppsRootDirectory)
+              val userAppsDir = gitRootDirectory.subdir(server.name.value).subdir(user.login.value)
+              val effect: ZIO[Any, Throwable, Iterable[LoadedApplicationDescriptor]] =
+                userAppsDir
+                  .subdirs
+                  .flatMap { appConfDirs =>
+                    val effect: ZIO[Any, Throwable, Iterable[LoadedApplicationDescriptor]] =
+                      appConfDirs
+                        .map { appConfDir =>
+                          ResolvedApp.loadDescriptorFromDisk(user.login, server.name, appConfDir, user.resolvedAppsRootDirectory)
+                            .trace(z"loadDescriptorFromDisk(${user.login}, ${server.name}, ${appConfDir})")
+                        }
+                        .toVector
+                        .sequencePar
+                        .map(_.flatten)
+                    effect
+                  }
+              effect
             }
             .sequencePar
             .map(_.flatten)

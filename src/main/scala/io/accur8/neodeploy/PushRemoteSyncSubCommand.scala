@@ -116,11 +116,18 @@ case class PushRemoteSyncSubCommand(
 
     val stagingDir = resolvedRepository.gitRootDirectory.subdir(s".staging/${resolvedUser.qname}")
 
+    val stagingPath =
+      if ( resolvedUser.login === UserLogin.root ) {
+        z"${remoteServer}"
+      } else {
+        z"${remoteServer}/${resolvedUser.login}"
+      }
+
     val setupStagingDataEffect =  
       FileSystemAssist.FileSet(resolvedRepository.gitRootDirectory.unresolved)
         .addPath("config.hocon")
         .addPath("public-keys")
-        .addPath(z"${remoteServer}/${resolvedUser.login}")
+        .addPath(z"${stagingPath}")
         .copyTo(stagingDir)
 
     val rsyncEffect =

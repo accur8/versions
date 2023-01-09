@@ -10,7 +10,6 @@ package io.accur8.neodeploy
 
 //====
 import a8.shared.ZFileSystem.Directory
-
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

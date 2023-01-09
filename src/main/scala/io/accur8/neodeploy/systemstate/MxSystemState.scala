@@ -15,7 +15,6 @@ import io.accur8.neodeploy.model.{ApplicationDescriptor, DockerDescriptor, Domai
 import io.accur8.neodeploy.model.Install.JavaApp
 import io.accur8.neodeploy.systemstate.SystemState._
 import io.accur8.neodeploy.systemstate.SystemStateModel._
-
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

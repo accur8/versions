@@ -10,7 +10,6 @@ package io.accur8.neodeploy
 
 //====
 import io.accur8.neodeploy.Systemd.UnitFile
-
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

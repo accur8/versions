@@ -11,7 +11,6 @@ package a8.versions
 //====
 import a8.versions.RepositoryOps.RepoConfigPrefix
 import a8.versions.model._
-
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

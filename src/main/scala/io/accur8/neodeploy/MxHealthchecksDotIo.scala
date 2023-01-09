@@ -11,7 +11,6 @@ package io.accur8.neodeploy
 //====
 import io.accur8.neodeploy.HealthchecksDotIo.CheckUpsertRequest
 import io.accur8.neodeploy.HealthchecksDotIo.ApiAuthToken
-
 import io.accur8.neodeploy.HealthchecksDotIo.CheckReadOnly
 //====
 

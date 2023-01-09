@@ -26,15 +26,17 @@ ${domains.map(_.value).mkString(", ")} {
 
   override def systemState(input: ResolvedUser): M[SystemState] =
     zsucceed {
-      val file = ZFileSystem.file("/ec/caddy/CaddyFile")
+      val file = ZFileSystem.file("/etc/caddy/Caddyfile")
       val apps =
         input
           .server
           .resolvedUsers
           .flatMap(_.resolvedApps)
-      val fileContents =
+      println(s"${apps.map(_.name).mkString(" ")}")
+      val fileContents: String =
         apps
           .flatMap { app =>
+            val caddyAppConfig: Option[String] =
             (app.descriptor.caddyConfig, app.descriptor.listenPort) match {
               case (Some(cc), _) =>
                 cc.some
@@ -44,11 +46,12 @@ ${domains.map(_.value).mkString(", ")} {
                   .resolvedDomainNames
                   .toNonEmpty
                   .map { domains =>
-                    configSnippet(listenPort, domains).some
+                    configSnippet(listenPort, domains)
                   }
               case _ =>
                 None
             }
+            caddyAppConfig
           }
           .mkString("\n\n")
 

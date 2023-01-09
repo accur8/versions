@@ -19,7 +19,16 @@ case class ValidateRepo(resolvedRepository: ResolvedRepository) extends LoggingF
       .allUsers
 
   def run =
-    setupSshKeys zipPar addGitattributesFile
+    setupSshKeys zipPar addGitattributesFile zipPar validatePlugins
+
+  def validatePlugins =
+    ZIO.attemptBlocking {
+      resolvedRepository
+        .repositoryPlugins
+        .pluginInstances
+      allUsers
+        .foreach(_.plugins.pluginInstances)
+    }
 
   def setupSshKeys: Task[Unit] =
     allUsers

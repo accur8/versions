@@ -11,7 +11,6 @@ package io.accur8.neodeploy
 //====
 import io.accur8.neodeploy.LocalUserSyncSubCommand._
 import io.accur8.neodeploy.model._
-
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
