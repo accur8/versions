@@ -53,7 +53,6 @@ case class LocalUserSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicat
 
     override val staticSyncs: Seq[Sync[ResolvedApp]] =
       Vector(
-        CaddySync(resolvedServer.caddyDirectory),
         SupervisorSync(resolvedServer.supervisorDirectory),
         ApplicationInstallSync(resolvedUser.appsRootDirectory),
         DockerSync,

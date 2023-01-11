@@ -26,6 +26,9 @@ object HealthchecksDotIo {
         httpClient.send(request, HttpResponse.BodyHandlers.ofString())
       )
 
+    def unsafeSend(request: HttpRequest): HttpResponse[String] =
+      httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+
   }
 
 

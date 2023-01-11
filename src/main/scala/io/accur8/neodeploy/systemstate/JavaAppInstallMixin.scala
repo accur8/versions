@@ -18,7 +18,6 @@ trait JavaAppInstallMixin extends SystemStateMixin with LoggingF { self: SystemS
 
   lazy val applicationDotJsonFile =
     appInstallDir
-      .subdir("config")
       .file("application.json")
 
 

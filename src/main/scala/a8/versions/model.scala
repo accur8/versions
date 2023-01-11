@@ -303,6 +303,9 @@ object model {
     extension: String,
   ) {
 
+    lazy val filename =
+      module + "-" + version + "." + extension
+
     lazy val m2RepoPath =
       organization.replace('.', '/') + "/" + module + "/" + version + "/" + module + "-" + version + "." + extension
 
