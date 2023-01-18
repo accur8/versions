@@ -9,6 +9,6 @@ cd "$(dirname "$0")/.."
 
 echo "Generating classpath derivation for exported JARs..."
 #nix-build --out-link lib -E 'with import <nixpkgs> {}; (callPackage ./nix/classpath-builder {}) {jars = (import ./sbt-deps.nix); }'
-nix-build --out-link lib -E 'with import <nixpkgs> {}; (callPackage ./nix/classpath-builder {})'
+nix-build --out-link apps/boomboom -E 'with import <nixpkgs> {}; (callPackage ./nix/classpath-builder {}) { name = "boomboom"; mainClass = "foo"; jvmArgs = ["-Xmx400g"]; sbtDependenciesFn = import ./sbt-deps.nix; }'
 
 echo "Done!"

@@ -27,7 +27,7 @@ object GenerateSbtDotNix extends BootstrappedIOApp {
 
   val parallelism = 20
 
-  val createLocalM2Repo = System.getProperty("createLocalM2Repo", "true").toBoolean
+//  val createLocalM2Repo = System.getProperty("createLocalM2Repo", "true").toBoolean
 
   val resolutionRequest =
     ResolutionRequest(

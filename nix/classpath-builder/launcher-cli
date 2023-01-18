@@ -1,0 +1,4 @@
+#!/bin/bash
+
+exec _out_/bin/_name_j -cp _jars_/*:. _jvm_args_ "$@"
+
