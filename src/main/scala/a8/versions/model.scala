@@ -326,7 +326,7 @@ object model {
     organization: String,
     artifact: String,
     version: String,
-    branch: Option[BranchName],
+    branch: Option[BranchName] = None,
   ) {
     lazy val coursierModule =
       coursier.Module(coursier.Organization(organization), coursier.ModuleName(artifact))

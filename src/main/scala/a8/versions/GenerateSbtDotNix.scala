@@ -23,22 +23,13 @@ import a8.shared.SharedImports._
 import org.apache.commons.codec.binary.Base32
 import zio.stream.ZStream
 
-object GenerateSbtDotNix extends BootstrappedIOApp {
+case class GenerateSbtDotNix(
+  resolutionRequest: ResolutionRequest,
+)
+  extends BootstrappedIOApp
+{
 
   val parallelism = 20
-
-//  val createLocalM2Repo = System.getProperty("createLocalM2Repo", "true").toBoolean
-
-  val resolutionRequest =
-    ResolutionRequest(
-//      repoPrefix = RepoConfigPrefix("maven"),
-      repoPrefix = RepoConfigPrefix("repo"),
-      organization = "io.accur8",
-      artifact = "a8-sync-api_2.13",
-      version = "1.0.0-20221219_0641_master",
-      branch = None,
-    )
-
 
   // hardcoded to use maven for now
   val resolutionResponseZ: Task[model.ResolutionResponse] = ZIO.attemptBlocking(RepositoryOps.runResolve(resolutionRequest))
@@ -46,10 +37,6 @@ object GenerateSbtDotNix extends BootstrappedIOApp {
   override def defaultZioLogLevel: LogLevel = LogLevel.Trace
 
   def fetchLine(artifact: ArtifactResponse, nixHash: NixHash): String = {
-//      artifact
-//        .checksums
-//        .find(_.toLowerCase == "sha-256")
-//        .getOrElse(fetchSha256(artifact.url))
     val attributes =
       Vector(
         "url" -> artifact.url,
@@ -134,22 +121,6 @@ object GenerateSbtDotNix extends BootstrappedIOApp {
       .trace(s"nixPrefetchUrl(${url})")
 
 
-
-//  if ( createLocalM2Repo ) {
-//    val repoRoot = new File("m2-local-repo").getAbsoluteFile
-//    artifacts
-//      .foreach { case (artifact, nixPrefetch) =>
-//        val repoFile = new File(repoRoot, artifact.m2RepoPath)
-//        if ( !repoFile.exists() ) {
-//          import sys.process._
-//          import scala.language.postfixOps
-//          if ( !repoFile.getParentFile.exists() )
-//            repoFile.getParentFile.mkdirs()
-//          s"ln -s ${nixPrefetch.nixStorePath} ${repoFile}" !
-//        }
-//      }
-//  }
-
   override def runT: ZIO[BootstrapEnv, Throwable, Unit] = {
     for {
       resolutionResponse <- resolutionResponseZ
@@ -173,9 +144,11 @@ ${artifacts.map(t => fetchLine(t._1, t._2)).mkString("\n")}
 ]
 """.trim + "\n"
 
-    ZIO.attemptBlocking(
+    ZIO.attemptBlocking {
+      FileSystem.file("sbt-deps.nix").write(content)
       println(content)
-    )
+    }
+
   }
 
 }

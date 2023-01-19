@@ -14,7 +14,7 @@ import a8.shared.SharedImports._
 import a8.shared.ZString.ZStringer
 import a8.shared.app.A8LogFormatter
 import a8.versions.RepositoryOps.RepoConfigPrefix
-import a8.versions.model.BranchName
+import a8.versions.model.{BranchName, ResolutionRequest}
 import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
 import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.model.{ApplicationName, ServerName, UserLogin}
@@ -127,6 +127,30 @@ object Main extends Logging {
             backup = backup.toOption.map(_.toBoolean).getOrElse(true),
             repositoryOps = repositoryOps(repo),
           )
+      }
+
+    }
+
+    val sbtDepsNix = new Subcommand("sbt_deps_nix") with Runner {
+
+      val repo = opt[String](descr = "repository name", required = false)
+      val organization = opt[String](descr = "organization of the artifact to resolve", required = true)
+      val artifact = opt[String](descr = "artifact name", required = true)
+      val version = opt[String](descr = "specific version", required = true)
+      val branch = opt[String](descr = "branch name", required = false)
+
+      descr("generate sbt-deps.nix file")
+
+      override def run(main: Main) = {
+        val resolutionRequest =
+          ResolutionRequest(
+            repoPrefix = repo.toOption.map(RepoConfigPrefix(_)).getOrElse(RepoConfigPrefix.default),
+            organization = organization.toOption.get,
+            artifact = artifact.toOption.get,
+            version = version.toOption.get,
+            branch = branch.toOption.map(BranchName(_)),
+          )
+        GenerateSbtDotNix(resolutionRequest).main(main.args.toArray)
       }
 
     }
@@ -250,12 +274,13 @@ object Main extends Logging {
     addSubcommand(resolve)
     addSubcommand(install)
     addSubcommand(buildDotSbt)
-    addSubcommand(gitignore)
-    addSubcommand(version_bump)
-    addSubcommand(pushRemoteSync)
-    addSubcommand(localUserSync)
-    addSubcommand(validateServerAppConfigs)
     addSubcommand(dnsSetup)
+    addSubcommand(gitignore)
+    addSubcommand(sbtDepsNix)
+    addSubcommand(localUserSync)
+    addSubcommand(pushRemoteSync)
+    addSubcommand(version_bump)
+    addSubcommand(validateServerAppConfigs)
 
     verify()
 

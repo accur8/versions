@@ -36,3 +36,5 @@ project/.bloop
 project/project
 m2-local-repo
 apps
+sbt-deps.nix
+sbt-deps.nix
