@@ -56,9 +56,23 @@ trait JavaAppInstallMixin extends SystemStateMixin with LoggingF { self: SystemS
   override def runUninstallObsolete = {
     val aid = appInstallDir
     val backupDir = aid.parentOpt.get.subdir("_backups").subdir(aid.name + "-" + FileSystem.fileSystemCompatibleTimestamp())
+    val directoriesToBackup = Vector("lib", "webapp-composite")
+    def runBackup(directoryName: String): M[Unit] = {
+      val sourceDir = aid.subdir(directoryName)
+      val targetDir = backupDir.subdir(directoryName)
+      for {
+        exists <- sourceDir.exists
+        _ <-
+          if (exists) {
+            ZIO.attemptBlocking(Files.move(sourceDir.asNioPath, targetDir.asNioPath))
+          } else {
+            zunit
+          }
+      } yield ()
+    }
     for {
-      _ <- backupDir.parentOpt.map(_.makeDirectories).getOrElse(zunit)
-      _ <- ZIO.attemptBlocking(Files.move(aid.asNioPath, backupDir.asNioPath))
+      _ <- backupDir.makeDirectories
+      _ <- directoriesToBackup.map(runBackup).sequencePar
     } yield ()
   }
 

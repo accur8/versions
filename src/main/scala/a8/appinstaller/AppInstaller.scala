@@ -44,7 +44,7 @@ case class AppInstaller(config: AppInstallerConfig, repositoryOps: RepositoryOps
     if (config.backup) {
       backup()
       backupConfigFiles()
-    }
+    }ff
 
     installBuilder.build()
 

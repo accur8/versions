@@ -66,7 +66,7 @@ object ApplicationInstallSync extends Logging with LoggingF {
           installDir = appDir.asNioPath.toFile().getAbsolutePath().some,
           libDirKind = LibDirKind.Copy.some,
           webappExplode = repo.webappExplode.some,
-          backup = true,
+          backup = false,
         )
         AppInstaller(config, repositoryOps)
           .execute()
