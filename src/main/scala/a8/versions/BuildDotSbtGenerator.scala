@@ -276,6 +276,10 @@ versionScheme in Global := Some("strict")
 
 serverConnectionType in Global := ConnectionType.Local
 
+libraryDependencySchemes in Global ++= Seq(
+  "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
+)
+
 ${
         compositeBuild.resolvedModules.map { module =>
           s"""
