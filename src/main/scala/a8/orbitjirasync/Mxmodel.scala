@@ -52,7 +52,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[Task] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[Task] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[Task,parameters.type] =  {
       val constructors = Constructors[Task](6, unsafe.iterRawConstruct)
@@ -123,7 +124,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[Config] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[Config] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[Config,parameters.type] =  {
       val constructors = Constructors[Config](3, unsafe.iterRawConstruct)
@@ -185,7 +187,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[JiraSync] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[JiraSync] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[JiraSync,parameters.type] =  {
       val constructors = Constructors[JiraSync](3, unsafe.iterRawConstruct)
@@ -247,7 +250,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[JiraConfig] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[JiraConfig] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[JiraConfig,parameters.type] =  {
       val constructors = Constructors[JiraConfig](3, unsafe.iterRawConstruct)
@@ -309,7 +313,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[EpicToProjectMapping] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[EpicToProjectMapping] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[EpicToProjectMapping,parameters.type] =  {
       val constructors = Constructors[EpicToProjectMapping](3, unsafe.iterRawConstruct)
@@ -370,7 +375,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[JiraBoardMapping] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[JiraBoardMapping] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[JiraBoardMapping,parameters.type] =  {
       val constructors = Constructors[JiraBoardMapping](2, unsafe.iterRawConstruct)
@@ -429,7 +435,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[JqlToProjectMapping] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[JqlToProjectMapping] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[JqlToProjectMapping,parameters.type] =  {
       val constructors = Constructors[JqlToProjectMapping](3, unsafe.iterRawConstruct)

@@ -32,7 +32,8 @@ object MxInstallInventory {
     
     implicit val zioEq: zio.prelude.Equal[InstallInventory] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[InstallInventory] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[InstallInventory,parameters.type] =  {
       val constructors = Constructors[InstallInventory](2, unsafe.iterRawConstruct)

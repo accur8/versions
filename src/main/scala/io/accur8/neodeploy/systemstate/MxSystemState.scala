@@ -38,7 +38,8 @@ object MxSystemState {
     
     implicit val zioEq: zio.prelude.Equal[TextFile] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[TextFile] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[TextFile,parameters.type] =  {
       val constructors = Constructors[TextFile](3, unsafe.iterRawConstruct)
@@ -100,7 +101,8 @@ object MxSystemState {
     
     implicit val zioEq: zio.prelude.Equal[SecretsTextFile] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[SecretsTextFile] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[SecretsTextFile,parameters.type] =  {
       val constructors = Constructors[SecretsTextFile](3, unsafe.iterRawConstruct)
@@ -163,7 +165,8 @@ object MxSystemState {
     
     implicit val zioEq: zio.prelude.Equal[JavaAppInstall] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[JavaAppInstall] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[JavaAppInstall,parameters.type] =  {
       val constructors = Constructors[JavaAppInstall](4, unsafe.iterRawConstruct)
@@ -227,7 +230,8 @@ object MxSystemState {
     
     implicit val zioEq: zio.prelude.Equal[Directory] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[Directory] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[Directory,parameters.type] =  {
       val constructors = Constructors[Directory](2, unsafe.iterRawConstruct)
@@ -275,7 +279,8 @@ object MxSystemState {
   
     implicit val zioEq: zio.prelude.Equal[Composite] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[Composite] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[Composite,parameters.type] =  {
       val constructors = Constructors[Composite](2, unsafe.iterRawConstruct)
@@ -335,7 +340,8 @@ object MxSystemState {
     
     implicit val zioEq: zio.prelude.Equal[DnsRecord] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[DnsRecord] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[DnsRecord,parameters.type] =  {
       val constructors = Constructors[DnsRecord](4, unsafe.iterRawConstruct)
@@ -398,7 +404,8 @@ object MxSystemState {
     
     implicit val zioEq: zio.prelude.Equal[HealthCheck] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[HealthCheck] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[HealthCheck,parameters.type] =  {
       val constructors = Constructors[HealthCheck](1, unsafe.iterRawConstruct)
@@ -454,7 +461,8 @@ object MxSystemState {
     
     implicit val zioEq: zio.prelude.Equal[RunCommandState] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[RunCommandState] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[RunCommandState,parameters.type] =  {
       val constructors = Constructors[RunCommandState](3, unsafe.iterRawConstruct)
@@ -514,7 +522,8 @@ object MxSystemState {
     
     implicit val zioEq: zio.prelude.Equal[DockerState] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[DockerState] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[DockerState,parameters.type] =  {
       val constructors = Constructors[DockerState](1, unsafe.iterRawConstruct)
@@ -570,7 +579,8 @@ object MxSystemState {
     
     implicit val zioEq: zio.prelude.Equal[TriggeredState] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[TriggeredState] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[TriggeredState,parameters.type] =  {
       val constructors = Constructors[TriggeredState](3, unsafe.iterRawConstruct)

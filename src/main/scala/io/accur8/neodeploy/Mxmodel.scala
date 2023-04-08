@@ -45,7 +45,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[JavaApp] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[JavaApp] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[JavaApp,parameters.type] =  {
       val constructors = Constructors[JavaApp](9, unsafe.iterRawConstruct)
@@ -124,7 +125,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[Manual] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[Manual] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[Manual,parameters.type] =  {
       val constructors = Constructors[Manual](2, unsafe.iterRawConstruct)
@@ -184,7 +186,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[SupervisorDescriptor] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[SupervisorDescriptor] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[SupervisorDescriptor,parameters.type] =  {
       val constructors = Constructors[SupervisorDescriptor](4, unsafe.iterRawConstruct)
@@ -251,7 +254,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[SystemdDescriptor] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[SystemdDescriptor] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[SystemdDescriptor,parameters.type] =  {
       val constructors = Constructors[SystemdDescriptor](5, unsafe.iterRawConstruct)
@@ -319,7 +323,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[DockerDescriptor] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[DockerDescriptor] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[DockerDescriptor,parameters.type] =  {
       val constructors = Constructors[DockerDescriptor](3, unsafe.iterRawConstruct)
@@ -387,7 +392,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[ApplicationDescriptor] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[ApplicationDescriptor] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[ApplicationDescriptor,parameters.type] =  {
       val constructors = Constructors[ApplicationDescriptor](9, unsafe.iterRawConstruct)
@@ -472,7 +478,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[UserDescriptor] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[UserDescriptor] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[UserDescriptor,parameters.type] =  {
       val constructors = Constructors[UserDescriptor](8, unsafe.iterRawConstruct)
@@ -551,7 +558,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[RSnapshotClientDescriptor] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[RSnapshotClientDescriptor] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[RSnapshotClientDescriptor,parameters.type] =  {
       val constructors = Constructors[RSnapshotClientDescriptor](5, unsafe.iterRawConstruct)
@@ -621,7 +629,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[RSnapshotServerDescriptor] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[RSnapshotServerDescriptor] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[RSnapshotServerDescriptor,parameters.type] =  {
       val constructors = Constructors[RSnapshotServerDescriptor](5, unsafe.iterRawConstruct)
@@ -691,7 +700,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[PgbackrestClientDescriptor] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[PgbackrestClientDescriptor] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[PgbackrestClientDescriptor,parameters.type] =  {
       val constructors = Constructors[PgbackrestClientDescriptor](5, unsafe.iterRawConstruct)
@@ -759,7 +769,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[PgbackrestServerDescriptor] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[PgbackrestServerDescriptor] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[PgbackrestServerDescriptor,parameters.type] =  {
       val constructors = Constructors[PgbackrestServerDescriptor](3, unsafe.iterRawConstruct)
@@ -827,7 +838,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[ServerDescriptor] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[ServerDescriptor] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[ServerDescriptor,parameters.type] =  {
       val constructors = Constructors[ServerDescriptor](9, unsafe.iterRawConstruct)
@@ -906,7 +918,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[AwsCredentials] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[AwsCredentials] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[AwsCredentials,parameters.type] =  {
       val constructors = Constructors[AwsCredentials](2, unsafe.iterRawConstruct)
@@ -964,7 +977,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[ManagedDomain] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[ManagedDomain] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[ManagedDomain,parameters.type] =  {
       val constructors = Constructors[ManagedDomain](2, unsafe.iterRawConstruct)
@@ -1025,7 +1039,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[RepositoryDescriptor] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[RepositoryDescriptor] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[RepositoryDescriptor,parameters.type] =  {
       val constructors = Constructors[RepositoryDescriptor](5, unsafe.iterRawConstruct)
@@ -1095,7 +1110,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[Personnel] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[Personnel] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[Personnel,parameters.type] =  {
       val constructors = Constructors[Personnel](5, unsafe.iterRawConstruct)

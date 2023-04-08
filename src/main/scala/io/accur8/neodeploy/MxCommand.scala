@@ -32,7 +32,8 @@ object MxCommand {
     
     implicit val zioEq: zio.prelude.Equal[Command] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[Command] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[Command,parameters.type] =  {
       val constructors = Constructors[Command](2, unsafe.iterRawConstruct)

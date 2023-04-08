@@ -38,7 +38,8 @@ object MxAppInstallerConfig {
     
     implicit val zioEq: zio.prelude.Equal[AppInstallerConfig] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[AppInstallerConfig] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[AppInstallerConfig,parameters.type] =  {
       val constructors = Constructors[AppInstallerConfig](8, unsafe.iterRawConstruct)

@@ -34,7 +34,8 @@ object MxSystemd {
     
     implicit val zioEq: zio.prelude.Equal[UnitFile] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[UnitFile] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[UnitFile,parameters.type] =  {
       val constructors = Constructors[UnitFile](4, unsafe.iterRawConstruct)

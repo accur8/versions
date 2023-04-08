@@ -13,6 +13,7 @@ import coursier.core.{ModuleName, Organization}
 import a8.shared.SharedImports._
 import a8.shared.ZString.ZStringer
 import a8.shared.app.A8LogFormatter
+import a8.versions.GenerateJavaLauncherDotNix.Parms
 import a8.versions.RepositoryOps.RepoConfigPrefix
 import a8.versions.model.{BranchName, ResolutionRequest}
 import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
@@ -131,26 +132,21 @@ object Main extends Logging {
 
     }
 
-    val sbtDepsNix = new Subcommand("sbt_deps_nix") with Runner {
+    val javaLauncherDotNix = new Subcommand("java_launcher_dot_nix") with Runner {
 
-      val repo = opt[String](descr = "repository name", required = false)
-      val organization = opt[String](descr = "organization of the artifact to resolve", required = true)
-      val artifact = opt[String](descr = "artifact name", required = true)
-      val version = opt[String](descr = "specific version", required = true)
-      val branch = opt[String](descr = "branch name", required = false)
+      val launcherJsonFile = opt[String](descr = "launcher json file", required = true)
 
-      descr("generate sbt-deps.nix file")
+      descr("generate java-launcher.nix file")
 
       override def run(main: Main) = {
-        val resolutionRequest =
-          ResolutionRequest(
-            repoPrefix = repo.toOption.map(RepoConfigPrefix(_)).getOrElse(RepoConfigPrefix.default),
-            organization = organization.toOption.get,
-            artifact = artifact.toOption.get,
-            version = version.toOption.get,
-            branch = branch.toOption.map(BranchName(_)),
+        val parms: Parms =
+          json.unsafeRead[Parms](
+            FileSystem.file(launcherJsonFile())
+              .readAsString()
           )
-        GenerateSbtDotNix(resolutionRequest).main(main.args.toArray)
+        GenerateJavaLauncherDotNix(parms, false)
+          .main(main.args.toArray)
+
       }
 
     }
@@ -276,7 +272,7 @@ object Main extends Logging {
     addSubcommand(buildDotSbt)
     addSubcommand(dnsSetup)
     addSubcommand(gitignore)
-    addSubcommand(sbtDepsNix)
+    addSubcommand(javaLauncherDotNix)
     addSubcommand(localUserSync)
     addSubcommand(pushRemoteSync)
     addSubcommand(version_bump)

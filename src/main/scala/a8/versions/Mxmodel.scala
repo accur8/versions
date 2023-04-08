@@ -36,7 +36,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[ArtifactResponse] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[ArtifactResponse] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[ArtifactResponse,parameters.type] =  {
       val constructors = Constructors[ArtifactResponse](5, unsafe.iterRawConstruct)
@@ -104,7 +105,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[ResolutionResponse] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[ResolutionResponse] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[ResolutionResponse,parameters.type] =  {
       val constructors = Constructors[ResolutionResponse](3, unsafe.iterRawConstruct)
@@ -168,7 +170,8 @@ object Mxmodel {
     
     implicit val zioEq: zio.prelude.Equal[ResolutionRequest] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[ResolutionRequest] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[ResolutionRequest,parameters.type] =  {
       val constructors = Constructors[ResolutionRequest](5, unsafe.iterRawConstruct)
@@ -180,7 +183,7 @@ object Mxmodel {
       lazy val organization: CaseClassParm[ResolutionRequest,String] = CaseClassParm[ResolutionRequest,String]("organization", _.organization, (d,v) => d.copy(organization = v), None, 1)
       lazy val artifact: CaseClassParm[ResolutionRequest,String] = CaseClassParm[ResolutionRequest,String]("artifact", _.artifact, (d,v) => d.copy(artifact = v), None, 2)
       lazy val version: CaseClassParm[ResolutionRequest,String] = CaseClassParm[ResolutionRequest,String]("version", _.version, (d,v) => d.copy(version = v), None, 3)
-      lazy val branch: CaseClassParm[ResolutionRequest,Option[BranchName]] = CaseClassParm[ResolutionRequest,Option[BranchName]]("branch", _.branch, (d,v) => d.copy(branch = v), None, 4)
+      lazy val branch: CaseClassParm[ResolutionRequest,Option[BranchName]] = CaseClassParm[ResolutionRequest,Option[BranchName]]("branch", _.branch, (d,v) => d.copy(branch = v), Some(()=> None), 4)
     }
     
     

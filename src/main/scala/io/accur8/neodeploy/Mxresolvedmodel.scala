@@ -37,7 +37,8 @@ object Mxresolvedmodel {
     
     implicit val zioEq: zio.prelude.Equal[LoadedApplicationDescriptor] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[LoadedApplicationDescriptor] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[LoadedApplicationDescriptor,parameters.type] =  {
       val constructors = Constructors[LoadedApplicationDescriptor](4, unsafe.iterRawConstruct)

@@ -34,7 +34,8 @@ object MxSystemStateModel {
     
     implicit val zioEq: zio.prelude.Equal[StateKey] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[StateKey] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[StateKey,parameters.type] =  {
       val constructors = Constructors[StateKey](2, unsafe.iterRawConstruct)
@@ -91,7 +92,8 @@ object MxSystemStateModel {
     
     implicit val zioEq: zio.prelude.Equal[PreviousState] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[PreviousState] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[PreviousState,parameters.type] =  {
       val constructors = Constructors[PreviousState](1, unsafe.iterRawConstruct)
@@ -147,7 +149,8 @@ object MxSystemStateModel {
     
     implicit val zioEq: zio.prelude.Equal[ResolvedState] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[ResolvedState] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[ResolvedState,parameters.type] =  {
       val constructors = Constructors[ResolvedState](3, unsafe.iterRawConstruct)
@@ -207,7 +210,8 @@ object MxSystemStateModel {
     
     implicit val zioEq: zio.prelude.Equal[NewState] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[NewState] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[NewState,parameters.type] =  {
       val constructors = Constructors[NewState](1, unsafe.iterRawConstruct)
@@ -262,7 +266,8 @@ object MxSystemStateModel {
     
     implicit val zioEq: zio.prelude.Equal[Command] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[Command] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[Command,parameters.type] =  {
       val constructors = Constructors[Command](2, unsafe.iterRawConstruct)

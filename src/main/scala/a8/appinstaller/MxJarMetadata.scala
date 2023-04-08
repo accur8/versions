@@ -32,7 +32,8 @@ object MxJarMetadata {
     
     implicit val zioEq: zio.prelude.Equal[Explode] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[Explode] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[Explode,parameters.type] =  {
       val constructors = Constructors[Explode](2, unsafe.iterRawConstruct)
@@ -90,7 +91,8 @@ object MxJarMetadata {
     
     implicit val zioEq: zio.prelude.Equal[SymLink] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[SymLink] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[SymLink,parameters.type] =  {
       val constructors = Constructors[SymLink](2, unsafe.iterRawConstruct)
@@ -149,7 +151,8 @@ object MxJarMetadata {
     
     implicit val zioEq: zio.prelude.Equal[JarMetadata] = zio.prelude.Equal.default
     
-    implicit val catsEq: cats.Eq[JarMetadata] = cats.Eq.fromUniversalEquals
+    
+    
     
     lazy val generator: Generator[JarMetadata,parameters.type] =  {
       val constructors = Constructors[JarMetadata](3, unsafe.iterRawConstruct)
