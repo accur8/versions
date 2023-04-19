@@ -20,7 +20,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 
 
-object MxGenerateSbtDotNix {
+object MxGenerateJavaLauncherDotNix {
   
   trait MxParms {
   
@@ -39,6 +39,7 @@ object MxGenerateSbtDotNix {
           .addField(_.version)
           .addField(_.branch)
           .addField(_.webappExplode)
+          .addField(_.javaVersion)
           .addField(_.dependencyDownloader)
       )
       .build
@@ -49,7 +50,7 @@ object MxGenerateSbtDotNix {
     
     
     lazy val generator: Generator[Parms,parameters.type] =  {
-      val constructors = Constructors[Parms](11, unsafe.iterRawConstruct)
+      val constructors = Constructors[Parms](12, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -64,7 +65,8 @@ object MxGenerateSbtDotNix {
       lazy val version: CaseClassParm[Parms,Option[String]] = CaseClassParm[Parms,Option[String]]("version", _.version, (d,v) => d.copy(version = v), Some(()=> None), 7)
       lazy val branch: CaseClassParm[Parms,Option[BranchName]] = CaseClassParm[Parms,Option[BranchName]]("branch", _.branch, (d,v) => d.copy(branch = v), Some(()=> None), 8)
       lazy val webappExplode: CaseClassParm[Parms,Option[Boolean]] = CaseClassParm[Parms,Option[Boolean]]("webappExplode", _.webappExplode, (d,v) => d.copy(webappExplode = v), Some(()=> None), 9)
-      lazy val dependencyDownloader: CaseClassParm[Parms,Option[String]] = CaseClassParm[Parms,Option[String]]("dependencyDownloader", _.dependencyDownloader, (d,v) => d.copy(dependencyDownloader = v), Some(()=> None), 10)
+      lazy val javaVersion: CaseClassParm[Parms,Option[String]] = CaseClassParm[Parms,Option[String]]("javaVersion", _.javaVersion, (d,v) => d.copy(javaVersion = v), Some(()=> None), 10)
+      lazy val dependencyDownloader: CaseClassParm[Parms,Option[String]] = CaseClassParm[Parms,Option[String]]("dependencyDownloader", _.dependencyDownloader, (d,v) => d.copy(dependencyDownloader = v), Some(()=> None), 11)
     }
     
     
@@ -82,7 +84,8 @@ object MxGenerateSbtDotNix {
           version = values(7).asInstanceOf[Option[String]],
           branch = values(8).asInstanceOf[Option[BranchName]],
           webappExplode = values(9).asInstanceOf[Option[Boolean]],
-          dependencyDownloader = values(10).asInstanceOf[Option[String]],
+          javaVersion = values(10).asInstanceOf[Option[String]],
+          dependencyDownloader = values(11).asInstanceOf[Option[String]],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): Parms = {
@@ -98,14 +101,15 @@ object MxGenerateSbtDotNix {
             version = values.next().asInstanceOf[Option[String]],
             branch = values.next().asInstanceOf[Option[BranchName]],
             webappExplode = values.next().asInstanceOf[Option[Boolean]],
+            javaVersion = values.next().asInstanceOf[Option[String]],
             dependencyDownloader = values.next().asInstanceOf[Option[String]],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(name: String, mainClass: String, jvmArgs: List[String], args: List[String], repo: RepoConfigPrefix, organization: String, artifact: String, version: Option[String], branch: Option[BranchName], webappExplode: Option[Boolean], dependencyDownloader: Option[String]): Parms =
-        Parms(name, mainClass, jvmArgs, args, repo, organization, artifact, version, branch, webappExplode, dependencyDownloader)
+      def typedConstruct(name: String, mainClass: String, jvmArgs: List[String], args: List[String], repo: RepoConfigPrefix, organization: String, artifact: String, version: Option[String], branch: Option[BranchName], webappExplode: Option[Boolean], javaVersion: Option[String], dependencyDownloader: Option[String]): Parms =
+        Parms(name, mainClass, jvmArgs, args, repo, organization, artifact, version, branch, webappExplode, javaVersion, dependencyDownloader)
     
     }
     

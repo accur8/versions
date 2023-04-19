@@ -28,7 +28,10 @@ case class LocalUserSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicat
 
   lazy val healthchecksDotIo = HealthchecksDotIo(resolvedServer.repository.descriptor.healthchecksApiToken)
 
-  case class UserSync(previousStates: Vector[PreviousState]) extends SyncContainer[ResolvedUser, UserLogin](SyncContainer.Prefix("user"), stateDirectory, Filter.allowAll) {
+  case class UserSync(previousStates: Vector[PreviousState]) extends SyncContainer[ResolvedUser, UserLogin](SyncContainer.Prefix("user"), stateDirectory) {
+
+    override def filter(pair: NamePair): Boolean =
+      syncsFilter.matches(pair.syncName)
 
     override def name(resolved: ResolvedUser): UserLogin = resolved.login
     override def nameFromStr(nameStr: String): UserLogin = UserLogin(nameStr)
@@ -46,10 +49,13 @@ case class LocalUserSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicat
 
   }
 
-  case class AppSync(newResolveds: Vector[ResolvedApp], previousStates: Vector[PreviousState]) extends SyncContainer[ResolvedApp, ApplicationName](SyncContainer.Prefix("app"), stateDirectory, appsFilter) {
+  case class AppSync(newResolveds: Vector[ResolvedApp], previousStates: Vector[PreviousState]) extends SyncContainer[ResolvedApp, ApplicationName](SyncContainer.Prefix("app"), stateDirectory) {
 
     override def name(resolved: ResolvedApp): ApplicationName = resolved.name
     override def nameFromStr(nameStr: String): ApplicationName = ApplicationName(nameStr)
+
+    override def filter(pair: NamePair): Boolean =
+      syncsFilter.matches(pair.syncName) && appsFilter.matches(pair.resolvedName)
 
     override val staticSyncs: Seq[Sync[ResolvedApp]] =
       Vector(

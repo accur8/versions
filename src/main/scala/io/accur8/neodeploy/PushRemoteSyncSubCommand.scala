@@ -1,7 +1,7 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.app.BootstrappedIOApp
+import a8.shared.app.{BootstrappedIOApp, LoggingF}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import io.accur8.neodeploy.model.{ApplicationName, ServerName, UserLogin}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedRepository, ResolvedServer, ResolvedUser}
@@ -15,7 +15,7 @@ import a8.shared.ZString.ZStringer
 import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
 import io.accur8.neodeploy.Sync.SyncName
 
-object PushRemoteSyncSubCommand {
+object PushRemoteSyncSubCommand extends LoggingF {
 
   object Filter {
     def allowAll[A : ZStringer] = Filter[A]("", Vector.empty)
@@ -37,8 +37,11 @@ object PushRemoteSyncSubCommand {
     def include(a: A): Boolean =
       matches(a)
 
-    def matches(a: A): Boolean =
-      values.isEmpty || values.find(_ == a).nonEmpty
+    def matches(a: A): Boolean = {
+      val r = values.isEmpty || values.find(_ == a).nonEmpty
+//      logger.debug(s"matches ${a} -> ${r} -- ${values}")
+      r
+    }
 
   }
 

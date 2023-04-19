@@ -144,8 +144,10 @@ object Main extends Logging {
             FileSystem.file(launcherJsonFile())
               .readAsString()
           )
-        GenerateJavaLauncherDotNix(parms, false)
-          .main(main.args.toArray)
+
+        ???
+//        GenerateJavaLauncherDotNix(parms, false)
+//          .main(main.args.toArray)
 
       }
 

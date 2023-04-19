@@ -2,18 +2,19 @@ package io.accur8.neodeploy
 
 
 import a8.appinstaller.AppInstallerConfig.LibDirKind
-import a8.shared.{CompanionGen, Exec}
-import a8.shared.ZFileSystem.{Directory, File, Path, dir}
+import a8.shared.{CompanionGen, Exec, ZFileSystem}
+import a8.shared.ZFileSystem.{Directory, File, Path, dir, symlink}
 import a8.shared.SharedImports._
 import a8.shared.app.{Logging, LoggingF}
+import a8.versions.GenerateJavaLauncherDotNix.FullInstallResults
 import a8.versions.RepositoryOps.RepoConfigPrefix
 import coursier.core.{ModuleName, Organization}
 import io.accur8.neodeploy.ApplicationInstallSync.Installer
 import io.accur8.neodeploy.model.Install.JavaApp
 import io.accur8.neodeploy.model.{ApplicationDescriptor, AppsRootDirectory, Install, Version}
-import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedServer}
+import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedServer, ResolvedUser}
 import zio.{Task, ZIO}
-import a8.versions.RepositoryOps
+import a8.versions.{GenerateJavaLauncherDotNix, RepositoryOps}
 import io.accur8.neodeploy.systemstate.SystemState
 import io.accur8.neodeploy.systemstate.SystemState.JavaAppInstall
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
@@ -39,11 +40,11 @@ object ApplicationInstallSync extends Logging with LoggingF {
     def createAppDir: Task[Unit] =
       appDir.makeDirectories
 
-    def runInstall(installMethod: Install): Task[Unit] =
+    def runInstall(installMethod: Install): M[Unit] =
       installMethod match {
 
         case r: JavaApp =>
-          runInstallFromRepo(r)
+          runJavaLauncherInstallDotNix(r)
 
         case _: Install.Manual =>
           zunit
@@ -53,84 +54,98 @@ object ApplicationInstallSync extends Logging with LoggingF {
 
       }
 
-    def runInstallFromRepo(repo: JavaApp): Task[Unit] = (
-      loggerF.debug(s"runInstallFromRepo(${repo})") *>
-      ZIO.attemptBlocking {
-        import a8.appinstaller._
-        val repositoryOps = RepositoryOps(repo.repository.getOrElse(RepoConfigPrefix.default))
-        val config = AppInstallerConfig(
+    def runJavaLauncherInstallDotNix(repo: JavaApp): M[Unit] = {
+
+      val nixInstallWorkDir = appDir.subdir(s"nix-build")
+
+      val logsDir: Directory = appDir.subdir("logs")
+      val tempDir: Directory = appDir.subdir("temp")
+
+      val jvmArgs =
+        (repo.jvmArgs ++ List(z"-Dlog.dir=${logsDir}", z"-Djava.io.tmpdir=${tempDir}", z"-Dapp.name=${applicationDescriptor.name}" ))
+          .toList
+
+      val request =
+        GenerateJavaLauncherDotNix.Parms(
+          name = applicationDescriptor.name.value,
+          mainClass = repo.mainClass,
+          jvmArgs = jvmArgs,
+          args = repo.appArgs.toList,
+          repo = repo.repository.getOrElse(RepoConfigPrefix.default),
           organization = repo.organization.value,
           artifact = repo.artifact.value,
+          version = Some(repo.version.value),
           branch = None,
-          version = repo.version.value,
-          installDir = appDir.asNioPath.toFile().getAbsolutePath().some,
-          libDirKind = LibDirKind.Copy.some,
-          webappExplode = repo.webappExplode.some,
-          backup = false,
+          webappExplode = Some(repo.webappExplode),
+          javaVersion = Some(repo.javaVersion.value.toString),
         )
-        AppInstaller(config, repositoryOps)
-          .execute()
+
+      val runNixInstaller: Task[FullInstallResults] =
+        GenerateJavaLauncherDotNix(
+          request,
+          false,
+        ).runFullInstall(nixInstallWorkDir)
+
+      def linkToNixStore(name: String, installResults: FullInstallResults) = {
+        val nixStorePath = installResults.nixPackageInStore.subdir(name)
+
+        def removeExistingSymlinkIfExists: Task[Boolean] = {
+          val effect: Task[Either[Throwable, Boolean]] =
+            zblock {
+              import java.nio.file.Files
+              val symLinkNioPath = appDir.symlink(name).asNioPath
+              if ( Files.isSymbolicLink(symLinkNioPath) ) {
+                Files.delete(symLinkNioPath)
+                Right(true)
+              } else if ( symLinkNioPath.exists() ) {
+                Left(new RuntimeException("" + symLinkNioPath.toFile.getAbsolutePath + " exists but is not a symlink")): Either[Throwable, Boolean]
+              } else {
+                Right(false)
+              }
+            }
+          effect
+            .flatMap(e => ZIO.fromEither(e))
+        }
+
+        for {
+          exists <- nixStorePath.exists
+          _ <- removeExistingSymlinkIfExists
+          _ <-
+            if ( exists ) {
+              appDir
+                .symlink(name)
+                .writeTarget(nixStorePath.absolutePath)
+            } else {
+              zunit
+            }
+        } yield ()
       }
-    )
 
+      def createGcRoot = {
+        for {
+          user <- zservice[ResolvedUser]
+          gcroot = ZFileSystem.symlink(z"/nix/var/nix/gcroots/per-user/${user.login}/java-app-${applicationDescriptor.name}")
+          _ <- zblock(java.nio.file.Files.deleteIfExists(gcroot.asNioPath))
+          _ <- gcroot.writeTarget(nixInstallWorkDir.subdir("build").absolutePath)
+        } yield()
+      }
 
-//    def runInstallFromRepoExternalProc(repo: FromRepo): Task[Unit] = {
-//      ZIO.attemptBlocking {
-//        val a8VersionsExec = server.descriptor.a8VersionsExec.getOrElse("a8-versions")
-//        val repoConfig = applicationDescriptor.repository.getOrElse(RepoConfigPrefix.default)
-//        val args =
-//          Seq(
-//            a8VersionsExec,
-//            "install",
-//            "--organization",
-//            repo.organization.value,
-//            "--artifact",
-//            repo.artifact.value,
-//            "--version",
-//            repo.version.value,
-//            "--install-dir",
-//            appDir.canonicalPath,
-//            "--lib-dir-kind",
-//            "copy",
-//            "--webapp-explode",
-//            repo.webappExplode.toString,
-//            "--backup",
-//            "false",
-//            "--repo",
-//            repoConfig.value,
-//          )
-//        val result =
-//          Exec(args:_*)
-//            .inDirectory(appDir)
-//            .execCaptureOutput()
-//        result
-//      }.flatMap {
-//        case result if result.exitCode === 0 =>
-//          loggerF.debug(s"install of ${applicationDescriptor.name} completed successfully")
-//        case result =>
-//          loggerF.warn(s"install of ${applicationDescriptor.name} non-zero exit code ${result.exitCode}\nstdout=${result.stdout}\nstderr=\n${result.stderr}")
-//      }
-//    }
+      for {
+        _ <- nixInstallWorkDir.resolve
+        _ <- loggerF.debug(s"runJavaLauncherInstallDotNix(${repo})")
+        installResults <- runNixInstaller
+        _ <- logsDir.makeDirectories
+        _ <- tempDir.makeDirectories
+        _ <- linkToNixStore("bin", installResults)
+        _ <- linkToNixStore("lib", installResults)
+        _ <- linkToNixStore("webapp-composite", installResults)
+        _ <- createGcRoot
+      } yield ()
 
-//    def asSteps: Vector[Step] = {
-//      ???
-//      Vector(
-//        Step(
-//          phase = Phase.Apply,
-//          description = z"install ${state.applicationDescriptor.name} ${applicationDescriptor.install.description} into ${appDir.toString}",
-//          action = installAction,
-//        ),
-//      )
-//    }
+    }
 
     def symlinkConfig: Task[Unit] =
       updateSymLink(installState.gitAppDirectory, appDir.file("config"))
-
-    def symlinkJavaExecutable: Task[Unit] =
-      updateSymLink(
-        target = appRootBinDir.file(z"java${installState.fromRepo.javaVersion}"),
-        link = appRootBinDir.file(z"${applicationDescriptor.name}"),
-      )
 
     def updateSymLink(
       target: Path,
@@ -141,12 +156,11 @@ object ApplicationInstallSync extends Logging with LoggingF {
       } yield ()
     }
 
-    def installAction: Task[Unit] =
+    def installAction: M[Unit] =
       for {
         _ <- createAppDir
         _ <- runInstall(applicationDescriptor.install)
         _ <- symlinkConfig
-        _ <- symlinkJavaExecutable
       } yield ()
 
   }
@@ -158,7 +172,6 @@ case class ApplicationInstallSync(appsRootDirectory: AppsRootDirectory) extends 
   // Install
   //    create app directory
   //    symlink git directory to the app/config
-  //    create java symlink
   //    create lib directory
 
   // Update

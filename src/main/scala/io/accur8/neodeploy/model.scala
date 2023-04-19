@@ -173,26 +173,10 @@ object model extends LoggingF {
 
       override def command(applicationDescriptor: ApplicationDescriptor, appDirectory: Directory, appsRootDirectory: AppsRootDirectory): Command = {
         val appsRoot = appsRootDirectory
-        val bin = appsRoot.subdir("bin").file(applicationDescriptor.name.value)
-        val logsDir = appsRoot.subdir("logs")
         val appDir = appsRoot.subdir(applicationDescriptor.name.value)
-        val tempDir = appDir.subdir("tmp")
-        val baseArgs =
-          Vector[ZString](
-            z"${bin}",
-            "-cp",
-            z"'lib/*'",
-            z"-Dlog.dir=${logsDir}",
-            z"-Djava.io.tmpdir=${tempDir}",
-          ).map(_.toString()) ++
-            jvmArgs ++
-            Seq[ZString](
-              z"-Dapp.name=${applicationDescriptor.name}",
-              z"${mainClass}",
-            ).map(_.toString())
-        val args = baseArgs ++ appArgs
+        val bin = appDir.subdir("bin").file(applicationDescriptor.name.value)
         Command(
-          args,
+          List(bin.absolutePath),
           appDir.some,
         )
       }

@@ -1,8 +1,8 @@
 package a8.versions
 
 
-import a8.shared.{CompanionGen, FileSystem, StringValue}
-import a8.shared.app.BootstrappedIOApp
+import a8.shared.{CompanionGen, FileSystem, StringValue, ZFileSystem}
+import a8.shared.app.{BootstrappedIOApp, LoggingF}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.versions.Build.BuildType
 import a8.versions.RepositoryOps.RepoConfigPrefix
@@ -20,7 +20,9 @@ import java.security.MessageDigest
 import java.util.Base64
 import scala.util.Try
 import a8.shared.SharedImports._
-import a8.versions.MxGenerateSbtDotNix.MxParms
+import a8.shared.ZFileSystem.{Directory, Symlink}
+import a8.versions.GenerateJavaLauncherDotNix.FullInstallResults
+import a8.versions.MxGenerateJavaLauncherDotNix._
 import org.apache.commons.codec.binary.{Base32, Hex}
 import zio.stream.ZStream
 
@@ -63,6 +65,11 @@ object GenerateJavaLauncherDotNix {
 
   }
 
+  case class FullInstallResults(
+    nixPackageInStore: Directory,
+    buildOutLink: Symlink,
+  )
+
 }
 
 
@@ -70,33 +77,42 @@ case class GenerateJavaLauncherDotNix(
   parms: GenerateJavaLauncherDotNix.Parms,
   launcherConfigOnly: Boolean,
 )
-  extends BootstrappedIOApp
+  extends LoggingF
 {
+
+  logger.info(s"using args ${parms.args}")
 
   val parallelism = 20
 
   lazy val repositoryOps = RepositoryOps(parms.resolutionRequest.repoPrefix)
 
   // hardcoded to use maven for now
-  val resolutionResponseZ: Task[model.ResolutionResponse] = ZIO.attemptBlocking(RepositoryOps.runResolve(parms.resolutionRequest))
+  val resolutionResponseZ: Task[model.ResolutionResponse] =
+    ZIO
+      .attemptBlocking(RepositoryOps.runResolve(parms.resolutionRequest))
+      .map(r => r.copy(artifacts = r.artifacts.toList.distinct))
 
-  override def defaultZioLogLevel: LogLevel = LogLevel.Trace
+  lazy val javaLauncherTemplateContent =
+    """
+#!/bin/bash
+
+exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
+
+    """.trim + "\n"
 
   def fetchLine(artifact: ArtifactResponse, nixHash: NixHash): String = {
     val attributes =
       Vector(
         "url" -> artifact.url,
         "sha256" -> nixHash.value,
-//        "organization" -> artifact.organization,
-//        "module" -> artifact.module,
-//        "version" -> artifact.version,
-//        "m2RepoPath" -> artifact.m2RepoPath,
-//        "filename" -> artifact.filename,
+        "organization" -> artifact.organization,
+        "module" -> artifact.module,
+        "version" -> artifact.version,
+        "m2RepoPath" -> artifact.m2RepoPath,
+        "filename" -> artifact.filename,
       )
     s"""{ ${attributes.map(t => s"""${t._1} = "${t._2}"; """).mkString(" ")} }"""
   }
-
-
 
   case class NixPrefetchResult(
     nixHash: NixHash,
@@ -167,7 +183,7 @@ case class GenerateJavaLauncherDotNix(
       .attemptBlocking {
         import sys.process._
         import scala.language.postfixOps
-        val results = (s"nix-prefetch-url --print-path ${url}" !!)
+        val results = (s"/nix/var/nix/profiles/default/bin/nix-prefetch-url --print-path ${url}" !!)
         val lines =
           results
             .linesIterator
@@ -183,12 +199,27 @@ case class GenerateJavaLauncherDotNix(
       .trace(s"nixPrefetchUrl(${url})")
 
 
-  override def runT: ZIO[BootstrapEnv, Throwable, Unit] = {
-    for {
-      content <- javaLauncherContentT
-      _ <- writeJavaLauncherDotNix(content)
-    } yield ()
+  def runNixBuild(workDir: Directory): Task[ZFileSystem.Symlink] = {
+    val symlinkName = "build"
+    ZIO.attemptBlocking(
+      Exec(
+        Seq("/nix/var/nix/profiles/default/bin/nix-build", "--out-link", symlinkName, "-E", "with import <nixpkgs> {}; (callPackage ./launcher {})"),
+        Some(FileSystem.dir(workDir.absolutePath)),
+      ).execCaptureOutput()
+    ).as(workDir.symlink(symlinkName))
   }
+
+  def runFullInstall(workDir: Directory): Task[FullInstallResults] = {
+    val launcherFilesDir = workDir.subdir("launcher")
+    for {
+      defaultDotNixContent <- javaLauncherContentT
+      _ <- launcherFilesDir.file("default.nix").write(defaultDotNixContent)
+      _ <- launcherFilesDir.file("java-launcher-template").write(javaLauncherTemplateContent)
+      buildSymlink <- runNixBuild(workDir)
+      nixPackagePath <- buildSymlink.canonicalPath.map(ZFileSystem.dir)
+    } yield FullInstallResults(nixPackagePath, buildSymlink)
+  }
+
 
   def javaLauncherContentT: Task[String] = {
     for {
@@ -215,7 +246,7 @@ case class GenerateJavaLauncherDotNix(
   }
 
   def quote(values: List[String]): String = {
-    s"[${values.map(quote).mkString(", ")}]"
+    s"[${values.map(quote).mkString(" ")}]"
   }
 
   def quote(value: Option[String]): String = {
@@ -342,14 +373,6 @@ ${
 }
   """.trim
     content
-  }
-
-  def writeJavaLauncherDotNix(content: String): Task[Unit] = {
-    ZIO.attemptBlocking {
-      FileSystem.file("java-launcher.nix").write(content)
-      println(content)
-    }
-
   }
 
 }

@@ -53,7 +53,6 @@ object SyncContainer extends LoggingF {
 abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
   prefix: Prefix,
   stateDirectory: Directory,
-  filter: Filter[Name],
 )
   extends LoggingF
 {
@@ -73,6 +72,8 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
 
   def name(resolved: Resolved): Name
   def nameFromStr(nameStr: String): Name
+
+  def filter(pair: NamePair): Boolean
 
   case class NamePair(syncName: SyncName, resolvedName: Name)
 
@@ -96,7 +97,7 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
 
 //    logger.debug(s"allNamePairs = ${result}")
 
-    result
+    result.filter(filter)
 
   }
 

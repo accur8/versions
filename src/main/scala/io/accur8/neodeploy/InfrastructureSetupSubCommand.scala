@@ -44,7 +44,7 @@ case class InfrastructureSetupSubCommand(resolvedRepository: ResolvedRepository)
           zsucceed(Left(th))
       }
 
-  case class SyncImpl(previousStates: Vector[PreviousState]) extends SyncContainer[ResolvedRepository, Name](syncContainerPrefix, stateDirectory, Filter.allowAll) {
+  case class SyncImpl(previousStates: Vector[PreviousState]) extends SyncContainer[ResolvedRepository, Name](syncContainerPrefix, stateDirectory) {
 
     override def name(resolved: ResolvedRepository): Name = Name("repository")
 
@@ -53,6 +53,8 @@ case class InfrastructureSetupSubCommand(resolvedRepository: ResolvedRepository)
     override val newResolveds = Vector(resolvedRepository)
 
     override val staticSyncs: Seq[Sync[ResolvedRepository]] = Seq.empty
+
+    override def filter(pair: NamePair): Boolean = true
 
     override def resolvedSyncs(resolved: ResolvedRepository): Seq[Sync[ResolvedRepository]] =
       resolved.repositoryPlugins.pluginInstances
