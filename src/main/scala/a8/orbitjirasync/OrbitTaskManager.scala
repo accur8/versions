@@ -29,6 +29,8 @@ import zio.ZIO
 
 case class OrbitTaskManager(config: JiraSync, parallelism: Int)(implicit val requestProcessor: RequestProcessor, qubesClient: QubesApiClient) extends LoggingF {
 
+  import a8.Scala3Hacks.*
+
   type IO[A] = zio.Task[A]
 
   import OrbitTaskManagerMain.orbit

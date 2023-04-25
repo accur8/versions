@@ -11,6 +11,7 @@ import a8.shared.SharedImports._
 
 object PluginManager {
 
+  import a8.Scala3Hacks.*
 
   object Factory {
     abstract class AbstractFactory[A, B <: Plugin[A], Descriptor: JsonCodec](name0: String) extends Factory[A,B] {
@@ -31,12 +32,12 @@ object PluginManager {
   }
 
   trait Factory[A, B <: Plugin[A]] {
-    val name: CIString
+    lazy val name: CIString
     def apply(jsd: JsDoc, outlet: A): Either[String, B]
   }
 
   case class SingletonFactory[A, B <: Plugin[A]](singleton: B) extends Factory[A, B] {
-    override val name: CIString = CIString(singleton.name.value)
+    override lazy val name: CIString = CIString(singleton.name.value)
     override def apply(jsd: JsDoc, outlet: A): Either[String, B] =
       Right(singleton)
   }

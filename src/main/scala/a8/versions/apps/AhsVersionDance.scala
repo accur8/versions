@@ -9,7 +9,7 @@ object AhsVersionDance {
 
   def main(args: Array[String]) = {
 
-     implicit val buildType = BuildType.ArtifactoryBuild
+    implicit val buildType = BuildType.ArtifactoryBuild
 //      implicit val buildType = BuildType.LocalBuild
 
     val start = new Date()

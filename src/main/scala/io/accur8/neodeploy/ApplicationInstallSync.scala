@@ -3,8 +3,8 @@ package io.accur8.neodeploy
 
 import a8.appinstaller.AppInstallerConfig.LibDirKind
 import a8.shared.{CompanionGen, Exec, ZFileSystem}
-import a8.shared.ZFileSystem.{Directory, File, Path, dir, symlink}
-import a8.shared.SharedImports._
+import a8.shared.ZFileSystem.{Directory, File, Path, SymlinkHandler, dir, symlink}
+import a8.shared.SharedImports.*
 import a8.shared.app.{Logging, LoggingF}
 import a8.versions.GenerateJavaLauncherDotNix.FullInstallResults
 import a8.versions.RepositoryOps.RepoConfigPrefix
@@ -20,6 +20,8 @@ import io.accur8.neodeploy.systemstate.SystemState.JavaAppInstall
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
 
 import java.nio.file.Paths
+
+import a8.Scala3Hacks.*
 
 object ApplicationInstallSync extends Logging with LoggingF {
 

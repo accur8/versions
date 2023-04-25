@@ -19,6 +19,8 @@ import zio.prelude.Equal
 import zio.{Task, UIO, ZIO}
 import PredefAssist._
 
+import a8.Scala3Hacks.*
+
 object SyncContainer extends LoggingF {
 
   case class Prefix(value: String)
@@ -101,7 +103,7 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
 
   }
 
-  def run: ZIO[Environ, Nothing, Either[Throwable,Unit]] =
+  def run: ZIO[Environ, Throwable, Unit] =
     loggerF.debug(s"running allNamePairs = ${allNamePairs}") *>
     allNamePairs
       .map { pair =>
@@ -113,7 +115,6 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
       }
       .sequence
       .as(())
-      .either
 
   def run(namePair: NamePair, previousState: PreviousState): M[Unit] = {
 
@@ -151,13 +152,6 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
       } yield ()
 
     effect
-      .either
-      .flatMap {
-        case Right(_) =>
-          zunit
-        case Left(th) =>
-          loggerF.error(s"error processing ${namePair}", th)
-      }
       .correlateWith(s"SyncContainer.run(${namePair})")
 
   }

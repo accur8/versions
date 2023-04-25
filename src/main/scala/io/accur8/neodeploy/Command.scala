@@ -17,7 +17,7 @@ import zio.process.CommandError.NonZeroErrorCode
 
 object Command {
 
-  implicit val jsonCodec = {
+  implicit val jsonCodec: JsonCodec[Command] = {
     val delegate = new MxCommand {}
 
     val jsobjCodec = delegate.jsonCodec.asJsonCodec

@@ -152,6 +152,9 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
               .uri(java.net.URI.create(sha256Url))
               .GET()
 
+          val headers = repoAuthHeaders
+          headers.toString()
+
           val t1 =
             repoAuthHeaders
               .foldLeft(t0)( (t, header) =>
@@ -183,7 +186,17 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
       .attemptBlocking {
         import sys.process._
         import scala.language.postfixOps
-        val results = (s"/nix/var/nix/profiles/default/bin/nix-prefetch-url --print-path ${url}" !!)
+        val urlWithAuth =
+          sttp.model.Uri.parse(url) match {
+            case Left(err) =>
+              sys.error(err)
+            case Right(u0) =>
+              repositoryOps
+                .remoteRepositoryAuthentication
+                .flatMap(auth => auth.passwordOpt.map(p => u0.userInfo(auth.user,p)))
+                .getOrElse(u0)
+          }
+        val results = (s"/nix/var/nix/profiles/default/bin/nix-prefetch-url --print-path ${urlWithAuth}" !!)
         val lines =
           results
             .linesIterator
@@ -256,8 +269,8 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
   }
 
   def defaultDotNix(resolutionResponse: ResolutionResponse, artifacts: Iterable[(ArtifactResponse,NixHash)]): String = {
-    def expr(value: String) = "${" + value + "}"
-s"""
+    def expr(value: String) = { "${" + value + "}" }
+    s"""
 {
   fetchurl,
   linkFarm,

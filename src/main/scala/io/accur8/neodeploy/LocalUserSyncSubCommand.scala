@@ -1,18 +1,19 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.SharedImports.{zservice, _}
+import a8.shared.SharedImports.{zservice, *}
+import a8.shared.app.BootstrapConfig.UnifiedLogLevel
 import a8.shared.{CompanionGen, FileSystem, ZFileSystem}
-import a8.shared.app.{BootstrappedIOApp, LoggerF}
+import a8.shared.app.{BootstrapConfig, BootstrappedIOApp, LoggerF}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
-import io.accur8.neodeploy.MxLocalUserSyncSubCommand._
+import io.accur8.neodeploy.MxLocalUserSyncSubCommand.*
 import io.accur8.neodeploy.LocalUserSyncSubCommand.Config
 import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
 import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.model.{ApplicationName, AppsRootDirectory, CaddyDirectory, DomainName, GitRootDirectory, GitServerDirectory, ServerName, SupervisorDirectory, UserLogin}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedRepository, ResolvedServer, ResolvedUser}
 import zio.{ZIO, ZLayer}
-import systemstate.SystemStateModel._
+import systemstate.SystemStateModel.*
 import wvlet.log.{LogLevel, Logger}
 
 import java.net.InetAddress
@@ -37,10 +38,10 @@ object LocalUserSyncSubCommand {
 
 }
 
-case class LocalUserSyncSubCommand(appsFilter: Filter[ApplicationName], syncsFilter: Filter[SyncName], defaultLogLevel: LogLevel) extends BootstrappedIOApp {
+case class LocalUserSyncSubCommand(appsFilter: Filter[ApplicationName], syncsFilter: Filter[SyncName], wvletDefaultLogLevel: LogLevel) extends BootstrappedIOApp {
 
-  override def defaultZioLogLevel: zio.LogLevel =
-    LoggerF.impl.toZioLogLevel(defaultLogLevel)
+  override def defaultLogLevel =
+    UnifiedLogLevel(wvletDefaultLogLevel)
 
   override def runT: ZIO[BootstrapEnv, Throwable, Unit] =
     Layers.provide(runM)
@@ -51,7 +52,6 @@ case class LocalUserSyncSubCommand(appsFilter: Filter[ApplicationName], syncsFil
       _ <-
         LocalUserSync(user, appsFilter, syncsFilter)
           .run
-          .logVoid
     } yield ()
 
 }

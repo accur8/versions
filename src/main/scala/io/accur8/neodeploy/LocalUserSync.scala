@@ -70,43 +70,28 @@ case class LocalUserSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicat
 
   }
 
-  def appSyncRun: ZIO[Environ, Nothing, Either[Throwable, Unit]] = {
+  def appSyncRun: ZIO[Environ, Throwable, Unit] =
     loggerF.trace("appSyncRun") *> loggerF.debug("appSyncRun") *>
     SyncContainer.loadState(stateDirectory, SyncContainer.Prefix("app"))
-      .either
-      .flatMap {
-        case Right(previousStates) =>
-          AppSync(resolvedUser.resolvedApps, previousStates)
-            .run
-        case Left(th) =>
-          zsucceed(Left(th))
+      .flatMap { previousStates =>
+        AppSync(resolvedUser.resolvedApps, previousStates)
+          .run
       }
-  }
 
-  def userSyncRun: ZIO[Environ, Nothing, Either[Throwable, Unit]] =
+  def userSyncRun: ZIO[Environ, Throwable, Unit] =
     SyncContainer.loadState(stateDirectory, SyncContainer.Prefix("user"))
-      .either
-      .flatMap {
-        case Right(previousStates) =>
-          UserSync(previousStates)
-            .run
-        case Left(th) =>
-          zsucceed(Left(th))
+      .flatMap { previousStates =>
+        UserSync(previousStates)
+          .run
       }
 
-  def run: ZIO[Environ, Nothing, Either[Throwable, Unit]] =
+  def run: ZIO[Environ, Throwable, Unit] =
     for {
       _ <- loggerF.info(z"running for ${resolvedUser.qualifiedUserName}")
       _ <- loggerF.debug(z"resolved user ${resolvedUser.qualifiedUserName} -- ${resolvedUser.descriptor.prettyJson.indent("    ")}")
       _ <- loggerF.debug(z"resolved user plugins ${resolvedUser.qualifiedUserName} -- ${resolvedUser.plugins.descriptorJson.prettyJson.indent("    ")}")
-      userResult <- userSyncRun
-      result <-
-        userResult match {
-          case Right(_) =>
-            appSyncRun
-          case l =>
-            zsucceed(l)
-        }
-    } yield result
+      _ <- userSyncRun
+      _ <- appSyncRun
+    } yield ()
 
 }

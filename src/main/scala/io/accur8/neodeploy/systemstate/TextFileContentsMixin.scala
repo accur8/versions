@@ -5,6 +5,8 @@ import a8.shared.ZFileSystem
 import io.accur8.neodeploy.systemstate.SystemStateModel._
 import a8.shared.SharedImports._
 
+import a8.Scala3Hacks.*
+
 trait TextFileContentsMixin extends SystemStateMixin {
 
   val file: ZFileSystem.File

@@ -1,6 +1,6 @@
 package a8.versions
 
-import com.softwaremill.sttp.HttpURLConnectionBackend
+import sttp.client3._
 import wvlet.log.Logger
 
 import scala.collection.convert.{AsJavaExtensions, AsScalaExtensions}
@@ -11,8 +11,6 @@ trait predef
   extends AsJavaExtensions
   with AsScalaExtensions
 {
-
-  implicit val backend = HttpURLConnectionBackend()
 
   type Logging = a8.shared.app.Logging
 
@@ -37,7 +35,7 @@ trait predef
 
   def forceClose[A <: Closable](closeMe: A)(implicit logger: Logger) =
     try {
-      import scala.language.reflectiveCalls
+      import scala.reflect.Selectable.reflectiveSelectable
       closeMe.close()
     } catch {
       case th: Throwable => logger.debug(s"swallowing failed close on ${closeMe}", th)

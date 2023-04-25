@@ -16,7 +16,7 @@
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
 
-val scalaLibVersion = "2.13.6"
+val scalaLibVersion = "3.2.2"
 
 scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
 
@@ -44,19 +44,32 @@ lazy val versions =
     .jvmProject("a8-versions", file("."), "versions")
     .settings(
       libraryDependencies ++= Seq(
-        "ant" % "ant" % "1.6.2",
-        "dev.zio" %% "zio-cache" % "0.2.1",
-        "io.get-coursier" %% "coursier" % "2.0.0-RC6",
-        "io.get-coursier" %% "coursier-cache" % "2.0.0-RC6",
-        "com.softwaremill.sttp" %% "core" % "1.7.2",
-        "org.scalameta" %% "fastparse" % "1.0.1",
-        "io.accur8" %% "a8-sync-api" % "1.0.0-20230108_1051_master",
+
+        ("io.get-coursier" %% "coursier" % "2.1.2").cross(CrossVersion.for3Use2_13)
+          exclude("org.scala-lang.modules", "scala-collection-compat_2.13")
+          exclude("org.scala-lang.modules", "scala-xml_2.13")
+        ,
+
+        ("io.get-coursier" %% "coursier-cache" % "2.1.2").cross(CrossVersion.for3Use2_13)
+          exclude("org.scala-lang.modules", "scala-collection-compat_2.13")
+          exclude("org.scala-lang.modules", "scala-xml_2.13")
+        ,
+
+        "org.scala-lang.modules" %% "scala-xml" % "2.1.0",
+
+        "com.softwaremill.sttp.client3" %% "core" % "3.8.15",
+        "com.lihaoyi" %% "fastparse" % "3.0.1",
+        "io.accur8" %% "a8-sync-api" % "1.0.0-20230419_2025_master",
         "org.rogach" %% "scallop" % "4.1.0",
-        "dev.zio" %% "zio-process" % "0.7.1",
+        "dev.zio" %% "zio-process" % "0.7.2",
         "org.typelevel" %% "cats-parse" % "0.3.8",
+
         "software.amazon.awssdk" % "apache-client" % "2.19.6",
         "software.amazon.awssdk" % "route53" % "2.19.6",
+        "ant" % "ant" % "1.6.2",
+
         "org.scalatest" %% "scalatest" % "3.2.12" % "test",
+
       )
     )
 

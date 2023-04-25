@@ -1,7 +1,7 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.app.{BootstrappedIOApp, LoggerF}
+import a8.shared.app.{BootstrapConfig, BootstrappedIOApp, LoggerF}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.versions.apps.Main
 import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
@@ -19,13 +19,13 @@ case class Runner(
   remoteDebug: Boolean = false,
   remoteTrace: Boolean = false,
   runnerFn: (ResolvedRepository, Runner) => Task[Unit],
-  defaultLogLevel: LogLevel,
+  wvletDefaultLogLevel: LogLevel,
 )
   extends BootstrappedIOApp
 {
 
-  override def defaultZioLogLevel: zio.LogLevel =
-    LoggerF.impl.toZioLogLevel(defaultLogLevel)
+  override def defaultLogLevel =
+    BootstrapConfig.UnifiedLogLevel(wvletDefaultLogLevel)
 
   def unsafeRun(): Unit =
     main(Array[String]())

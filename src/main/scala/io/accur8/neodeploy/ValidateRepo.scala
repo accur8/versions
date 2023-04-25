@@ -9,6 +9,7 @@ import io.accur8.neodeploy.resolvedmodel.ResolvedRepository
 import PredefAssist._
 import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
 
+import a8.Scala3Hacks.*
 
 case class ValidateRepo(resolvedRepository: ResolvedRepository) extends LoggingF {
 
@@ -18,7 +19,7 @@ case class ValidateRepo(resolvedRepository: ResolvedRepository) extends LoggingF
     resolvedRepository
       .allUsers
 
-  def run =
+  def run: ZIO[Any, Throwable, Unit] =
     setupSshKeys zipPar addGitattributesFile zipPar validatePlugins
 
   def validatePlugins =
@@ -47,7 +48,7 @@ case class ValidateRepo(resolvedRepository: ResolvedRepository) extends LoggingF
             user
         }
       )
-      .flatMap { users: Seq[resolvedmodel.ResolvedUser] =>
+      .flatMap { (users: Seq[resolvedmodel.ResolvedUser]) =>
         val setupUsersEffect: Seq[ZIO[Any, Nothing, Unit]] =
           users
             .map { user =>

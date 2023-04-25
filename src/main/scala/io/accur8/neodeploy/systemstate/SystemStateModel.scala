@@ -6,7 +6,7 @@ import a8.shared.{CompanionGen, FileSystem, SecretValue, StringValue}
 import io.accur8.neodeploy.{DnsService, HealthchecksDotIo, LocalUserSyncSubCommand}
 import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.systemstate.MxSystemStateModel._
-import zio.{&, Task, Trace, ZIO, ZLayer}
+import zio.{Task, Trace, ZIO, ZLayer}
 import a8.shared.SharedImports._
 import a8.shared.app.LoggingF
 import com.typesafe.config.Config

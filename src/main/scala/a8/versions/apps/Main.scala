@@ -1,30 +1,34 @@
 package a8.versions.apps
 
+
 import a8.appinstaller.AppInstallerConfig.LibDirKind
 import a8.appinstaller.{AppInstaller, AppInstallerConfig, InstallBuilder}
 import a8.shared.{FileSystem, FromString}
 import a8.versions.Build.BuildType
-import a8.versions._
+import a8.versions.*
 import a8.versions.Upgrade.LatestArtifact
 import a8.versions.apps.Main.{Conf, Runner}
-import org.rogach.scallop.{ScallopConf, ScallopOption, Subcommand}
-import a8.versions.predef._
+import a8.versions.predef.*
 import coursier.core.{ModuleName, Organization}
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.ZString.ZStringer
 import a8.shared.app.A8LogFormatter
 import a8.versions.GenerateJavaLauncherDotNix.Parms
 import a8.versions.RepositoryOps.RepoConfigPrefix
-import a8.versions.model.{BranchName, ResolutionRequest}
+import a8.versions.model.{BranchName, ResolutionRequest, ResolvedRepo}
 import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
 import io.accur8.neodeploy.Sync.SyncName
-import io.accur8.neodeploy.model.{ApplicationName, ServerName, UserLogin}
+import io.accur8.neodeploy.model.{ApplicationName, DomainName, ServerName, UserLogin}
+import io.accur8.neodeploy.resolvedmodel.ResolvedRepository
 import wvlet.log.{LogLevel, Logger}
 
 import scala.annotation.tailrec
-import io.accur8.neodeploy.{InfrastructureSetupSubCommand, PushRemoteSyncSubCommand, ValidateRepo, Runner => NeodeployRunner}
+import io.accur8.neodeploy.{DeploySubCommand, InfrastructureSetupSubCommand, PushRemoteSyncSubCommand, ValidateRepo, Runner as NeodeployRunner}
+import org.rogach.scallop.*
 
 object Main extends Logging {
+
+  import a8.Scala3Hacks.*
 
   sealed trait Runner {
     def run(main: Main): Unit
@@ -163,7 +167,34 @@ object Main extends Logging {
 
     }
 
+    val deploy = new Subcommand("deploy") with Runner {
+
+      descr("deploy an app")
+
+      val version = opt[String](descr = "version", required = true)
+      val app = opt[String](descr = "fully qualified app name", required = true)
+
+      override def run(main: Main) = {
+
+        import io.accur8.neodeploy.model.Version
+        val resolvedVersion = Version(version.toOption.get)
+//        DeploySubCommand.deploy(Version(version.toOption.get), app.toOption.get)
+
+        NeodeployRunner(
+          remoteDebug = debug.toOption.getOrElse(false),
+          remoteTrace = trace.toOption.getOrElse(false),
+          runnerFn = { (resolvedRepo: ResolvedRepository, runner: io.accur8.neodeploy.Runner) =>
+            DeploySubCommand(resolvedRepo, runner, resolvedVersion, DomainName(app.toOption.get)).run
+          },
+          wvletDefaultLogLevel = defaultLogLevel,
+        ).unsafeRun()
+
+      }
+
+    }
+
     val syncsDescription = "comma separated list of syncs to run [ authorized_keys2 | caddy | supervisor | installer | pgbackrestClient | pgbackrestServer | rsnapshotClient | rsnapshotServer ]"
+
 
     val pushRemoteSync = new Subcommand("push_remote_sync") with Runner {
 
@@ -190,7 +221,7 @@ object Main extends Logging {
           debug.toOption.getOrElse(false),
           trace.toOption.getOrElse(false),
           (rr, parms) => PushRemoteSyncSubCommand(rr, parms).run,
-          defaultLogLevel = defaultLogLevel,
+          wvletDefaultLogLevel = defaultLogLevel,
         ).unsafeRun()
       }
 
@@ -201,7 +232,7 @@ object Main extends Logging {
       descr("will validate the server app config repo, for example creating any missing ssh keys")
 
       override def run(main: Main) =
-        NeodeployRunner(runnerFn = (rr, parms) => ValidateRepo(rr).run, defaultLogLevel = defaultLogLevel)
+        NeodeployRunner(runnerFn = (rr, parms) => ValidateRepo(rr).run, wvletDefaultLogLevel = defaultLogLevel)
           .unsafeRun()
 
     }
@@ -211,7 +242,7 @@ object Main extends Logging {
       descr("will setup the various dns servers")
 
       override def run(main: Main) =
-        NeodeployRunner(runnerFn = (rr, parms) => InfrastructureSetupSubCommand(rr).run, defaultLogLevel = defaultLogLevel)
+        NeodeployRunner(runnerFn = (rr, parms) => InfrastructureSetupSubCommand(rr).run, wvletDefaultLogLevel = defaultLogLevel)
           .unsafeRun()
 
     }
@@ -269,6 +300,7 @@ object Main extends Logging {
 
     }
 
+    addSubcommand(deploy)
     addSubcommand(resolve)
     addSubcommand(install)
     addSubcommand(buildDotSbt)
@@ -375,7 +407,7 @@ object Main extends Logging {
 
 case class Main(args: Seq[String]) {
 
-  implicit def buildType = BuildType.ArtifactoryBuild
+  implicit def buildType: BuildType = BuildType.ArtifactoryBuild
 
   lazy val userHome = FileSystem.userHome
   lazy val a8Home = userHome \\ ".a8"

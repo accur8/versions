@@ -33,15 +33,12 @@ case class InfrastructureSetupSubCommand(resolvedRepository: ResolvedRepository)
       result <- repoSyncRun
     } yield ()
 
-  def repoSyncRun: ZIO[Environ, Nothing, Either[Throwable, Unit]] =
-    SyncContainer.loadState(stateDirectory, syncContainerPrefix)
-      .either
-      .flatMap {
-        case Right(previousStates) =>
-          SyncImpl(previousStates)
-            .run
-        case Left(th) =>
-          zsucceed(Left(th))
+  def repoSyncRun: ZIO[Environ, Throwable, Unit] =
+    SyncContainer
+      .loadState(stateDirectory, syncContainerPrefix)
+      .flatMap { previousStates =>
+        SyncImpl(previousStates)
+          .run
       }
 
   case class SyncImpl(previousStates: Vector[PreviousState]) extends SyncContainer[ResolvedRepository, Name](syncContainerPrefix, stateDirectory) {

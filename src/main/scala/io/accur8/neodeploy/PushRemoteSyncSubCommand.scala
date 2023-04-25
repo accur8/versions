@@ -79,9 +79,9 @@ case class PushRemoteSyncSubCommand(
         )
     } yield ()
 
-  def pushRemoteServerSync(resolvedServer: ResolvedServer): UIO[Vector[Either[Throwable,Command.Result]]] = {
+  def pushRemoteServerSync(resolvedServer: ResolvedServer): Task[Vector[Command.Result]] = {
     val filteredUsers = resolvedServer.resolvedUsers.filter(u => usersFilter.include(u.login))
-    ZIO.collectAllPar(
+    ZIO.collectAll(
       filteredUsers
         .map(pushRemoteUserSync)
     )
@@ -113,7 +113,7 @@ case class PushRemoteSyncSubCommand(
       .as(())
   }
 
-  def pushRemoteUserSync(resolvedUser: ResolvedUser): UIO[Either[Throwable,Command.Result]] = {
+  def pushRemoteUserSync(resolvedUser: ResolvedUser): Task[Command.Result] = {
 
     val remoteServer = resolvedUser.server.name
 
@@ -155,13 +155,7 @@ case class PushRemoteSyncSubCommand(
         *> rsyncEffect
         *> sshEffect
     )
-      .either
-      .tap {
-        case Left(ce) =>
-          loggerF.warn(s"pushRemoteUserSync(${resolvedUser.qname}) failed -- ${ce}", ce)
-        case Right(r) =>
-          zunit
-      }
+      .logError(s"pushRemoteUserSync(${resolvedUser.qname}) failed")
 
   }
 

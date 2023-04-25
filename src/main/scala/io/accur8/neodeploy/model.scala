@@ -10,7 +10,7 @@ import a8.shared.app.{LoggerF, Logging, LoggingF}
 import a8.shared.json.ast.{JsArr, JsDoc, JsNothing, JsObj, JsStr, JsVal}
 import a8.shared.json.{EnumCodecBuilder, JsonCodec, JsonTypedCodec, UnionCodecBuilder}
 import a8.versions.RepositoryOps.RepoConfigPrefix
-import com.softwaremill.sttp.Uri
+import sttp.model.Uri
 import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedAuthorizedKey}
 import zio.process.CommandError
@@ -22,6 +22,8 @@ import PredefAssist._
 import io.accur8.neodeploy.model.DockerDescriptor.UninstallAction
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
 import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
+
+import a8.Scala3Hacks.*
 
 object model extends LoggingF {
 
@@ -139,7 +141,7 @@ object model extends LoggingF {
   }
   object Install {
 
-    implicit val jsonCodec =
+    implicit val jsonCodec: JsonTypedCodec[Install, JsObj] =
       UnionCodecBuilder[Install]
         .typeFieldName("kind")
         .defaultType[JavaApp]
@@ -231,7 +233,7 @@ object model extends LoggingF {
 //      case object RemoveAndInstallOnChange extends UninstallAction
       case object Remove extends UninstallAction
       case object Stop extends UninstallAction
-      implicit val jsonCodec = EnumCodecBuilder(this)
+      implicit val jsonCodec: JsonCodec[UninstallAction] = EnumCodecBuilder(this)
     }
   }
   @CompanionGen
@@ -242,7 +244,7 @@ object model extends LoggingF {
   ) extends Launcher
 
   object Launcher {
-    implicit val jsonCodec =
+    implicit val jsonCodec: JsonTypedCodec[Launcher, JsObj] =
       UnionCodecBuilder[Launcher]
         .typeFieldName("kind")
         .defaultType[SupervisorDescriptor]
@@ -268,7 +270,7 @@ object model extends LoggingF {
     domainNames: Vector[DomainName] = Vector.empty,
 //    restartOnCalendar: Option[OnCalendarValue] = None,
 //    startOnCalendar: Option[OnCalendarValue] = None,
-    launcher: Launcher = SupervisorDescriptor.empty
+    launcher: Launcher = SupervisorDescriptor.empty,
   ) {
     def resolvedDomainNames = domainNames ++ domainName
   }

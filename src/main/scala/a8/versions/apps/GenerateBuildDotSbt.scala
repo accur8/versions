@@ -9,22 +9,23 @@ import scala.util.Try
 
 object GenerateBuildDotSbt extends App {
 
+  import a8.Scala3Hacks.*
 
   lazy val homeDir = FileSystem.userHome
 
 
   lazy val path =
     Try {
-      ConfigMojo().GenerateBuildDotSbt.path.as[String]
+      ConfigMojo.root.GenerateBuildDotSbt.path.as[String]
     }
 
   lazy val pathi =
     Try {
-      ConfigMojo().GenerateBuildDotSbt.paths.as[Iterable[String]]
+      ConfigMojo.root.GenerateBuildDotSbt.paths.as[Iterable[String]]
     }
 
   lazy val paths =
-    ( path.toOption ++ pathi.toOption.toIterable.flatten )
+    ( path.toOption ++ pathi.toOption.toSeq.flatten )
       .map ( homeDir.subdir )
 
 //  run("ahs_aggregate", homeDir \\ "code/ahs/aggregate")

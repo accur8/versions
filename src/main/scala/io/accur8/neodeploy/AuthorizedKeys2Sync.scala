@@ -6,7 +6,7 @@ import zio.Task
 import a8.shared.SharedImports._
 import a8.shared.app.Logging
 import a8.shared.{FileSystem, ZFileSystem, ZString}
-import com.softwaremill.sttp.Uri
+import sttp.model.Uri
 import io.accur8.neodeploy.systemstate.SystemState.Directory
 import io.accur8.neodeploy.model.{AuthorizedKey, UserDescriptor}
 import io.accur8.neodeploy.resolvedmodel.ResolvedUser

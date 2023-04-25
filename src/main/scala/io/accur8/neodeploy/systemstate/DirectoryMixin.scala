@@ -4,6 +4,8 @@ import a8.shared.SharedImports._
 import a8.shared.ZFileSystem
 import io.accur8.neodeploy.systemstate.SystemStateModel._
 
+import a8.Scala3Hacks.*
+
 trait DirectoryMixin extends SystemStateMixin { self: SystemState.Directory =>
 
   override def stateKey: Option[StateKey] = StateKey("directory", path.absolutePath).some

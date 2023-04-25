@@ -16,6 +16,8 @@ import MxJarMetadata._
 
 object JarMetadata extends MxJarMetadata with Logging {
 
+  import a8.Scala3Hacks.*
+
   def process(appDir: Directory, jarFile: File): Unit = {
     ZipAssist.readEntryFromZipFile(jarFile, "META-INF/a8-deployer.json").foreach { json =>
       try {
@@ -82,7 +84,7 @@ case class JarMetadata(
         scanner.scan()
         scanner.getIncludedFiles.foreach { fs =>
           val f = libDir \ fs
-         logger.debug("exploding " + f.canonicalPath)
+          logger.debug("exploding " + f.canonicalPath)
           ZipAssist.unzip(f, appDir, x.includes)
         }
       }

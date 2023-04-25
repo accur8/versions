@@ -17,6 +17,8 @@ import java.nio.file.attribute.PosixFileAttributeView
 import scala.collection.immutable.Vector
 import io.accur8.neodeploy.PredefAssist._
 
+import a8.Scala3Hacks.*
+
 object SystemStateImpl extends LoggingF {
 
   def dryRunUninstall(statesToUninstall: Vector[SystemState]): Vector[String] = {

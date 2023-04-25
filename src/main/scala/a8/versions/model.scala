@@ -15,6 +15,8 @@ import zio.Task
 
 object model {
 
+  import a8.Scala3Hacks.*
+
   object BranchName extends StringValue.Companion[BranchName] {
   }
   case class BranchName(value: String) extends StringValue {

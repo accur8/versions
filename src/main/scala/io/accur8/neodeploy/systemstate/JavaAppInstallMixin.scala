@@ -11,6 +11,8 @@ import zio.ZIO
 
 import java.nio.file.Files
 
+import a8.Scala3Hacks.*
+
 trait JavaAppInstallMixin extends SystemStateMixin with LoggingF { self: SystemState.JavaAppInstall =>
 
   override def stateKey: Option[StateKey] = StateKey("app install", appInstallDir.absolutePath).some

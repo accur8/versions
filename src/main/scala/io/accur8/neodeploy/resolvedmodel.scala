@@ -23,6 +23,8 @@ import zio.cache.Lookup
 
 object resolvedmodel extends LoggingF {
 
+  import a8.Scala3Hacks.*
+
   case class ResolvedUser(
     descriptor: UserDescriptor,
     home: Directory,
@@ -52,7 +54,8 @@ object resolvedmodel extends LoggingF {
       descriptor
         .a8VersionsExec
         .orElse(server.descriptor.a8VersionsExec)
-        .getOrElse("/usr/bin/a8-versions")
+        .getOrElse("/usr/local/bin/a8-versions")
+//        .getOrElse("a8-versions")
 
     lazy val appsRootDirectory: AppsRootDirectory =
       descriptor
@@ -178,7 +181,7 @@ object resolvedmodel extends LoggingF {
       ))
 
     def execCommand(command: Command): Task[Unit] = {
-      val logLinesEffect: Chunk[String] => UIO[Unit] = { lines: Chunk[String] =>
+      val logLinesEffect: Chunk[String] => UIO[Unit] = { (lines: Chunk[String]) =>
         loggerF.debug(s"command output chunk -- ${lines.mkString("\n    ", "\n    ", "\n    ")}")
       }
       command
@@ -205,8 +208,11 @@ object resolvedmodel extends LoggingF {
     )
 
     def loadDescriptorFromDisk(userLogin: UserLogin, serverName: ServerName, appConfigDir: Directory, appsRootDirectory: AppsRootDirectory): Task[Option[LoadedApplicationDescriptor]] = {
+      import a8.shared.ZFileSystem.SymlinkHandlerDefaults.follow
       val appDescriptorFilesZ =
         Vector(
+          // this needs to be first so that this overrides the version set in the other files
+          appConfigDir.file("version.properties"),
           appConfigDir.file("secret.props.priv"),
           appConfigDir.file("application.json"),
           appConfigDir.file("application.hocon"),
@@ -244,8 +250,9 @@ object resolvedmodel extends LoggingF {
               zsucceed(None)
             } else {
               val resolvedConfig =
-                (configs ++ Vector(baseConfig))
-                  .reduceLeft(_.resolveWith(_))
+                configs.foldLeft(baseConfig) { case (acc, cfg) =>
+                  cfg.resolveWith(acc)
+                }
 
               val readResult = JsonReader[ApplicationDescriptor].readResult(resolvedConfig)
 
@@ -280,6 +287,8 @@ object resolvedmodel extends LoggingF {
     loadedApplicationDescriptor: LoadedApplicationDescriptor,
     user: ResolvedUser,
   ) {
+    def isNamed(appName: DomainName): Boolean =
+      loadedApplicationDescriptor.descriptor.resolvedDomainNames.contains(appName)
     val descriptor: ApplicationDescriptor = loadedApplicationDescriptor.descriptor
     val gitDirectory: Directory = loadedApplicationDescriptor.appConfigDir
     val server = user.server

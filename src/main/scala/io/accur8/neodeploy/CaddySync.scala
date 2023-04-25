@@ -25,7 +25,7 @@ case class CaddySync(caddyDir: CaddyDirectory) extends Sync[ResolvedApp] {
     import applicationDescriptor._
     def result0 =
       for {
-        listenPort <- applicationDescriptor.listenPort.toIterable
+        listenPort <- applicationDescriptor.listenPort.toSeq
         _ <- applicationDescriptor.resolvedDomainNames.nonEmpty.toOption(())
       } yield
         z"""

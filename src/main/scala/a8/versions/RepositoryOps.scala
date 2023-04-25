@@ -4,19 +4,21 @@ import a8.shared.jdbcf.DatabaseConfig.Password
 import a8.shared.{CompanionGen, FileSystem, StringValue}
 
 import java.io.{FileInputStream, StringReader}
-import java.util.Properties
+import java.util.{Base64, Properties}
 import a8.versions.Build.BuildType
 import a8.versions.RepositoryOps.{DependencyTree, RepoConfigPrefix, ivyLocal}
 import a8.versions.Upgrade.LatestArtifact
 import a8.versions.model.{ArtifactResponse, ResolutionRequest, ResolutionResponse}
-import a8.versions.predef._
-import com.softwaremill.sttp.{Request, Uri, sttp}
+import a8.versions.predef.*
+import sttp.model.*
+import sttp.client3.*
 import coursier.cache.{ArtifactError, Cache}
 import coursier.core.{Authentication, Module, ResolutionProcess}
 import coursier.maven.MavenRepository
 import coursier.util.{Artifact, EitherT, Task}
 import coursier.{Dependency, LocalRepositories, Profile, Resolution}
 
+import java.nio.charset.StandardCharsets
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -24,6 +26,8 @@ import scala.language.postfixOps
 object RepositoryOps extends Logging {
 
   val default = RepositoryOps(RepoConfigPrefix.default)
+
+  val httpClient = SimpleHttpClient()
 
   object RepoConfigPrefix extends StringValue.Companion[RepoConfigPrefix] {
     def default = RepoConfigPrefix("repo")
@@ -67,7 +71,17 @@ object RepositoryOps extends Logging {
       for {
         user <- userOpt
         password <- passwordOpt
-      } yield Authentication(user, password)
+      } yield {
+
+        val encodedBasicAuth =
+          Base64.getEncoder.encodeToString(
+            s"$user:$password".getBytes(StandardCharsets.UTF_8)
+          )
+
+        Authentication(user, password)
+          .withHttpHeaders(Seq("Authorization" -> s"Basic ${encodedBasicAuth}"))
+
+      }
     }
   }
 
@@ -167,7 +181,7 @@ case class RepositoryOps(repoConfigPrefix: RepoConfigPrefix) extends Logging {
 
     val fetch = ResolutionProcess.fetch(repositories, Cache.default.fetch)
 
-    val resolution: Resolution = start.process.run(fetch).unsafeRun()
+    val resolution: Resolution = ResolutionProcess(start).run(fetch).unsafeRun()
 
     val errors: Seq[((Module, String), Seq[String])] = resolution.errors
 
@@ -212,20 +226,20 @@ case class RepositoryOps(repoConfigPrefix: RepoConfigPrefix) extends Logging {
 
     def getVersionXml(artifact: Artifact): Future[Either[String,String]] = {
       try {
-        val uri = Uri(new java.net.URI(artifact.url)).copy(userInfo = None)
+        val uri = Uri(new java.net.URI(artifact.url)).copy(authority = None)
 
-        def addAuth(request: Request[String, Nothing]): Request[String,Nothing] = {
-          remoteRepositoryAuthentication
-            .map(auth => request.auth.basic(auth.user, auth.passwordOpt.get))
-            .getOrElse(request)
+        val response = {
+          val baseReq = quickRequest.get(uri)
+          val req =
+            remoteRepositoryAuthentication
+              .map(auth => baseReq.auth.basic(auth.user, auth.passwordOpt.get))
+              .getOrElse(baseReq)
+          RepositoryOps
+            .httpClient
+            .send(req)
         }
 
-        val response = { //url.openStream().readString
-          addAuth(sttp.get(uri))
-            .send()
-        }
-
-        val body = response.unsafeBody
+        val body = response.body
 
         logger.debug("================ " + artifact.url + "\n" + body)
 

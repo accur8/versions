@@ -6,16 +6,14 @@ import java.time.format.DateTimeFormatter
 import a8.versions.Version.BuildInfo
 import a8.versions.model.BranchName
 
-import scala.meta.internal.fastparse.all._
 import scala.util.Try
-import shapeless._
-import shapeless.syntax.std.product._
 
+import fastparse._, NoWhitespace._
 
 object Version {
 
   def parse(v: String): Try[Version] = Try {
-    VersionParser.Parser.parse(v) match {
+    fastparse.parse(v, VersionParser.Parser(_)) match {
       case Parsed.Success(v, _) =>
         v
       case f@ Parsed.Failure(_,_,_) =>
@@ -23,7 +21,7 @@ object Version {
     }
   }
 
-  implicit val orderingByBuildInfo =
+  implicit val orderingByBuildInfo: Ordering[BuildInfo] =
     Ordering.by[BuildInfo,BuildTimestamp](_.buildTimestamp)
 
   case class BuildInfo(
@@ -33,7 +31,7 @@ object Version {
     override def toString = s"${buildTimestamp}_${branch.value}"
   }
 
-  implicit val orderingByMajorMinorPathBuildTimestamp =
+  implicit val orderingByMajorMinorPathBuildTimestamp: Ordering[Version] =
     Ordering.by[Version,(Int, Int, Int, Option[BuildInfo])](_.tupled)
 
 }

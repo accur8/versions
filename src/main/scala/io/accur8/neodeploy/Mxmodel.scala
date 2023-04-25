@@ -12,7 +12,7 @@ package io.accur8.neodeploy
 import a8.shared.ZFileSystem.Directory
 import a8.shared.json.ast.{JsDoc, JsObj, JsVal}
 import a8.versions.RepositoryOps.RepoConfigPrefix
-import com.softwaremill.sttp.Uri
+import sttp.model.Uri
 import io.accur8.neodeploy.model.DockerDescriptor.UninstallAction
 import io.accur8.neodeploy.model._
 import io.accur8.neodeploy.model.Install.{JavaApp, Manual}
