@@ -226,7 +226,9 @@ case class RepositoryOps(repoConfigPrefix: RepoConfigPrefix) extends Logging {
 
     def getVersionXml(artifact: Artifact): Future[Either[String,String]] = {
       try {
-        val uri = Uri(new java.net.URI(artifact.url)).copy(authority = None)
+        val uri =
+          Uri(new java.net.URI(artifact.url))
+            .userInfo(None)
 
         val response = {
           val baseReq = quickRequest.get(uri)
@@ -250,7 +252,8 @@ case class RepositoryOps(repoConfigPrefix: RepoConfigPrefix) extends Logging {
       }
     }
 
-    def fetch(artifact: Artifact): EitherT[Task, String, String] = EitherT(Task(_ => getVersionXml(artifact)))
+    def fetch(artifact: Artifact): EitherT[Task, String, String] =
+      EitherT(Task(_ => getVersionXml(artifact)))
 
     val versions =
       remoteRepository.versions(module, fetch).run.unsafeRun() match {
