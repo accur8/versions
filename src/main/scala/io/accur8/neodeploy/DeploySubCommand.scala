@@ -49,19 +49,17 @@ case class DeploySubCommand(
     zblock(
       Exec("git", "commit", "-am", z"deploy --version ${version} --app ${appName}")
         .inDirectory(a8.shared.FileSystem.dir(resolvedRepository.gitRootDirectory.unresolved.absolutePath))
-        .execInline()
+        .execInline(): @scala.annotation.nowarn
     )
 
   def gitPush: Task[Unit] =
     zblock(
       Exec("git", "push")
         .inDirectory(a8.shared.FileSystem.dir(resolvedRepository.gitRootDirectory.unresolved.absolutePath))
-        .execInline()
+        .execInline(): @scala.annotation.nowarn
     )
 
   def deployApp(app: ResolvedApp): Task[Unit] = {
-
-    this.toSome
 
     val resolvedRunner =
       runner

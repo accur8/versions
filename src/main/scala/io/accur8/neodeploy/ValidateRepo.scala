@@ -26,7 +26,7 @@ case class ValidateRepo(resolvedRepository: ResolvedRepository) extends LoggingF
     ZIO.attemptBlocking {
       resolvedRepository
         .repositoryPlugins
-        .pluginInstances
+        .pluginInstances: @scala.annotation.nowarn
       allUsers
         .foreach(_.plugins.pluginInstances)
     }

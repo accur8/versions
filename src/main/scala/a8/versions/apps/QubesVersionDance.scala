@@ -18,9 +18,9 @@ object QubesVersionDance {
 
     val start = new Date()
 
-    publish(codeHome \\ "model3")
-    upgradeAndPublish(codeHome \\ "manna", repositoryOps)
-    upgrade(codeHome \\ "qubes", repositoryOps)
+//    publish(codeHome \\ "model3")
+//    upgradeAndPublish(codeHome \\ "manna", repositoryOps)
+//    upgrade(codeHome \\ "qubes", repositoryOps)
 
     println(s"started at ${start}")
     println(s"started at ${new Date}")

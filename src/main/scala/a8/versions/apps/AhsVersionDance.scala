@@ -7,7 +7,7 @@ object AhsVersionDance {
 
   import a8.versions.Build._
 
-  def main(args: Array[String]) = {
+  def main(args: Array[String]): Unit = {
 
     implicit val buildType = BuildType.ArtifactoryBuild
 //      implicit val buildType = BuildType.LocalBuild
@@ -18,10 +18,10 @@ object AhsVersionDance {
 
     implicit val buildTimestamp = Some(BuildTimestamp.now())
 
-    publish(codeHome \\ "model3")
-    upgradeAndPublish(codeHome \\ "manna", repositoryOps)
-    upgradeAndPublish(codeHome \\ "qubes", repositoryOps)
-    upgrade(codeHome \\ "ahs" \\ "scala", repositoryOps)
+//    publish(codeHome \\ "model3")
+//    upgradeAndPublish(codeHome \\ "manna", repositoryOps)
+//    upgradeAndPublish(codeHome \\ "qubes", repositoryOps)
+//    upgrade(codeHome \\ "ahs" \\ "scala", repositoryOps)
 
 
     println(s"started at ${start}")

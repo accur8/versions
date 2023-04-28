@@ -77,7 +77,7 @@ object Main extends Logging {
         )
 
 
-      System.setProperty("defaultLogLevel", defaultLogLevel.name)
+      System.setProperty("defaultLogLevel", defaultLogLevel.name): @scala.annotation.nowarn
 
     }
 

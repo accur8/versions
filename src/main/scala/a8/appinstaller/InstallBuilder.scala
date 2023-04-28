@@ -34,7 +34,7 @@ case class InstallBuilder(
         .localArtifacts
         .find(f => f.getName == jarFileName)
         .getOrElse(sys.error(s"unable to find ${jarFileName} in dependency tree"))
-    JarMetadata.process(appDir, jarFile)
+//    JarMetadata.process(appDir, jarFile)
   }
 
   lazy val dependencyResult: DependencyTree =

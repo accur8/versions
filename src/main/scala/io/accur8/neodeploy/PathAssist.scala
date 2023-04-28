@@ -20,7 +20,7 @@ object PathAssist extends LoggingF {
       }
       if ( !linkExists()) {
         logger.debug(s"Files.createSymbolicLink(${link.asNioPath}, ${target.asNioPath})")
-        Files.createSymbolicLink(link.asNioPath, target.asNioPath)
+        Files.createSymbolicLink(link.asNioPath, target.asNioPath): @scala.annotation.nowarn
       }
     }
 

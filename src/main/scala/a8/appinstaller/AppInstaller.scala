@@ -56,7 +56,7 @@ case class AppInstaller(config: AppInstallerConfig, repositoryOps: RepositoryOps
   }
 
 
-  def backup(): Unit = tryLog(s"backing up app install directory - ${config.resolvedInstallDir.canonicalPath}") {
+  def backup(): Unit = tryLog[Unit](s"backing up app install directory - ${config.resolvedInstallDir.canonicalPath}") {
       backupDir.makeDirectories()
       config
         .resolvedInstallDir
@@ -65,9 +65,9 @@ case class AppInstaller(config: AppInstallerConfig, repositoryOps: RepositoryOps
         .foreach { p =>
           p.moveTo(backupDir)
         }
-  }
+  }: @scala.annotation.nowarn
 
-  def backupConfigFiles(): Unit = tryLog(s"backing up config files - ${config.resolvedInstallDir.canonicalPath}") {
+  def backupConfigFiles(): Unit = tryLog[Unit](s"backing up config files - ${config.resolvedInstallDir.canonicalPath}") {
 
     List("config", ".config")
       .map(cd => (config.resolvedInstallDir \\ cd))
@@ -94,6 +94,6 @@ case class AppInstaller(config: AppInstallerConfig, repositoryOps: RepositoryOps
             dir.copyTo(bd)
           }
       }
-  }
+  }: @scala.annotation.nowarn
 
 }

@@ -153,7 +153,6 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
               .GET()
 
           val headers = repoAuthHeaders
-          headers.toString()
 
           val t1 =
             repoAuthHeaders

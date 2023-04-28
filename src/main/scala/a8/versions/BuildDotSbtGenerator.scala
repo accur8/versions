@@ -168,7 +168,6 @@ ${repoAssistSource(false)}
 
   def generateBuildProperties(): Unit = {
     if ( !files.buildDotPropertiesFile.exists() ) {
-      header(sbtComment, false)
       val content =
         s"""
 ${header(sbtComment, false)}
@@ -256,27 +255,27 @@ scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
 ${
   if ( firstRepo.astRepo.public ) {
     s"""
-publishTo in Global := sonatypePublishToBundle.value
-credentials in Global += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
+GLobal / publishTo := sonatypePublishToBundle.value
+Global / credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
 """
   } else {
 s"""
-resolvers in Global += "a8-repo" at Common.readRepoUrl()
-publishTo in Global := Some("a8-repo-releases" at Common.readRepoUrl())
+Global / resolvers += "a8-repo" at Common.readRepoUrl()
+Global / publishTo := Some("a8-repo-releases" at Common.readRepoUrl())
 """
       }
 }
-scalaVersion in Global := scalaLibVersion
+Global / scalaVersion := scalaLibVersion
 
-organization in Global := "${firstRepo.astRepo.organization}"
+Global / organization := "${firstRepo.astRepo.organization}"
 
-version in Global := appVersion
+Global / version := appVersion
 
-versionScheme in Global := Some("strict")
+Global / versionScheme := Some("strict")
 
-serverConnectionType in Global := ConnectionType.Local
+Global / serverConnectionType := ConnectionType.Local
 
-libraryDependencySchemes in Global ++= Seq(
+Global / libraryDependencySchemes ++= Seq(
   "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
 )
 

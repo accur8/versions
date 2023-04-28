@@ -37,7 +37,7 @@ object DependencyTreeDemo {
 
     val scalaps = files.filter(_.getCanonicalPath.contains(searchStr))
 
-    toString
+    toString: @scala.annotation.nowarn
 
   }
 

@@ -18,25 +18,25 @@ val appVersion = a8.sbt_a8.versionStamp(file("."))
 
 val scalaLibVersion = "3.2.2"
 
-scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
+Global / scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 
-//resolvers in Global += "a8-repo" at Common.readRepoUrl()
-//publishTo in Global := Some("a8-repo-releases" at Common.readRepoUrl())
-//credentials in Global += Common.readRepoCredentials()
+Global / resolvers += "a8-repo" at Common.readRepoUrl()
+Global / publishTo := Some("a8-repo-releases" at Common.readRepoUrl())
+Global / credentials += Common.readRepoCredentials()
 
-publishTo in Global := sonatypePublishToBundle.value
-credentials in Global += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
+//Global / publishTo := sonatypePublishToBundle.value
+//Global / credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
 
 
-scalaVersion in Global := scalaLibVersion
+Global / scalaVersion := scalaLibVersion
 
-organization in Global := "io.accur8"
+Global / organization := "io.accur8"
 
-version in Global := appVersion
+Global / version := appVersion
 
-versionScheme in Global := Some("strict")
+Global / versionScheme := Some("strict")
 
-serverConnectionType in Global := ConnectionType.Local
+Global / serverConnectionType := ConnectionType.Local
 
 
 lazy val versions =
@@ -44,6 +44,8 @@ lazy val versions =
     .jvmProject("a8-versions", file("."), "versions")
     .settings(
       libraryDependencies ++= Seq(
+
+        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.6" cross CrossVersion.full),
 
         ("io.get-coursier" %% "coursier" % "2.1.2").cross(CrossVersion.for3Use2_13)
           exclude("org.scala-lang.modules", "scala-collection-compat_2.13")
@@ -66,7 +68,6 @@ lazy val versions =
 
         "software.amazon.awssdk" % "apache-client" % "2.19.6",
         "software.amazon.awssdk" % "route53" % "2.19.6",
-        "ant" % "ant" % "1.6.2",
 
         "org.scalatest" %% "scalatest" % "3.2.12" % "test",
 

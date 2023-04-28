@@ -33,7 +33,7 @@ object FileSystemAssist extends LoggingF {
       resolvedPathOpt match {
         case Some(resolvedPath) =>
           // validate this path is child of the root
-          resolvedPath.relativeTo(root)
+          resolvedPath.relativeTo(root): @scala.annotation.nowarn
           copy(paths = paths :+ resolvedPath)
         case None => 
           this
@@ -45,7 +45,7 @@ object FileSystemAssist extends LoggingF {
         .map {
           case f: ZFileSystem.File =>
             val targetFile = target.file(f.relativeTo(root))
-            targetFile.parent.resolve
+            targetFile.parent.resolve: @scala.annotation.nowarn
             for {
               _ <- loggerF.debug(z"copying file ${f} --> ${targetFile}")
               _ <- f.copyTo(targetFile)

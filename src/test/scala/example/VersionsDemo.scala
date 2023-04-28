@@ -11,6 +11,6 @@ object VersionsDemo extends App {
 
   val remoteVersions = RepositoryOps.default.remoteVersions(module)
 
-  toString
+  toString: @scala.annotation.nowarn
 
 }
