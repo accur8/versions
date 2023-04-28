@@ -1,0 +1,21 @@
+<settings>
+  <servers>
+    <server>
+      <id>ossrh</id>
+      <username>accur8</username>
+      <password>69gsMN#@6r^wmJ3s</password>
+    </server>
+  </servers>
+  <profiles>
+    <profile>
+      <id>gpg</id>
+      <properties>
+        <!-- Optionally specify a different path and name for the gpg executable
+              if it differs from the default of "gpg"           
+        <gpg.executable>gpg2</gpg.executable>
+        -->
+        <gpg.passphrase>ytAhVcH9rBTEbrC6YgEY2o</gpg.passphrase>
+      </properties>
+    </profile>
+  </profiles>
+</settings>

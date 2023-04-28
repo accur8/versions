@@ -1,0 +1,21 @@
+<settings>
+  <servers>
+    <server>
+      <id>ossrh</id>
+      <username>ossrh user goes here</username>
+      <password>ossrh password goes here</password>
+    </server>
+  </servers>
+  <profiles>
+    <profile>
+      <id>gpg</id>
+      <properties>
+        <!-- Optionally specify a different path and name for the gpg executable
+              if it differs from the default of "gpg"           
+        <gpg.executable>gpg2</gpg.executable>
+        -->
+        <gpg.passphrase>gpg password goes here</gpg.passphrase>
+      </properties>
+    </profile>
+  </profiles>
+</settings>
