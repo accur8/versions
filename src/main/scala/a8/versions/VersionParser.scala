@@ -11,7 +11,7 @@ object VersionParser {
   def Parser[$: P] = P(
     Digits ~ "." ~ Digits ~ "." ~ Digits ~ BuildInfo.? ~ End
   ).map { case (major, minor, patch, buildInfo) =>
-      Version(
+      ParsedVersion(
         major,
         minor,
         patch,
@@ -21,7 +21,7 @@ object VersionParser {
 
   def BuildInfo[$: P] =
     P("-" ~ BuildTimestampP ~ "_" ~ Branch)
-      .map { case (ts, br) => Version.BuildInfo(ts, BranchName(br.trim)) }
+      .map { case (ts, br) => ParsedVersion.BuildInfo(ts, BranchName(br.trim)) }
 
   def BuildTimestampP[$: P]: P[BuildTimestamp] = P(
     BuildDate ~ "_" ~ BuildTime

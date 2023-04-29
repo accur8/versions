@@ -1,7 +1,7 @@
 package example
 
 import a8.versions.Build.BuildType
-import a8.versions.{RepositoryOps, Version}
+import a8.versions.{RepositoryOps, ParsedVersion}
 import coursier.core.{ModuleName, Organization}
 
 object DependencyTreeDemo {
@@ -15,7 +15,7 @@ object DependencyTreeDemo {
         .default
         .resolveDependencyTree(
           coursier.core.Module(Organization("a8"), ModuleName("a8-qubes-dist_2.12"), Map()),
-          Version.parse("2.7.0-20180418_0536_master").get
+          ParsedVersion.parse("2.7.0-20180418_0536_master").get
         )
 
     val searchStr = "scala-compiler"

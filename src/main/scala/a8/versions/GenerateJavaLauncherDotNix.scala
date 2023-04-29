@@ -6,7 +6,7 @@ import a8.shared.app.{BootstrappedIOApp, LoggingF}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.versions.Build.BuildType
 import a8.versions.RepositoryOps.RepoConfigPrefix
-import a8.versions.Version.BuildInfo
+import a8.versions.ParsedVersion.BuildInfo
 import a8.versions.model.{ArtifactResponse, BranchName, ResolutionRequest, ResolutionResponse}
 import coursier.ModuleName
 import coursier.core.Module
@@ -19,10 +19,11 @@ import java.net.http.HttpRequest
 import java.security.MessageDigest
 import java.util.Base64
 import scala.util.Try
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.ZFileSystem.{Directory, Symlink}
-import a8.versions.GenerateJavaLauncherDotNix.FullInstallResults
-import a8.versions.MxGenerateJavaLauncherDotNix._
+import a8.versions.GenerateJavaLauncherDotNix.{BuildDescription, FileContents, FullInstallResults}
+import a8.versions.MxGenerateJavaLauncherDotNix.*
+import io.accur8.neodeploy.model.{Artifact, Organization, Version}
 import org.apache.commons.codec.binary.{Base32, Hex}
 import zio.stream.ZStream
 
@@ -40,9 +41,9 @@ object GenerateJavaLauncherDotNix {
     jvmArgs: List[String] = Nil,
     args: List[String] = Nil,
     repo: RepoConfigPrefix = RepoConfigPrefix.default,
-    organization: String,
-    artifact: String,
-    version: Option[String] = None,
+    organization: Organization,
+    artifact: Artifact,
+    version: Option[Version] = None,
     branch: Option[BranchName] = None,
     webappExplode: Option[Boolean] = None,
     javaVersion: Option[String] = None,
@@ -52,14 +53,14 @@ object GenerateJavaLauncherDotNix {
   ) {
 
     lazy val coursierModule =
-      coursier.Module(coursier.Organization(organization), coursier.ModuleName(artifact))
+      coursier.Module(organization.asCoursierOrg, artifact.asCoursierModuleName)
 
     lazy val resolutionRequest: ResolutionRequest =
       ResolutionRequest(
         repoPrefix = repo,
         organization = organization,
         artifact = artifact,
-        version = version.getOrElse("latest"),
+        version = version.getOrElse(io.accur8.neodeploy.model.Version("latest")),
         branch = branch,
       )
 
@@ -68,6 +69,20 @@ object GenerateJavaLauncherDotNix {
   case class FullInstallResults(
     nixPackageInStore: Directory,
     buildOutLink: Symlink,
+  )
+
+  object FileContents extends MxFileContents
+  @CompanionGen
+  case class FileContents(
+    filename: String,
+    contents: String,
+  )
+
+  object BuildDescription extends MxBuildDescription
+  @CompanionGen
+  case class BuildDescription(
+    files: Iterable[FileContents],
+    resolvedVersion: io.accur8.neodeploy.model.Version,
   )
 
 }
@@ -122,7 +137,7 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
   object NixHash extends StringValue.Companion[NixHash]
   case class NixHash(value: String) extends StringValue
 
-  def nixHash(url: String): Task[NixHash] =
+  def nixHash(url: sttp.model.Uri): Task[NixHash] =
     nixHashFromRepo(url)
       .flatMap {
         case scala.util.Success(value) =>
@@ -139,11 +154,11 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
       .toSeq
       .flatMap(_.httpHeaders)
 
-  def nixHashFromRepo(url: String): Task[Try[NixHash]] =
+  def nixHashFromRepo(url: sttp.model.Uri): Task[Try[NixHash]] =
     ZIO
       .attemptBlocking {
 
-        val sha256Url = url + ".sha256"
+        val sha256Url = url.toString + ".sha256"
 
         val request = {
           val t0 =
@@ -180,21 +195,16 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
       }
       .trace(s"nixHashFromRepo(${url})")
 
-  def nixPrefetchUrl(url: String): Task[NixPrefetchResult] =
+  def nixPrefetchUrl(url: sttp.model.Uri): Task[NixPrefetchResult] =
     ZIO
       .attemptBlocking {
         import sys.process._
         import scala.language.postfixOps
         val urlWithAuth =
-          sttp.model.Uri.parse(url) match {
-            case Left(err) =>
-              sys.error(err)
-            case Right(u0) =>
-              repositoryOps
-                .remoteRepositoryAuthentication
-                .flatMap(auth => auth.passwordOpt.map(p => u0.userInfo(auth.user,p)))
-                .getOrElse(u0)
-          }
+          repositoryOps
+            .remoteRepositoryAuthentication
+            .flatMap(auth => auth.passwordOpt.map(p => url.userInfo(auth.user,p)))
+            .getOrElse(url)
         val results = (s"/nix/var/nix/profiles/default/bin/nix-prefetch-url --print-path ${urlWithAuth}" !!)
         val lines =
           results
@@ -225,15 +235,28 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
     val launcherFilesDir = workDir.subdir("launcher")
     for {
       defaultDotNixContent <- javaLauncherContentT
-      _ <- launcherFilesDir.file("default.nix").write(defaultDotNixContent)
+      _ <- launcherFilesDir.file("default.nix").write(defaultDotNixContent._2)
       _ <- launcherFilesDir.file("java-launcher-template").write(javaLauncherTemplateContent)
       buildSymlink <- runNixBuild(workDir)
       nixPackagePath <- buildSymlink.canonicalPath.map(ZFileSystem.dir)
     } yield FullInstallResults(nixPackagePath, buildSymlink)
   }
 
+  def buildDescriptionT: Task[BuildDescription] = {
+    for {
+      defaultDotNixContent <- javaLauncherContentT
+    } yield
+      BuildDescription(
+        files = Iterable(
+          FileContents("default.nix", defaultDotNixContent._2),
+          FileContents("java-launcher-template", javaLauncherTemplateContent),
+        ),
+        resolvedVersion = defaultDotNixContent._1.version
+      )
+  }
 
-  def javaLauncherContentT: Task[String] = {
+
+  def javaLauncherContentT: Task[(ResolutionResponse,String)] = {
     for {
       resolutionResponse <- resolutionResponseZ
       artifacts <-
@@ -245,16 +268,23 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
           }
           .runCollect
     } yield {
-      if ( launcherConfigOnly )
-        launcherConfig(resolutionResponse, artifacts)
-      else
-        defaultDotNix(resolutionResponse, artifacts)
+      val content =
+        if ( launcherConfigOnly )
+          launcherConfig(resolutionResponse, artifacts)
+        else
+          defaultDotNix(resolutionResponse, artifacts)
+      resolutionResponse -> content
     }
   }
 
   def quote(value: String): String = {
     val q = '"'
     s"${q}${value}${q}"
+  }
+
+  def quote(stringValue: StringValue): String = {
+    val q = '"'
+    s"${q}${stringValue.value}${q}"
   }
 
   def quote(values: List[String]): String = {
@@ -369,7 +399,7 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
   repo = ${quote(parms.repo.value)};
   organization = ${quote(parms.organization)};
   artifact = ${quote(parms.artifact)};
-  version = ${quote(parms.version)};
+  version = ${quote(parms.version.map(_.value))};
   branch = ${quote(parms.branch.map(_.value))};
   webappExplode = ${parms.webappExplode.getOrElse("null")};
   javaVersion = ${quote(parms.javaVersion)};

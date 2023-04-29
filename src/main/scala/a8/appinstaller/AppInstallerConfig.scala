@@ -1,11 +1,13 @@
 package a8.appinstaller
 
 
-import a8.appinstaller.MxAppInstallerConfig._
+import a8.appinstaller.MxAppInstallerConfig.*
 import a8.shared.json.{JsonCodec, JsonTypedCodec}
 import a8.shared.{CompanionGen, FileSystem}
-import a8.versions.ast
+import a8.versions.{ParsedVersion, ast}
 import a8.versions.ast.Dependency
+import a8.versions.model.BranchName
+import io.accur8.neodeploy.model.{Artifact, Organization, Version}
 
 object AppInstallerConfig extends MxAppInstallerConfig {
 
@@ -15,6 +17,8 @@ object AppInstallerConfig extends MxAppInstallerConfig {
     case object Copy extends LibDirKind
     case object Symlink extends LibDirKind
     case object Repo extends LibDirKind
+
+    given CanEqual[LibDirKind, LibDirKind] = CanEqual.derived
 
     implicit lazy val codec: JsonCodec[LibDirKind] =
       JsonTypedCodec
@@ -31,10 +35,10 @@ object AppInstallerConfig extends MxAppInstallerConfig {
 
 @CompanionGen
 case class AppInstallerConfig(
-  organization: String,
-  artifact: String,
-  version: String,
-  branch: Option[String],
+  organization: Organization,
+  artifact: Artifact,
+  version: ParsedVersion,
+  branch: Option[BranchName],
   installDir: Option[String] = None,
   libDirKind: Option[AppInstallerConfig.LibDirKind] = None,
   webappExplode: Option[Boolean] = None,
@@ -50,6 +54,6 @@ case class AppInstallerConfig(
   lazy val resolvedInstallDir: FileSystem.Directory = FileSystem.dir(installDir.getOrElse(sys.error("installDir is required")))
 
   lazy val unresolvedArtifact: Dependency =
-    Dependency(organization, "%", artifact, ast.StringIdentifier(version))
+    Dependency(organization, "%", artifact.value, ast.StringIdentifier(version.toString()))
 
 }

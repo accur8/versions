@@ -2,6 +2,7 @@ package a8.versions
 
 
 import a8.versions.ast.{Dependency, Identifier, StringIdentifier, VariableIdentifier}
+import io.accur8.neodeploy.model.Organization
 
 
 object SbtDependencyParser {
@@ -27,7 +28,7 @@ object SbtDependencyParser {
     P(stringLit ~ scalaVersionSeparator ~ stringLit ~ separator ~ identifier ~ (separator ~ stringLit).? ~ exclusions.rep)
       .map { case (org, scalaArtifact, artifact, version, scope, exclusions) =>
         Dependency(
-          organization = org,
+          organization = Organization(org),
           scalaArtifactSeparator = scalaArtifact,
           artifactName = artifact,
           version = version,

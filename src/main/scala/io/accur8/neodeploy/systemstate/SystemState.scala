@@ -14,6 +14,9 @@ import a8.shared.SharedImports._
 
 object SystemState {
 
+  given CanEqual[SystemState, SystemState] = CanEqual.derived
+
+
   object TextFile extends MxTextFile
   @CompanionGen
   case class TextFile(
@@ -79,7 +82,9 @@ object SystemState {
     override def subStates: Vector[SystemState] = states
   }
 
-  object DnsRecord extends MxDnsRecord
+  object DnsRecord extends MxDnsRecord {
+//    given CanEqual[DnsRecord, DnsRecord] = CanEqual.derived
+  }
   @CompanionGen
   case class DnsRecord(
     name: DomainName,

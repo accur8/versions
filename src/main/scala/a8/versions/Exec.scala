@@ -4,7 +4,8 @@ package a8.versions
 import a8.shared.FileSystem.Directory
 import a8.shared.app.Logging
 
-import java.io.{ByteArrayOutputStream, PrintWriter}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, PrintWriter}
+import scala.sys.process
 
 object Exec {
 
@@ -31,10 +32,10 @@ case class Exec(
 
   import Exec._
 
-  private def _process =
-    sys.process.Process(args.toSeq, workingDirectory.map(d => new java.io.File(d.canonicalPath)))
+  private def _process: process.ProcessBuilder =
+    sys.process.Process(args.toSeq, workingDirectory.map(d => new java.io.File(d.canonicalPath))) #< new ByteArrayInputStream(Array())
 
-  def execCaptureOutput(failOnNonZeroExitCode: Boolean = true): Result = {
+  def execCaptureOutput(failOnNonZeroExitCode: Boolean = true, emptyStdin: Boolean = true): Result = {
     import sys.process._
     val stdout = new ByteArrayOutputStream
     val stderr = new ByteArrayOutputStream

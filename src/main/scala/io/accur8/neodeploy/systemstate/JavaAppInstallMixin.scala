@@ -44,7 +44,7 @@ trait JavaAppInstallMixin extends SystemStateMixin with LoggingF { self: SystemS
         case Right(None) =>
           true
         case Right(Some(installedDescriptor)) =>
-          descriptor !== installedDescriptor
+          descriptor != installedDescriptor
       }
 
   override def runApplyNewState = {

@@ -36,7 +36,9 @@ object model extends LoggingF {
   object JavaVersion extends LongValue.Companion[JavaVersion]
   case class JavaVersion(value: Long) extends LongValue
 
-  object ApplicationName extends StringValue.Companion[ApplicationName]
+  object ApplicationName extends StringValue.Companion[ApplicationName] {
+    given CanEqual[ApplicationName, ApplicationName] = CanEqual.derived
+  }
   case class ApplicationName(value: String) extends StringValue
 
   object DomainName extends StringValue.Companion[DomainName] {
@@ -67,11 +69,19 @@ object model extends LoggingF {
 
   }
 
-  object Organization extends StringValue.Companion[Organization]
-  case class Organization(value: String) extends StringValue
+  object Organization extends StringValue.Companion[Organization] {
+    given CanEqual[Organization, Organization] = CanEqual.derived
+  }
+  case class Organization(value: String) extends StringValue {
+    def asCoursierOrg = coursier.Organization(value)
+  }
 
-  object Artifact extends StringValue.Companion[Artifact]
-  case class Artifact(value: String) extends StringValue
+  object Artifact extends StringValue.Companion[Artifact] {
+    given CanEqual[Artifact, Artifact] = CanEqual.derived
+  }
+  case class Artifact(value: String) extends StringValue {
+    def asCoursierModuleName = coursier.ModuleName(value)
+  }
 
   object DirectoryValue {
     implicit def zstringer[A <: DirectoryValue]: ZStringer[A] =
@@ -140,6 +150,8 @@ object model extends LoggingF {
     def description: String
   }
   object Install {
+
+    given CanEqual[Install, Install] = CanEqual.derived
 
     implicit val jsonCodec: JsonTypedCodec[Install, JsObj] =
       UnionCodecBuilder[Install]
@@ -229,6 +241,7 @@ object model extends LoggingF {
   object DockerDescriptor extends MxDockerDescriptor {
     sealed trait UninstallAction extends enumeratum.EnumEntry
     object UninstallAction extends enumeratum.Enum[UninstallAction] {
+      given CanEqual[UninstallAction, UninstallAction] = CanEqual.derived
       val values = findValues
 //      case object RemoveAndInstallOnChange extends UninstallAction
       case object Remove extends UninstallAction
@@ -276,6 +289,7 @@ object model extends LoggingF {
   }
 
   object UserLogin extends StringValue.Companion[UserLogin] {
+    given CanEqual[UserLogin, UserLogin] = CanEqual.derived
     val root = UserLogin("root")
     def thisUser(): UserLogin =
       UserLogin(System.getProperty("user.name"))
@@ -301,6 +315,7 @@ object model extends LoggingF {
 
 
   object ServerName extends StringValue.Companion[ServerName] {
+    given CanEqual[ServerName, ServerName] = CanEqual.derived
     def thisServer(): ServerName =
       ServerName(
         Exec("hostname")

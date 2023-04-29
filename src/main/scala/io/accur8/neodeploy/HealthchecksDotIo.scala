@@ -75,7 +75,7 @@ object HealthchecksDotIo {
           case None =>
             true
           case Some(v) =>
-            v == actual
+            v.equals(actual)
         }
       }
 

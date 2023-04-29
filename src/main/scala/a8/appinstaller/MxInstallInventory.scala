@@ -30,8 +30,8 @@ object MxInstallInventory {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[InstallInventory] = zio.prelude.Equal.default
     
+    given scala.CanEqual[InstallInventory, InstallInventory] = scala.CanEqual.derived
     
     
     

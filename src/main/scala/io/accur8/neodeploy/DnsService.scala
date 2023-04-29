@@ -79,7 +79,7 @@ object DnsService extends LoggingF {
           case None =>
             false
           case Some(records) =>
-            !records.exists(_ === record)
+            !records.exists(_ == record)
         }
 
     override def upsert(record: DnsRecord): M[Unit] =

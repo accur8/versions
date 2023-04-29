@@ -1,6 +1,7 @@
 package io.accur8.neodeploy
 
 
+import a8.shared.app.BootstrapConfig.TempDir
 import a8.shared.app.{BootstrapConfig, BootstrappedIOApp, LoggerF}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.versions.apps.Main
@@ -11,6 +12,10 @@ import io.accur8.neodeploy.resolvedmodel.ResolvedRepository
 import wvlet.log.LogLevel
 import zio.{Task, ZIO}
 
+object Runner {
+  type M[A] = zio.ZIO[zio.Scope & TempDir, Throwable, A]
+}
+
 case class Runner(
   serversFilter: Filter[ServerName] = Filter.allowAll,
   usersFilter: Filter[UserLogin] = Filter.allowAll,
@@ -18,7 +23,7 @@ case class Runner(
   syncsFilter: Filter[SyncName] = Filter.allowAll,
   remoteDebug: Boolean = false,
   remoteTrace: Boolean = false,
-  runnerFn: (ResolvedRepository, Runner) => Task[Unit],
+  runnerFn: (ResolvedRepository, Runner) => Runner.M[Unit],
   wvletDefaultLogLevel: LogLevel,
 )
   extends BootstrappedIOApp
@@ -36,6 +41,6 @@ case class Runner(
       .flatMap(resolvedRepository =>
         runnerFn(resolvedRepository, this)
       )
-      .provide(Layers.configL)
+      .provideSome[zio.Scope & TempDir](Layers.configL)
   }
 }

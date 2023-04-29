@@ -2,9 +2,10 @@ package a8.versions
 
 import a8.shared.{Chord, CompanionGen}
 import coursier.core.{ModuleName, Organization}
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.json.{JsonCodec, JsonTypedCodec}
-import a8.versions.Mxast._
+import a8.versions.Mxast.*
+import io.accur8.neodeploy
 
 object ast {
 
@@ -15,7 +16,7 @@ object ast {
   @CompanionGen
   case class Repo(
     header: Option[String] = None,
-    organization: String,
+    organization: neodeploy.model.Organization,
     gradle: Boolean = false,
     public: Boolean = false,
     modules: Iterable[Module],
@@ -41,7 +42,7 @@ object ast {
 
   @CompanionGen
   case class Dependency(
-    organization: String,
+    organization: neodeploy.model.Organization,
     scalaArtifactSeparator: String,
     artifactName: String,
     version: Identifier,
@@ -50,7 +51,7 @@ object ast {
   ) {
 
     lazy val asCoursierModule =
-      coursier.Module(Organization(organization), ModuleName(artifactName + (if (scalaArtifactSeparator == "%%") "_2.12" else "")))
+      coursier.Module(organization.asCoursierOrg, ModuleName(artifactName + (if (scalaArtifactSeparator == "%%") "_2.12" else "")))
 
 
     def exclusionsAsSbt =
@@ -64,7 +65,7 @@ object ast {
       configuration.map(c => Chord.str("% ") ~ q(c))
 
     def asSbt(versionDotPropsMap: Map[String,String]) = {
-      q(organization) ~ " " ~ scalaArtifactSeparator ~ " " ~ q(artifactName) ~ " % " ~ version.asScala ~ " " ~ configurationAsSbt.map(_ ~ " ").getOrElse(Chord.empty) ~ exclusionsAsSbt
+      q(organization.value) ~ " " ~ scalaArtifactSeparator ~ " " ~ q(artifactName) ~ " % " ~ version.asScala ~ " " ~ configurationAsSbt.map(_ ~ " ").getOrElse(Chord.empty) ~ exclusionsAsSbt
     }
   }
 

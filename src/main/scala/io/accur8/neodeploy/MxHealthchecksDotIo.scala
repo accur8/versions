@@ -56,8 +56,8 @@ object MxHealthchecksDotIo {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[CheckReadOnly] = zio.prelude.Equal.default
     
+    given scala.CanEqual[CheckReadOnly, CheckReadOnly] = scala.CanEqual.derived
     
     
     
@@ -193,8 +193,8 @@ object MxHealthchecksDotIo {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[CheckUpsertRequest] = zio.prelude.Equal.default
     
+    given scala.CanEqual[CheckUpsertRequest, CheckUpsertRequest] = scala.CanEqual.derived
     
     
     

@@ -35,8 +35,8 @@ object Mxresolvedmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[LoadedApplicationDescriptor] = zio.prelude.Equal.default
     
+    given scala.CanEqual[LoadedApplicationDescriptor, LoadedApplicationDescriptor] = scala.CanEqual.derived
     
     
     

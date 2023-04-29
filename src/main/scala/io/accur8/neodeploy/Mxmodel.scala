@@ -43,8 +43,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[JavaApp] = zio.prelude.Equal.default
     
+    given scala.CanEqual[JavaApp, JavaApp] = scala.CanEqual.derived
     
     
     
@@ -123,8 +123,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[Manual] = zio.prelude.Equal.default
     
+    given scala.CanEqual[Manual, Manual] = scala.CanEqual.derived
     
     
     
@@ -184,8 +184,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[SupervisorDescriptor] = zio.prelude.Equal.default
     
+    given scala.CanEqual[SupervisorDescriptor, SupervisorDescriptor] = scala.CanEqual.derived
     
     
     
@@ -252,8 +252,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[SystemdDescriptor] = zio.prelude.Equal.default
     
+    given scala.CanEqual[SystemdDescriptor, SystemdDescriptor] = scala.CanEqual.derived
     
     
     
@@ -321,8 +321,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[DockerDescriptor] = zio.prelude.Equal.default
     
+    given scala.CanEqual[DockerDescriptor, DockerDescriptor] = scala.CanEqual.derived
     
     
     
@@ -390,8 +390,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[ApplicationDescriptor] = zio.prelude.Equal.default
     
+    given scala.CanEqual[ApplicationDescriptor, ApplicationDescriptor] = scala.CanEqual.derived
     
     
     
@@ -476,8 +476,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[UserDescriptor] = zio.prelude.Equal.default
     
+    given scala.CanEqual[UserDescriptor, UserDescriptor] = scala.CanEqual.derived
     
     
     
@@ -556,8 +556,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[RSnapshotClientDescriptor] = zio.prelude.Equal.default
     
+    given scala.CanEqual[RSnapshotClientDescriptor, RSnapshotClientDescriptor] = scala.CanEqual.derived
     
     
     
@@ -627,8 +627,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[RSnapshotServerDescriptor] = zio.prelude.Equal.default
     
+    given scala.CanEqual[RSnapshotServerDescriptor, RSnapshotServerDescriptor] = scala.CanEqual.derived
     
     
     
@@ -698,8 +698,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[PgbackrestClientDescriptor] = zio.prelude.Equal.default
     
+    given scala.CanEqual[PgbackrestClientDescriptor, PgbackrestClientDescriptor] = scala.CanEqual.derived
     
     
     
@@ -767,8 +767,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[PgbackrestServerDescriptor] = zio.prelude.Equal.default
     
+    given scala.CanEqual[PgbackrestServerDescriptor, PgbackrestServerDescriptor] = scala.CanEqual.derived
     
     
     
@@ -836,8 +836,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[ServerDescriptor] = zio.prelude.Equal.default
     
+    given scala.CanEqual[ServerDescriptor, ServerDescriptor] = scala.CanEqual.derived
     
     
     
@@ -916,8 +916,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[AwsCredentials] = zio.prelude.Equal.default
     
+    given scala.CanEqual[AwsCredentials, AwsCredentials] = scala.CanEqual.derived
     
     
     
@@ -975,8 +975,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[ManagedDomain] = zio.prelude.Equal.default
     
+    given scala.CanEqual[ManagedDomain, ManagedDomain] = scala.CanEqual.derived
     
     
     
@@ -1037,8 +1037,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[RepositoryDescriptor] = zio.prelude.Equal.default
     
+    given scala.CanEqual[RepositoryDescriptor, RepositoryDescriptor] = scala.CanEqual.derived
     
     
     
@@ -1108,8 +1108,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[Personnel] = zio.prelude.Equal.default
     
+    given scala.CanEqual[Personnel, Personnel] = scala.CanEqual.derived
     
     
     

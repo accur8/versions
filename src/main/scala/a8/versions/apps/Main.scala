@@ -3,17 +3,18 @@ package a8.versions.apps
 
 import a8.appinstaller.AppInstallerConfig.LibDirKind
 import a8.appinstaller.{AppInstaller, AppInstallerConfig, InstallBuilder}
-import a8.shared.{FileSystem, FromString}
+import a8.shared.{FileSystem, FromString, StringValue}
 import a8.versions.Build.BuildType
 import a8.versions.*
 import a8.versions.Upgrade.LatestArtifact
 import a8.versions.apps.Main.{Conf, Runner}
 import a8.versions.predef.*
-import coursier.core.{ModuleName, Organization}
 import a8.shared.SharedImports.*
 import a8.shared.ZString.ZStringer
-import a8.shared.app.A8LogFormatter
+import a8.shared.app.BootstrappedIOApp.BootstrapEnv
+import a8.shared.app.{A8LogFormatter, BootstrappedIOApp}
 import a8.versions.GenerateJavaLauncherDotNix.Parms
+import a8.versions.PromoteArtifacts.Dependencies
 import a8.versions.RepositoryOps.RepoConfigPrefix
 import a8.versions.model.{BranchName, ResolutionRequest, ResolvedRepo}
 import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
@@ -25,6 +26,8 @@ import wvlet.log.{LogLevel, Logger}
 import scala.annotation.tailrec
 import io.accur8.neodeploy.{DeploySubCommand, InfrastructureSetupSubCommand, PushRemoteSyncSubCommand, ValidateRepo, Runner as NeodeployRunner}
 import org.rogach.scallop.*
+import zio.{Scope, ZIO, ZIOAppArgs}
+import io.accur8.neodeploy.model._
 
 object Main extends Logging {
 
@@ -88,33 +91,81 @@ object Main extends Logging {
 
     val resolve = new Subcommand("resolve") with Runner {
 
-      val organization = opt[String](required = true, descr = "organization of the artifact to resolve")
-      val artifact = opt[String](required = true, descr = "artifact name")
-      val branch = opt[String](descr = "branch name")
-      val version = opt[String](descr = "specific version")
+      val organization = opt[Organization](required = true, descr = "organization of the artifact to resolve")
+      val artifact = opt[Artifact](required = true, descr = "artifact name")
+      val branch = opt[BranchName](descr = "branch name")
+      val version = opt[Version](descr = "specific version")
 
       val repo: ScallopOption[String] = opt[String](descr = "repository name", required = false)
 
       descr("setup app installer json files if they have not already been setup")
 
+      import coursier._
+
       override def run(main: Main) = {
         val r = this
         val ro = repositoryOps(r.repo)
-        main.runResolve(coursier.Module(Organization(r.organization.apply()), ModuleName(r.artifact.apply())), r.branch.toOption, r.version.toOption, ro)
+        main.runResolve(Module(r.organization.apply().asCoursierOrg, r.artifact.apply().asCoursierModuleName), r.branch.toOption, r.version.toOption, ro)
       }
 
     }
 
+    val promote = new Subcommand("promote") with Runner {
+
+      val organization = opt[Organization](descr = "organization of the artifact to resolve")
+      val artifact = opt[Artifact](required = true, descr = "artifact name")
+      val version = opt[Version](required = true, descr = "specific version")
+      val dependencies = opt[String](descr = "how to handle dependencies in the same organization [nothing|validate|promote]")
+
+      descr("promote an artifact from accur8's private locus repo into the public maven repo")
+
+      override def run(main: Main) = {
+
+        val resolvedDependency =
+          dependencies
+            .toOption
+            .map(d => Dependencies.values.find(_.name.toLowerCase == d.toLowerCase).getOrError(s"invalid depdendency ${d}"))
+            .getOrElse(Dependencies.Nothing)
+
+        import io.accur8.neodeploy.model._
+
+        val resolutionRequest =
+          ResolutionRequest(
+            organization = organization.toOption.getOrElse(PromoteArtifacts.IoDotAccur8Organization),
+            artifact = artifact(),
+            version = version(),
+          )
+
+        val promoteArtifacts =
+          PromoteArtifacts(
+            resolutionRequest,
+            resolvedDependency,
+          )
+
+        object PromoteArtifactsMain extends BootstrappedIOApp {
+          override def runT: ZIO[BootstrapEnv, Throwable, Unit] =
+            promoteArtifacts.runT
+        }
+
+        import coursier._
+        PromoteArtifactsMain.main(Array())
+      }
+
+    }
+
+    def coursierModule(organization: ScallopOption[Organization], artifact: ScallopOption[Artifact]): coursier.Module =
+      coursier.Module(organization().asCoursierOrg, artifact().asCoursierModuleName)
+
     val install = new Subcommand("install") with Runner {
 
-      val organization = opt[String](descr = "organization of the artifact to resolve", required = true)
-      val artifact = opt[String](descr = "artifact name", required = true)
-      val branch = opt[String](descr = "branch name", required = false)
-      val version = opt[String](descr = "specific version", required = false)
+      val organization = opt[Organization](descr = "organization of the artifact to resolve", required = true)
+      val artifact = opt[Artifact](descr = "artifact name", required = true)
+      val branch = opt[BranchName](descr = "branch name", required = false)
+      val version = opt[Version](descr = "specific version", required = false)
       val installDir = opt[String](descr = "the install directory", required = true)
       val libDirKind = opt[String](descr = "lib directory kind", required = false)
-      val webappExplode = opt[String](descr = "do webapp explode", required = false)
-      val backup = opt[String](descr = "run backup of existing install before install", required = false)
+      val webappExplode = opt[Boolean](descr = "do webapp explode", required = false)
+      val backup = opt[Boolean](descr = "run backup of existing install before install", required = false)
 
       val repo = opt[String](descr = "repository name", required = false)
 
@@ -123,13 +174,13 @@ object Main extends Logging {
       override def run(main: Main) = {
         Main
           .runInstall(
-            coursier.Module(Organization(organization.apply()), ModuleName(artifact.apply())),
+            coursier.Module(organization().asCoursierOrg, artifact().asCoursierModuleName),
             branch.toOption,
             version.toOption,
             installDir.toOption.getOrElse("."),
             libDirKind.toOption,
-            webappExplode.map(_.toBoolean).toOption,
-            backup = backup.toOption.map(_.toBoolean).getOrElse(true),
+            webappExplode.toOption,
+            backup = backup.toOption.getOrElse(true),
             repositoryOps = repositoryOps(repo),
           )
       }
@@ -308,6 +359,7 @@ object Main extends Logging {
     addSubcommand(gitignore)
     addSubcommand(javaLauncherDotNix)
     addSubcommand(localUserSync)
+    addSubcommand(promote)
     addSubcommand(pushRemoteSync)
     addSubcommand(version_bump)
     addSubcommand(validateServerAppConfigs)
@@ -341,8 +393,8 @@ object Main extends Logging {
 
   def runInstall(
     module: coursier.Module,
-    branch: Option[String],
-    version: Option[String],
+    branch: Option[BranchName],
+    version: Option[Version],
     installDir: String,
     libDirKind: Option[String],
     webappExplode: Option[Boolean] = Some(true),
@@ -352,7 +404,7 @@ object Main extends Logging {
 
     implicit val buildType = BuildType.ArtifactoryBuild
 
-    val (resolvedVersion, latest) =
+    val (resolvedVersion: ParsedVersion, latest: Option[String]) =
       (branch, version) match {
         case (None, None) =>
           sys.error("must supply a branch or version")
@@ -362,7 +414,7 @@ object Main extends Logging {
           val resolvedBranch = scrubBranchName(b)
           LatestArtifact(module, resolvedBranch).resolveVersion(Map(), repositoryOps) -> Some(s"latest_${resolvedBranch}.json")
         case (None, Some(v)) =>
-          Version.parse(v).get -> None
+          ParsedVersion.parse(v.value).get -> None
       }
 
     val kind: Option[LibDirKind] =
@@ -378,12 +430,14 @@ object Main extends Logging {
         }
         .orElse(Some(LibDirKind.Symlink))
 
+    import io.accur8.neodeploy
+
     val config =
       AppInstallerConfig(
-        organization = module.organization.value,
-        artifact = module.name.value,
+        organization = neodeploy.model.Organization(module.organization.value),
+        artifact = neodeploy.model.Artifact(module.name.value),
         branch = None,
-        version = resolvedVersion.toString,
+        version = resolvedVersion,
         installDir = Some(installDir),
         libDirKind = kind,
         webappExplode = webappExplode,
@@ -395,13 +449,40 @@ object Main extends Logging {
   }
 
   // same method as a8.sbt_a8.scrubBranchName() in sbt-a8 project
-  def scrubBranchName(unscrubbedName: String): BranchName = {
+  def scrubBranchName(unscrubbedName: BranchName): BranchName = {
     BranchName(
       unscrubbedName
+        .value
         .filter(ch => ch.isLetterOrDigit)
         .toLowerCase
     )
   }
+
+
+//  given ValueConverter[Organization] = stringValueValueConverter[Organization]
+//
+//  given ValueConverter[Artifact] = stringValueValueConverter[Artifact]
+//
+//  given ValueConverter[BranchName] = stringValueValueConverter[BranchName]
+//
+//  given ValueConverter[Version] = stringValueValueConverter[Version]
+
+  implicit def stringValueValueConverter[A <: StringValue : FromString]: ValueConverter[A] =
+    new ValueConverter[A]:
+
+      lazy val fromString = implicitly[FromString[A]]
+
+      override def parse(s: List[(String, List[String])]): Either[String, Option[A]] =
+        Right(
+          s.flatMap(t =>
+            t._2.flatMap(v =>
+              fromString.fromString(v)
+            )
+          ).headOption
+        )
+
+      override val argType: ArgType.V = ArgType.SINGLE
+
 }
 
 
@@ -429,29 +510,31 @@ case class Main(args: Seq[String]) {
   }
 
 
-  def runResolve(module: coursier.Module, branch: Option[String], version: Option[String], repositoryOps: RepositoryOps): Unit = {
+  def runResolve(module: coursier.Module, branch: Option[BranchName], version: Option[Version], repositoryOps: RepositoryOps): Unit = {
 
-    val (resolvedVersion, latest) =
+    val (resolvedVersion: ParsedVersion, latest: Option[String]) =
       (branch, version) match {
         case (None, None) =>
           sys.error("must supply a branch or version")
         case (Some(_), Some(_)) =>
           sys.error("must supply a branch or version not both")
         case (Some(b), None) =>
-          LatestArtifact(module, BranchName(b.trim)).resolveVersion(Map(), repositoryOps) -> Some(s"latest_${b}.json")
+          LatestArtifact(module, b).resolveVersion(Map(), repositoryOps) -> Some(s"latest_${b}.json")
         case (None, Some(v)) =>
-          Version.parse(v).get -> None
+          ParsedVersion.parse(v.value).get -> None
       }
 
     println(s"using version ${resolvedVersion}")
 
     val tree = repositoryOps.resolveDependencyTree(module, resolvedVersion)
 
+    import io.accur8.neodeploy
+
     val aic =
       AppInstallerConfig(
-        organization = module.organization.value,
-        artifact = module.name.value,
-        version = resolvedVersion.toString,
+        organization = neodeploy.model.Organization(module.organization.value),
+        artifact = neodeploy.model.Artifact(module.name.value),
+        version = resolvedVersion,
         branch = None,
       )
 

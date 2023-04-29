@@ -32,8 +32,8 @@ object MxSystemStateModel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[StateKey] = zio.prelude.Equal.default
     
+    given scala.CanEqual[StateKey, StateKey] = scala.CanEqual.derived
     
     
     
@@ -90,8 +90,8 @@ object MxSystemStateModel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[PreviousState] = zio.prelude.Equal.default
     
+    given scala.CanEqual[PreviousState, PreviousState] = scala.CanEqual.derived
     
     
     
@@ -147,8 +147,8 @@ object MxSystemStateModel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[ResolvedState] = zio.prelude.Equal.default
     
+    given scala.CanEqual[ResolvedState, ResolvedState] = scala.CanEqual.derived
     
     
     
@@ -208,8 +208,8 @@ object MxSystemStateModel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[NewState] = zio.prelude.Equal.default
     
+    given scala.CanEqual[NewState, NewState] = scala.CanEqual.derived
     
     
     
@@ -264,8 +264,8 @@ object MxSystemStateModel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[Command] = zio.prelude.Equal.default
     
+    given scala.CanEqual[Command, Command] = scala.CanEqual.derived
     
     
     

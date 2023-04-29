@@ -18,7 +18,7 @@ import io.accur8.neodeploy.Sync.SyncName
 object PushRemoteSyncSubCommand extends LoggingF {
 
   object Filter {
-    def allowAll[A : ZStringer] = Filter[A]("", Vector.empty)
+    def allowAll[A : ZStringer](implicit canEqual: CanEqual[A,A]) = Filter[A]("", Vector.empty)
   }
 
   case class Filter[A : ZStringer](argName: String, values: Iterable[A]) {
@@ -38,7 +38,7 @@ object PushRemoteSyncSubCommand extends LoggingF {
       matches(a)
 
     def matches(a: A): Boolean = {
-      val r = values.isEmpty || values.find(_ == a).nonEmpty
+      val r = values.isEmpty || values.find(_.equals(a)).nonEmpty
 //      logger.debug(s"matches ${a} -> ${r} -- ${values}")
       r
     }

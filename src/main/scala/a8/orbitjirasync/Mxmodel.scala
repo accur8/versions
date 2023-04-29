@@ -50,8 +50,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[Task] = zio.prelude.Equal.default
     
+    given scala.CanEqual[Task, Task] = scala.CanEqual.derived
     
     
     
@@ -122,8 +122,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[Config] = zio.prelude.Equal.default
     
+    given scala.CanEqual[Config, Config] = scala.CanEqual.derived
     
     
     
@@ -185,8 +185,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[JiraSync] = zio.prelude.Equal.default
     
+    given scala.CanEqual[JiraSync, JiraSync] = scala.CanEqual.derived
     
     
     
@@ -248,8 +248,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[JiraConfig] = zio.prelude.Equal.default
     
+    given scala.CanEqual[JiraConfig, JiraConfig] = scala.CanEqual.derived
     
     
     
@@ -311,8 +311,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[EpicToProjectMapping] = zio.prelude.Equal.default
     
+    given scala.CanEqual[EpicToProjectMapping, EpicToProjectMapping] = scala.CanEqual.derived
     
     
     
@@ -373,8 +373,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[JiraBoardMapping] = zio.prelude.Equal.default
     
+    given scala.CanEqual[JiraBoardMapping, JiraBoardMapping] = scala.CanEqual.derived
     
     
     
@@ -433,8 +433,8 @@ object Mxmodel {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[JqlToProjectMapping] = zio.prelude.Equal.default
     
+    given scala.CanEqual[JqlToProjectMapping, JqlToProjectMapping] = scala.CanEqual.derived
     
     
     

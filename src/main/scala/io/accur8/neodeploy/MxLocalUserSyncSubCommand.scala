@@ -32,8 +32,8 @@ object MxLocalUserSyncSubCommand {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[Config] = zio.prelude.Equal.default
     
+    given scala.CanEqual[Config, Config] = scala.CanEqual.derived
     
     
     

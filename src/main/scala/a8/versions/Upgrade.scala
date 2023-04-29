@@ -1,14 +1,15 @@
 package a8.versions
 
+
 import a8.versions.Build.BuildType
 import a8.versions.model.BranchName
 import coursier.Resolution
 import coursier.core.{Dependency, Module, ModuleName, Organization}
-
+import io.accur8.neodeploy.PredefAssist.{given, _}
 
 sealed trait Upgrade {
 
-  def resolveVersion(upgrades: Map[String, Upgrade], repositoryOps: RepositoryOps)(implicit buildType: BuildType): Version
+  def resolveVersion(upgrades: Map[String, Upgrade], repositoryOps: RepositoryOps)(implicit buildType: BuildType): ParsedVersion
   def resolveDependencyTree(upgrades: Map[String, Upgrade], repositoryOps: RepositoryOps)(implicit buildType: BuildType): Resolution
 
 }
@@ -33,14 +34,14 @@ object Upgrade {
         .toIndexedSeq
 
 
-    override def resolveVersion(upgrades: Map[String, Upgrade], repositoryOps: RepositoryOps)(implicit buildType: BuildType): Version = {
+    override def resolveVersion(upgrades: Map[String, Upgrade], repositoryOps: RepositoryOps)(implicit buildType: BuildType): ParsedVersion = {
       val versions =
         if (buildType.useLocalRepo) localVersions(repositoryOps) ++ remoteVersions(repositoryOps)
         else remoteVersions(repositoryOps)
 
       val versionOpt =
         versions
-          .sorted(Version.orderingByMajorMinorPathBuildTimestamp)
+          .sorted(ParsedVersion.orderingByMajorMinorPathBuildTimestamp)
           .lastOption
 
       versionOpt match {
@@ -64,7 +65,7 @@ object Upgrade {
     module: Module,
   ) extends Upgrade {
 
-    override def resolveVersion(upgrades: Map[String, Upgrade], repositoryOps: RepositoryOps)(implicit buildType: BuildType): Version = {
+    override def resolveVersion(upgrades: Map[String, Upgrade], repositoryOps: RepositoryOps)(implicit buildType: BuildType): ParsedVersion = {
       val upgrade =
         upgrades
           .get(dependencyTreeProp)
@@ -78,7 +79,7 @@ object Upgrade {
         dependencies
           .find(d => d.module.organization == module.organization && d.module.name == module.name)
           .getOrElse(sys.error(s"unable to resolve ${module.organization}:${module.name} in ${dependencyTreeProp}"))
-      Version.parse(dep.version).get
+      ParsedVersion.parse(dep.version).get
     }
 
     def resolveDependencyTree(upgrades: Map[String, Upgrade], repositoryOps: RepositoryOps)(implicit buildType: BuildType): Resolution = {

@@ -18,6 +18,7 @@ import scala.collection.immutable.Vector
 import io.accur8.neodeploy.PredefAssist._
 
 import a8.Scala3Hacks.*
+import io.accur8.neodeploy.PredefAssist._
 
 object SystemStateImpl extends LoggingF {
 
@@ -109,7 +110,7 @@ object SystemStateImpl extends LoggingF {
                 .asScala
             ).map { actual =>
               val expected = perms.expectedPermsAsNioSet
-              val result = expected != actual
+              val result = !(expected eq actual)
               result
             }
           case false =>

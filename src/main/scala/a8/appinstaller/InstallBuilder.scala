@@ -8,9 +8,10 @@ import a8.shared.FileSystem.{Directory, File}
 import a8.shared.app.Logging
 import a8.versions.Build.BuildType
 import a8.versions.RepositoryOps.DependencyTree
-import a8.versions.{RepositoryOps, Version, ast}
+import a8.versions.{RepositoryOps, ParsedVersion, ast}
 import a8.versions.ast.Dependency
 import predef._
+import a8.shared.SharedImports._
 
 case class InstallBuilder(
   unresolvedConfig: AppInstallerConfig,
@@ -22,13 +23,13 @@ case class InstallBuilder(
   lazy val appDir = resolvedConfig.resolvedInstallDir
 
   lazy val resolvedConfig =
-    unresolvedConfig.copy(version = rootVersion.toString)
+    unresolvedConfig.copy(version = rootVersion)
 
   lazy val libDir: Directory = appDir \\ "lib"
 
   def build(): Unit = {
     buildLibDir()
-    val jarFileName = resolvedConfig.artifact + "-" + resolvedConfig.version + ".jar"
+    val jarFileName = z"${resolvedConfig.artifact}-${resolvedConfig.version.toString()}.jar"
     val jarFile =
       dependencyResult
         .localArtifacts
@@ -80,7 +81,7 @@ case class InstallBuilder(
         file.getCanonicalPath
       }
 
-  lazy val rootVersion: Version = {
+  lazy val rootVersion: ParsedVersion = {
     if ( unresolvedArtifact.version.rawValue == "latest") {
       val versions =
         repositoryOps
@@ -88,7 +89,7 @@ case class InstallBuilder(
           .filter(v => unresolvedConfig.branch.isEmpty || unresolvedConfig.branch == v.buildInfo.map(_.branch))
       versions.toList.sorted.last
     } else {
-      Version.parse(unresolvedArtifact.version.rawValue).get
+      ParsedVersion.parse(unresolvedArtifact.version.rawValue).get
     }
   }
 

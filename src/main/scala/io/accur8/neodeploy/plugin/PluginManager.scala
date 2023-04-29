@@ -8,6 +8,7 @@ import io.accur8.neodeploy.plugin.PluginManager.Factory
 import io.accur8.neodeploy.resolvedmodel.ResolvedUser
 import org.typelevel.ci.CIString
 import a8.shared.SharedImports._
+import io.accur8.neodeploy.PredefAssist.{given, *}
 
 object PluginManager {
 

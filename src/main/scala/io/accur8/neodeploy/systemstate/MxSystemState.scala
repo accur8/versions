@@ -36,8 +36,8 @@ object MxSystemState {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[TextFile] = zio.prelude.Equal.default
     
+    given scala.CanEqual[TextFile, TextFile] = scala.CanEqual.derived
     
     
     
@@ -99,8 +99,8 @@ object MxSystemState {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[SecretsTextFile] = zio.prelude.Equal.default
     
+    given scala.CanEqual[SecretsTextFile, SecretsTextFile] = scala.CanEqual.derived
     
     
     
@@ -163,8 +163,8 @@ object MxSystemState {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[JavaAppInstall] = zio.prelude.Equal.default
     
+    given scala.CanEqual[JavaAppInstall, JavaAppInstall] = scala.CanEqual.derived
     
     
     
@@ -228,8 +228,8 @@ object MxSystemState {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[Directory] = zio.prelude.Equal.default
     
+    given scala.CanEqual[Directory, Directory] = scala.CanEqual.derived
     
     
     
@@ -277,8 +277,7 @@ object MxSystemState {
   
   trait MxComposite {
   
-    implicit val zioEq: zio.prelude.Equal[Composite] = zio.prelude.Equal.default
-    
+    given scala.CanEqual[Composite, Composite] = scala.CanEqual.derived
     
     
     
@@ -338,8 +337,8 @@ object MxSystemState {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[DnsRecord] = zio.prelude.Equal.default
     
+    given scala.CanEqual[DnsRecord, DnsRecord] = scala.CanEqual.derived
     
     
     
@@ -402,8 +401,8 @@ object MxSystemState {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[HealthCheck] = zio.prelude.Equal.default
     
+    given scala.CanEqual[HealthCheck, HealthCheck] = scala.CanEqual.derived
     
     
     
@@ -459,8 +458,8 @@ object MxSystemState {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[RunCommandState] = zio.prelude.Equal.default
     
+    given scala.CanEqual[RunCommandState, RunCommandState] = scala.CanEqual.derived
     
     
     
@@ -520,8 +519,8 @@ object MxSystemState {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[DockerState] = zio.prelude.Equal.default
     
+    given scala.CanEqual[DockerState, DockerState] = scala.CanEqual.derived
     
     
     
@@ -577,8 +576,8 @@ object MxSystemState {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[TriggeredState] = zio.prelude.Equal.default
     
+    given scala.CanEqual[TriggeredState, TriggeredState] = scala.CanEqual.derived
     
     
     

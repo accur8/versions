@@ -32,8 +32,8 @@ object MxSystemd {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[UnitFile] = zio.prelude.Equal.default
     
+    given scala.CanEqual[UnitFile, UnitFile] = scala.CanEqual.derived
     
     
     

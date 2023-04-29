@@ -38,6 +38,19 @@ Global / versionScheme := Some("strict")
 
 Global / serverConnectionType := ConnectionType.Local
 
+Global / scalacOptions ++= Seq(
+  "-encoding", "UTF-8",
+  "-deprecation",
+  "-feature",
+  "-unchecked",
+  "-language:implicitConversions",
+  "-language:higherKinds",
+  "-language:existentials",
+  "-language:postfixOps",
+  "-language:strictEquality",
+  // "-Werror",
+)
+
 
 lazy val versions =
   Common

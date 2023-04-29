@@ -10,6 +10,8 @@ package a8.versions
 
 //====
 import ast._
+import io.accur8.neodeploy.model._
+import io.accur8.neodeploy
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
@@ -33,8 +35,8 @@ object Mxast {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[Repo] = zio.prelude.Equal.default
     
+    given scala.CanEqual[Repo, Repo] = scala.CanEqual.derived
     
     
     
@@ -45,7 +47,7 @@ object Mxast {
     
     object parameters {
       lazy val header: CaseClassParm[Repo,Option[String]] = CaseClassParm[Repo,Option[String]]("header", _.header, (d,v) => d.copy(header = v), Some(()=> None), 0)
-      lazy val organization: CaseClassParm[Repo,String] = CaseClassParm[Repo,String]("organization", _.organization, (d,v) => d.copy(organization = v), None, 1)
+      lazy val organization: CaseClassParm[Repo,neodeploy.model.Organization] = CaseClassParm[Repo,neodeploy.model.Organization]("organization", _.organization, (d,v) => d.copy(organization = v), None, 1)
       lazy val gradle: CaseClassParm[Repo,Boolean] = CaseClassParm[Repo,Boolean]("gradle", _.gradle, (d,v) => d.copy(gradle = v), Some(()=> false), 2)
       lazy val public: CaseClassParm[Repo,Boolean] = CaseClassParm[Repo,Boolean]("public", _.public, (d,v) => d.copy(public = v), Some(()=> false), 3)
       lazy val modules: CaseClassParm[Repo,Iterable[Module]] = CaseClassParm[Repo,Iterable[Module]]("modules", _.modules, (d,v) => d.copy(modules = v), None, 4)
@@ -57,7 +59,7 @@ object Mxast {
       def rawConstruct(values: IndexedSeq[Any]): Repo = {
         Repo(
           header = values(0).asInstanceOf[Option[String]],
-          organization = values(1).asInstanceOf[String],
+          organization = values(1).asInstanceOf[neodeploy.model.Organization],
           gradle = values(2).asInstanceOf[Boolean],
           public = values(3).asInstanceOf[Boolean],
           modules = values(4).asInstanceOf[Iterable[Module]],
@@ -67,7 +69,7 @@ object Mxast {
         val value =
           Repo(
             header = values.next().asInstanceOf[Option[String]],
-            organization = values.next().asInstanceOf[String],
+            organization = values.next().asInstanceOf[neodeploy.model.Organization],
             gradle = values.next().asInstanceOf[Boolean],
             public = values.next().asInstanceOf[Boolean],
             modules = values.next().asInstanceOf[Iterable[Module]],
@@ -76,7 +78,7 @@ object Mxast {
            sys.error("")
         value
       }
-      def typedConstruct(header: Option[String], organization: String, gradle: Boolean, public: Boolean, modules: Iterable[Module]): Repo =
+      def typedConstruct(header: Option[String], organization: neodeploy.model.Organization, gradle: Boolean, public: Boolean, modules: Iterable[Module]): Repo =
         Repo(header, organization, gradle, public, modules)
     
     }
@@ -108,8 +110,8 @@ object Mxast {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[Module] = zio.prelude.Equal.default
     
+    given scala.CanEqual[Module, Module] = scala.CanEqual.derived
     
     
     
@@ -192,8 +194,8 @@ object Mxast {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[Dependency] = zio.prelude.Equal.default
     
+    given scala.CanEqual[Dependency, Dependency] = scala.CanEqual.derived
     
     
     
@@ -203,7 +205,7 @@ object Mxast {
     }
     
     object parameters {
-      lazy val organization: CaseClassParm[Dependency,String] = CaseClassParm[Dependency,String]("organization", _.organization, (d,v) => d.copy(organization = v), None, 0)
+      lazy val organization: CaseClassParm[Dependency,neodeploy.model.Organization] = CaseClassParm[Dependency,neodeploy.model.Organization]("organization", _.organization, (d,v) => d.copy(organization = v), None, 0)
       lazy val scalaArtifactSeparator: CaseClassParm[Dependency,String] = CaseClassParm[Dependency,String]("scalaArtifactSeparator", _.scalaArtifactSeparator, (d,v) => d.copy(scalaArtifactSeparator = v), None, 1)
       lazy val artifactName: CaseClassParm[Dependency,String] = CaseClassParm[Dependency,String]("artifactName", _.artifactName, (d,v) => d.copy(artifactName = v), None, 2)
       lazy val version: CaseClassParm[Dependency,Identifier] = CaseClassParm[Dependency,Identifier]("version", _.version, (d,v) => d.copy(version = v), None, 3)
@@ -216,7 +218,7 @@ object Mxast {
     
       def rawConstruct(values: IndexedSeq[Any]): Dependency = {
         Dependency(
-          organization = values(0).asInstanceOf[String],
+          organization = values(0).asInstanceOf[neodeploy.model.Organization],
           scalaArtifactSeparator = values(1).asInstanceOf[String],
           artifactName = values(2).asInstanceOf[String],
           version = values(3).asInstanceOf[Identifier],
@@ -227,7 +229,7 @@ object Mxast {
       def iterRawConstruct(values: Iterator[Any]): Dependency = {
         val value =
           Dependency(
-            organization = values.next().asInstanceOf[String],
+            organization = values.next().asInstanceOf[neodeploy.model.Organization],
             scalaArtifactSeparator = values.next().asInstanceOf[String],
             artifactName = values.next().asInstanceOf[String],
             version = values.next().asInstanceOf[Identifier],
@@ -238,7 +240,7 @@ object Mxast {
            sys.error("")
         value
       }
-      def typedConstruct(organization: String, scalaArtifactSeparator: String, artifactName: String, version: Identifier, configuration: Option[String], exclusions: Iterable[(String,String)]): Dependency =
+      def typedConstruct(organization: neodeploy.model.Organization, scalaArtifactSeparator: String, artifactName: String, version: Identifier, configuration: Option[String], exclusions: Iterable[(String,String)]): Dependency =
         Dependency(organization, scalaArtifactSeparator, artifactName, version, configuration, exclusions)
     
     }

@@ -4,13 +4,14 @@ package a8.versions
 import a8.shared.{Chord, CompanionGen, StringValue}
 import a8.shared.FileSystem.Directory
 import a8.shared.HoconOps.parseHocon
-import a8.shared.SharedImports._
-import a8.shared.HoconOps._
-import a8.versions.Mxmodel._
+import a8.shared.SharedImports.*
+import a8.shared.HoconOps.*
+import a8.versions.Mxmodel.*
 import a8.versions.RepositoryOps.RepoConfigPrefix
 import io.accur8.neodeploy.CodeBits
-import io.accur8.neodeploy.model.{AuthorizedKey, Personnel}
+import io.accur8.neodeploy.model.{Artifact, AuthorizedKey, Organization, Personnel}
 import io.accur8.neodeploy.resolvedmodel.ResolvedRepository
+import sttp.model.Uri
 import zio.Task
 
 object model {
@@ -18,6 +19,7 @@ object model {
   import a8.Scala3Hacks.*
 
   object BranchName extends StringValue.Companion[BranchName] {
+    given CanEqual[BranchName, BranchName] = CanEqual.derived
   }
   case class BranchName(value: String) extends StringValue {
     override def toString: String = value
@@ -160,7 +162,7 @@ object model {
         }
         .toSet
 
-    lazy val dependenciesByOrgArtifact: Map[(String,String),ast.Dependency] =
+    lazy val dependenciesByOrgArtifact: Map[(Organization,String),ast.Dependency] =
       rawResolvedDependencies
         .map(d => (d.organization -> d.artifactName) -> d)
         .toMap
@@ -298,18 +300,19 @@ object model {
   object ArtifactResponse extends MxArtifactResponse
   @CompanionGen
   case class ArtifactResponse(
-    url: String,
-    organization: String,
-    module: String,
-    version: String,
+    url: Uri,
+    organization: Organization,
+    module: Artifact,
+    version: io.accur8.neodeploy.model.Version,
     extension: String,
   ) {
 
-    lazy val filename =
-      module + "-" + version + "." + extension
+    lazy val filename = z"${module}-${version}.${extension}"
+
+    lazy val organizationAsPath = organization.value.replace('.', '/')
 
     lazy val m2RepoPath =
-      organization.replace('.', '/') + "/" + module + "/" + version + "/" + module + "-" + version + "." + extension
+      z"${organizationAsPath}/${module}/${version}/${module}-${version}.${extension}"
 
   }
 
@@ -317,21 +320,24 @@ object model {
   @CompanionGen
   case class ResolutionResponse(
     request: ResolutionRequest,
-    version: String,
+    version: io.accur8.neodeploy.model.Version,
+    repoUrl: String,
     artifacts: Iterable[ArtifactResponse],
-  )
+  ) {
+    def organization = request.organization
+  }
 
   object ResolutionRequest extends MxResolutionRequest
   @CompanionGen
   case class ResolutionRequest(
     repoPrefix: RepoConfigPrefix = RepoConfigPrefix.default,
-    organization: String,
-    artifact: String,
-    version: String,
+    organization: Organization,
+    artifact: Artifact,
+    version: io.accur8.neodeploy.model.Version,
     branch: Option[BranchName] = None,
   ) {
     lazy val coursierModule =
-      coursier.Module(coursier.Organization(organization), coursier.ModuleName(artifact))
+      coursier.Module(organization.asCoursierOrg, artifact.asCoursierModuleName)
   }
 
 }

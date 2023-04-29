@@ -30,8 +30,8 @@ object MxCommand {
       )
       .build
     
-    implicit val zioEq: zio.prelude.Equal[Command] = zio.prelude.Equal.default
     
+    given scala.CanEqual[Command, Command] = scala.CanEqual.derived
     
     
     
