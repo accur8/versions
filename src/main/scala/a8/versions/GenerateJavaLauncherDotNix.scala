@@ -83,14 +83,17 @@ object GenerateJavaLauncherDotNix {
   case class BuildDescription(
     files: Iterable[FileContents],
     resolvedVersion: io.accur8.neodeploy.model.Version,
-  )
+    resolutionResponse: ResolutionResponse,
+  ) {
+    lazy val defaultDotNixContent = files.find(_.filename == "default.nix").get.contents
+    lazy val javaLauncherTemplate = files.find(_.filename == "java-launcher-template").get.contents
+  }
 
 }
 
 
 case class GenerateJavaLauncherDotNix(
   parms: GenerateJavaLauncherDotNix.Parms,
-  launcherConfigOnly: Boolean,
 )
   extends LoggingF
 {
@@ -234,8 +237,8 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
   def runFullInstall(workDir: Directory): Task[FullInstallResults] = {
     val launcherFilesDir = workDir.subdir("launcher")
     for {
-      defaultDotNixContent <- javaLauncherContentT
-      _ <- launcherFilesDir.file("default.nix").write(defaultDotNixContent._2)
+      buildDescription <- buildDescriptionT
+      _ <- launcherFilesDir.file("default.nix").write(buildDescription.defaultDotNixContent)
       _ <- launcherFilesDir.file("java-launcher-template").write(javaLauncherTemplateContent)
       buildSymlink <- runNixBuild(workDir)
       nixPackagePath <- buildSymlink.canonicalPath.map(ZFileSystem.dir)
@@ -243,20 +246,6 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
   }
 
   def buildDescriptionT: Task[BuildDescription] = {
-    for {
-      defaultDotNixContent <- javaLauncherContentT
-    } yield
-      BuildDescription(
-        files = Iterable(
-          FileContents("default.nix", defaultDotNixContent._2),
-          FileContents("java-launcher-template", javaLauncherTemplateContent),
-        ),
-        resolvedVersion = defaultDotNixContent._1.version
-      )
-  }
-
-
-  def javaLauncherContentT: Task[(ResolutionResponse,String)] = {
     for {
       resolutionResponse <- resolutionResponseZ
       artifacts <-
@@ -267,14 +256,16 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
               .map(artifact -> _)
           }
           .runCollect
-    } yield {
-      val content =
-        if ( launcherConfigOnly )
-          launcherConfig(resolutionResponse, artifacts)
-        else
-          defaultDotNix(resolutionResponse, artifacts)
-      resolutionResponse -> content
-    }
+    } yield
+      BuildDescription(
+        files = Iterable(
+          FileContents("default.nix", defaultDotNix(resolutionResponse, artifacts)),
+          FileContents("java-launcher-config.nix", launcherConfig(resolutionResponse, artifacts)),
+          FileContents("java-launcher-template", javaLauncherTemplateContent),
+        ),
+        resolvedVersion = resolutionResponse.version,
+        resolutionResponse = resolutionResponse,
+      )
   }
 
   def quote(value: String): String = {

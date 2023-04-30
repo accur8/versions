@@ -11,10 +11,10 @@ package a8.versions
 //====
 // noop import so IDE generated imports get put inside the comments block, this can be removed once you have at least one other import
 import _root_.scala
-import a8.versions.GenerateJavaLauncherDotNix._
+import a8.versions.GenerateJavaLauncherDotNix.*
 import a8.versions.RepositoryOps.RepoConfigPrefix
-import a8.versions.model.BranchName
-import io.accur8.neodeploy.model._
+import a8.versions.model.{BranchName, ResolutionResponse}
+import io.accur8.neodeploy.model.*
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
@@ -190,6 +190,7 @@ object MxGenerateJavaLauncherDotNix {
         a8.shared.json.JsonObjectCodecBuilder(generator)
           .addField(_.files)
           .addField(_.resolvedVersion)
+          .addField(_.resolutionResponse)
       )
       .build
     
@@ -199,13 +200,14 @@ object MxGenerateJavaLauncherDotNix {
     
     
     lazy val generator: Generator[BuildDescription,parameters.type] =  {
-      val constructors = Constructors[BuildDescription](2, unsafe.iterRawConstruct)
+      val constructors = Constructors[BuildDescription](3, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
     object parameters {
       lazy val files: CaseClassParm[BuildDescription,Iterable[FileContents]] = CaseClassParm[BuildDescription,Iterable[FileContents]]("files", _.files, (d,v) => d.copy(files = v), None, 0)
       lazy val resolvedVersion: CaseClassParm[BuildDescription,io.accur8.neodeploy.model.Version] = CaseClassParm[BuildDescription,io.accur8.neodeploy.model.Version]("resolvedVersion", _.resolvedVersion, (d,v) => d.copy(resolvedVersion = v), None, 1)
+      lazy val resolutionResponse: CaseClassParm[BuildDescription,ResolutionResponse] = CaseClassParm[BuildDescription,ResolutionResponse]("resolutionResponse", _.resolutionResponse, (d,v) => d.copy(resolutionResponse = v), None, 2)
     }
     
     
@@ -215,6 +217,7 @@ object MxGenerateJavaLauncherDotNix {
         BuildDescription(
           files = values(0).asInstanceOf[Iterable[FileContents]],
           resolvedVersion = values(1).asInstanceOf[io.accur8.neodeploy.model.Version],
+          resolutionResponse = values(2).asInstanceOf[ResolutionResponse],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): BuildDescription = {
@@ -222,13 +225,14 @@ object MxGenerateJavaLauncherDotNix {
           BuildDescription(
             files = values.next().asInstanceOf[Iterable[FileContents]],
             resolvedVersion = values.next().asInstanceOf[io.accur8.neodeploy.model.Version],
+            resolutionResponse = values.next().asInstanceOf[ResolutionResponse],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(files: Iterable[FileContents], resolvedVersion: io.accur8.neodeploy.model.Version): BuildDescription =
-        BuildDescription(files, resolvedVersion)
+      def typedConstruct(files: Iterable[FileContents], resolvedVersion: io.accur8.neodeploy.model.Version, resolutionResponse: ResolutionResponse): BuildDescription =
+        BuildDescription(files, resolvedVersion, resolutionResponse)
     
     }
     

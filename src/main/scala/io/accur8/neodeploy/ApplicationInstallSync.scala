@@ -83,10 +83,8 @@ object ApplicationInstallSync extends Logging with LoggingF {
         )
 
       val runNixInstaller: Task[FullInstallResults] =
-        GenerateJavaLauncherDotNix(
-          request,
-          false,
-        ).runFullInstall(nixInstallWorkDir)
+        GenerateJavaLauncherDotNix(request)
+          .runFullInstall(nixInstallWorkDir)
 
       def linkToNixStore(name: String, installResults: FullInstallResults) = {
         val nixStorePath = installResults.nixPackageInStore.subdir(name)
