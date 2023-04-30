@@ -81,7 +81,12 @@ case class PromoteArtifacts(
         atp
           .map(promote)
           .sequencePar
-          .as(())
+          .flatMap(runActualPromotionsEffects =>
+            // we have to run the maven commands serially otherwise we can end up with multiple staging repos
+            runActualPromotionsEffects
+              .flatten
+              .sequence
+          )
       _ <- loggerF.info("""
 promotion completed successfully log into https://s01.oss.sonatype.org to manually release the promoted items to staging
 credentials are in the place you would expect them to be
@@ -128,11 +133,11 @@ credentials are in the place you would expect them to be
     } yield locusExists && !mavenExists
   }
 
-  def promote(artifact: ArtifactResponse): M[Boolean] = {
+  def promote(artifact: ArtifactResponse): M[Option[M[Unit]]] = {
     needsPromotion(artifact).flatMap {
       case false =>
         loggerF.info(s"${artifact.filename} does not need promotion it is already in maven")
-          .as(false)
+          .as(None)
       case true =>
         for {
           workDir <- workDirectoryZ
@@ -143,8 +148,7 @@ credentials are in the place you would expect them to be
               .map(ce => prepareForPromotion(ClassifiedArtifact(artifact, ce), workDir))
               .sequencePar
               .map(_.flatten)
-          _ <- runPromote(preparedArtifacts, workDir)
-        } yield true
+        } yield Some(runPromote(preparedArtifacts, workDir))
     }
   }
 
