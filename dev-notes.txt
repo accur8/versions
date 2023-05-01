@@ -1,12 +1,6 @@
 
 
 
-* a8-versions install uses different code path and app sync.  i.e. have the nix code path be part of the a8-versions install codepath
-
-
-
-
-
 
 
 
