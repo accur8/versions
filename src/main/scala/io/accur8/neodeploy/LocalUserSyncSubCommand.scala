@@ -38,7 +38,7 @@ object LocalUserSyncSubCommand {
 
 }
 
-case class LocalUserSyncSubCommand(appsFilter: Filter[ApplicationName], syncsFilter: Filter[SyncName], wvletDefaultLogLevel: LogLevel) extends BootstrappedIOApp {
+case class LocalUserSyncSubCommand(syncsFilter: Filter[SyncName], wvletDefaultLogLevel: LogLevel) extends BootstrappedIOApp {
 
   override def defaultLogLevel =
     UnifiedLogLevel(wvletDefaultLogLevel)
@@ -50,7 +50,7 @@ case class LocalUserSyncSubCommand(appsFilter: Filter[ApplicationName], syncsFil
     for {
       user <- zservice[ResolvedUser]
       _ <-
-        LocalUserSync(user, appsFilter, syncsFilter)
+        LocalUserSync(user, syncsFilter)
           .run
     } yield ()
 

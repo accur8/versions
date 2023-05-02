@@ -78,10 +78,10 @@ case class DeploySubCommand(
         .write(z"""# ${a8.shared.FileSystem.fileSystemCompatibleTimestamp()}${"\n"}version_override=${version}""")
 
     val runPushRemoteSyncEffect =
-      // push_remote_sync --server server --user user --app app --sync installer
       PushRemoteSyncSubCommand(
         resolvedRepository,
         resolvedRunner,
+        PushRemoteSyncSubCommand.ApplicationSync,
       ).run
 
     versionDotPropsFile.readAsStringOpt.flatMap { savedVersionDotProps =>

@@ -6,13 +6,13 @@ import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import io.accur8.neodeploy.model.{ApplicationName, ServerName, UserLogin}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedRepository, ResolvedServer, ResolvedUser}
 import zio.{Chunk, Task, UIO, ZIO}
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import zio.process.CommandError
 
 import scala.util.Try
 import a8.shared.ZFileSystem
 import a8.shared.ZString.ZStringer
-import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
+import io.accur8.neodeploy.PushRemoteSyncSubCommand.{Filter, UserLevelSyncCommand}
 import io.accur8.neodeploy.Sync.SyncName
 
 object PushRemoteSyncSubCommand extends LoggingF {
@@ -45,11 +45,16 @@ object PushRemoteSyncSubCommand extends LoggingF {
 
   }
 
+  sealed abstract class UserLevelSyncCommand(val command: String)
+  case object UserSettingsSync extends UserLevelSyncCommand("local_user_sync")
+  case object ApplicationSync extends UserLevelSyncCommand("local_app_sync")
+
 }
 
 case class PushRemoteSyncSubCommand(
   resolvedRepository: ResolvedRepository,
   runner: Runner,
+  userLevelSyncCommand: UserLevelSyncCommand,
 ) {
 
   import runner._
@@ -83,7 +88,7 @@ case class PushRemoteSyncSubCommand(
     val filteredUsers = resolvedServer.resolvedUsers.filter(u => usersFilter.include(u.login))
     ZIO.collectAll(
       filteredUsers
-        .map(pushRemoteUserSync)
+        .map(pushRemoteUserLevelSync)
     )
   }
 
@@ -113,7 +118,8 @@ case class PushRemoteSyncSubCommand(
       .as(())
   }
 
-  def pushRemoteUserSync(resolvedUser: ResolvedUser): Task[Command.Result] = {
+
+  def pushRemoteUserLevelSync(resolvedUser: ResolvedUser): Task[Command.Result] = {
 
     val remoteServer = resolvedUser.server.name
 
@@ -143,7 +149,7 @@ case class PushRemoteSyncSubCommand(
         .appendArgs(resolvedUser.a8VersionsExec)
         .appendArgsSeq(remoteDebug.toOption("--debug"))
         .appendArgsSeq(remoteTrace.toOption("--trace"))
-        .appendArgs("local_user_sync")
+        .appendArgs(userLevelSyncCommand.command)
         .appendArgsSeq(appsFilter.args)
         .appendArgsSeq(syncsFilter.args)
         .execLogOutput

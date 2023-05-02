@@ -17,7 +17,7 @@ import systemstate.SystemStateModel._
 
 
 
-case class LocalUserSync(resolvedUser: ResolvedUser, appsFilter: Filter[ApplicationName], syncsFilter: Filter[SyncName]) extends LoggingF {
+case class LocalUserSync(resolvedUser: ResolvedUser, syncsFilter: Filter[SyncName]) extends LoggingF {
 
   lazy val resolvedServer = resolvedUser.server
 
@@ -49,35 +49,6 @@ case class LocalUserSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicat
 
   }
 
-  case class AppSync(newResolveds: Vector[ResolvedApp], previousStates: Vector[PreviousState]) extends SyncContainer[ResolvedApp, ApplicationName](SyncContainer.Prefix("app"), stateDirectory) {
-
-    override def name(resolved: ResolvedApp): ApplicationName = resolved.name
-    override def nameFromStr(nameStr: String): ApplicationName = ApplicationName(nameStr)
-
-    override def filter(pair: NamePair): Boolean =
-      syncsFilter.matches(pair.syncName) && appsFilter.matches(pair.resolvedName)
-
-    override val staticSyncs: Seq[Sync[ResolvedApp]] =
-      Vector(
-        SupervisorSync(resolvedServer.supervisorDirectory),
-        ApplicationInstallSync(resolvedUser.appsRootDirectory),
-        DockerSync,
-        SystemdSync,
-      ).filter(s => syncsFilter.include(s.name))
-
-    override def resolvedSyncs(resolved: ResolvedApp): Seq[Sync[ResolvedApp]] =
-      Seq.empty
-
-  }
-
-  def appSyncRun: ZIO[Environ, Throwable, Unit] =
-    loggerF.trace("appSyncRun") *> loggerF.debug("appSyncRun") *>
-    SyncContainer.loadState(stateDirectory, SyncContainer.Prefix("app"))
-      .flatMap { previousStates =>
-        AppSync(resolvedUser.resolvedApps, previousStates)
-          .run
-      }
-
   def userSyncRun: ZIO[Environ, Throwable, Unit] =
     SyncContainer.loadState(stateDirectory, SyncContainer.Prefix("user"))
       .flatMap { previousStates =>
@@ -91,7 +62,6 @@ case class LocalUserSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicat
       _ <- loggerF.debug(z"resolved user ${resolvedUser.qualifiedUserName} -- ${resolvedUser.descriptor.prettyJson.indent("    ")}")
       _ <- loggerF.debug(z"resolved user plugins ${resolvedUser.qualifiedUserName} -- ${resolvedUser.plugins.descriptorJson.prettyJson.indent("    ")}")
       _ <- userSyncRun
-      _ <- appSyncRun
     } yield ()
 
 }

@@ -271,7 +271,7 @@ object Main extends Logging {
           syncsFilter = resolveArgs[SyncName](sync, syncs),
           debug.toOption.getOrElse(false),
           trace.toOption.getOrElse(false),
-          (rr, parms) => PushRemoteSyncSubCommand(rr, parms).run,
+          (rr, parms) => PushRemoteSyncSubCommand(rr, parms, PushRemoteSyncSubCommand.UserSettingsSync).run,
           wvletDefaultLogLevel = defaultLogLevel,
         ).unsafeRun()
       }
@@ -309,9 +309,9 @@ object Main extends Logging {
       )
     }
 
-    val localUserSync = new Subcommand("local_user_sync") with Runner {
+    val localAppSync = new Subcommand("local_app_sync") with Runner {
 
-      descr("synchronizes the user settings and any apps that run under this user")
+      descr("synchronizes the apps for the current user")
 
       val app = opt[String](descr = "sync this app only", required = false)
       val apps = opt[String](descr = "sync the comma separated list of apps", required = false)
@@ -321,8 +321,26 @@ object Main extends Logging {
 
       override def run(main: Main) = {
         val runLocalServer =
-          io.accur8.neodeploy.LocalUserSyncSubCommand(
+          io.accur8.neodeploy.LocalAppSyncSubCommand(
             resolveArgs[ApplicationName](app, apps),
+            resolveArgs[SyncName](sync, syncs),
+            defaultLogLevel,
+          )
+        runLocalServer.main(Array.empty)
+      }
+
+    }
+
+    val localUserSync = new Subcommand("local_user_sync") with Runner {
+
+      descr("synchronizes the user settings for the current user")
+
+      val sync = opt[String](descr = "sync to run", required = false)
+      val syncs = opt[String](descr = syncsDescription, required = false)
+
+      override def run(main: Main) = {
+        val runLocalServer =
+          io.accur8.neodeploy.LocalUserSyncSubCommand(
             resolveArgs[SyncName](sync, syncs),
             defaultLogLevel,
           )
@@ -359,6 +377,7 @@ object Main extends Logging {
     addSubcommand(gitignore)
     addSubcommand(javaLauncherDotNix)
     addSubcommand(localUserSync)
+    addSubcommand(localAppSync)
     addSubcommand(promote)
     addSubcommand(pushRemoteSync)
     addSubcommand(version_bump)
