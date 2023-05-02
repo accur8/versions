@@ -38,18 +38,29 @@ object PredefAssist extends LoggingF {
           loggerF.warn(s"${context} failed, logging and re-throwing", th)
         )
 
-  }
+    def traceLog(context: String)(implicit loggerF: LoggerF, trace: Trace): ZIO[R, Throwable, A] =
+      loggerF.trace(s"start ${context}")
+        .flatMap(_ => effect)
+        .flatMap { v =>
+          loggerF.trace(s"success ${context} -- ${v}")
+            .as(v)
+        }
+        .onError { cause =>
+          loggerF.trace(s"error ${context}", cause)
+        }
 
-  def traceLog[R,E,A](context: String, effect: ZIO[R,E,A])(implicit loggerF: LoggerF, trace: Trace): ZIO[R,E,A] =
-    loggerF.trace(s"start ${context}")
-      .flatMap(_ => effect)
-      .flatMap { v =>
-        loggerF.trace(s"success ${context} -- ${v}")
-          .as(v)
-      }
-      .onError { cause =>
-        loggerF.trace(s"error ${context}", cause)
-      }
+    def debugLog(context: String)(implicit loggerF: LoggerF, trace: Trace): ZIO[R, Throwable, A] =
+      loggerF.debug(s"start ${context}")
+        .flatMap(_ => effect)
+        .flatMap { v =>
+          loggerF.debug(s"success ${context} -- ${v}")
+            .as(v)
+        }
+        .onError { cause =>
+          loggerF.debug(s"error ${context}", cause)
+        }
+
+  }
 
   import org.typelevel.ci.CIString
 

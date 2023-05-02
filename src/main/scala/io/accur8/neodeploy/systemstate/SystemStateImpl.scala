@@ -186,12 +186,9 @@ object SystemStateImpl extends LoggingF {
         }
     }
 
-
-    traceLog(
-      s"actionNeededCache ${newState.resolvedSyncState.syncName} ${newState.resolvedSyncState.resolvedName}",
-      impl(newState.systemState)
-        .map(ActionNeededCache.apply)
-    )
+    impl(newState.systemState)
+      .map(ActionNeededCache.apply)
+      .traceLog(s"actionNeededCache ${newState.resolvedSyncState.syncName} ${newState.resolvedSyncState.resolvedName}")
 
   }
 

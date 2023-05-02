@@ -287,6 +287,9 @@ object resolvedmodel extends LoggingF {
     loadedApplicationDescriptor: LoadedApplicationDescriptor,
     user: ResolvedUser,
   ) {
+    if ( loadedApplicationDescriptor.appConfigDir.name.toLowerCase != loadedApplicationDescriptor.descriptor.name.value.toLowerCase ) {
+      sys.error(z"mismatch between application folder name ${loadedApplicationDescriptor.appConfigDir} and configured application name ${loadedApplicationDescriptor.descriptor.name}")
+    }
     def isNamed(appName: DomainName): Boolean =
       loadedApplicationDescriptor.descriptor.resolvedDomainNames.contains(appName)
     val descriptor: ApplicationDescriptor = loadedApplicationDescriptor.descriptor

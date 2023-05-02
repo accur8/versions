@@ -25,9 +25,10 @@ import a8.versions.GenerateJavaLauncherDotNix.{BuildDescription, FileContents, F
 import a8.versions.MxGenerateJavaLauncherDotNix.*
 import io.accur8.neodeploy.model.{Artifact, Organization, Version}
 import org.apache.commons.codec.binary.{Base32, Hex}
-import zio.stream.ZStream
 
-object GenerateJavaLauncherDotNix {
+import io.accur8.neodeploy.PredefAssist.{given, _}
+
+object GenerateJavaLauncherDotNix extends LoggingF {
 
   /**
    * correlates to JvmCliLaunchConfig in the a8.launcher.Main.hx
@@ -149,7 +150,7 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
           nixPrefetchUrl(url)
             .map(_.nixHash)
       }
-      .trace(s"nixHash(${url})")
+      .debugLog(s"nixHash(${url})")
 
   def repoAuthHeaders: Seq[(String,String)] =
     repositoryOps
@@ -196,7 +197,7 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
         }
 
       }
-      .trace(s"nixHashFromRepo(${url})")
+      .debugLog(s"nixHashFromRepo(${url})")
 
   def nixPrefetchUrl(url: sttp.model.Uri): Task[NixPrefetchResult] =
     ZIO
@@ -221,7 +222,7 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
           )
         result
       }
-      .trace(s"nixPrefetchUrl(${url})")
+      .debugLog(s"nixPrefetchUrl(${url})")
 
 
   def runNixBuild(workDir: Directory): Task[ZFileSystem.Symlink] = {
@@ -249,13 +250,8 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
     for {
       resolutionResponse <- resolutionResponseZ
       artifacts <-
-        ZStream
-          .fromIterable[ArtifactResponse](resolutionResponse.artifacts)
-          .mapZIOParUnordered(parallelism) { artifact =>
-            nixHash(artifact.url)
-              .map(artifact -> _)
-          }
-          .runCollect
+        ZIO.foreachPar(resolutionResponse.artifacts)(a => nixHash(a.url).map(a -> _))
+          .withParallelism(parallelism)
     } yield
       BuildDescription(
         files = Iterable(

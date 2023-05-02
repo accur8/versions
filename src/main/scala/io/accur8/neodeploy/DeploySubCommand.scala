@@ -66,7 +66,6 @@ case class DeploySubCommand(
         .copy(
           serversFilter = Filter("server", Iterable(app.server.name)),
           usersFilter = Filter("user", Iterable(app.user.login)),
-          syncsFilter = Filter("sync", Iterable(SyncName("installer"))),
           appsFilter = Filter("app", Iterable(app.name)),
         )
 

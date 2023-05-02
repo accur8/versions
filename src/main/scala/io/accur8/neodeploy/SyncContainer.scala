@@ -125,10 +125,9 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
       (
         (syncOpt, resolvedOpt) match {
           case (Some(sync), Some(resolved)) =>
-            traceLog(
-              s"systemState(${namePair})",
-              sync.systemState(resolved)
-            )
+            sync
+              .systemState(resolved)
+              .traceLog(s"systemState(${namePair})")
           case _ =>
             zsucceed(SystemState.Empty)
         }

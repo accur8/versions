@@ -85,10 +85,8 @@ case class AmazonRoute53DnsApi(
         )
 
       }
-    traceLog(
-      z"dns query ${domainName}",
-      effect,
-    )
+    effect
+      .traceLog(z"dns query ${domainName}")
   }
 
 

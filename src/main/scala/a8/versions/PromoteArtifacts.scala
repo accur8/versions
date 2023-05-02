@@ -8,7 +8,7 @@ import a8.shared.app.BootstrapConfig.{TempDir, WorkDir}
 import zio.Scope
 import a8.shared.ZFileSystem
 import PromoteArtifacts.*
-import io.accur8.neodeploy.PredefAssist._
+import io.accur8.neodeploy.PredefAssist.{loggerF, *}
 import io.accur8.neodeploy
 
 object PromoteArtifacts {
@@ -140,6 +140,7 @@ credentials are in the place you would expect them to be
           .as(None)
       case true =>
         for {
+          _ <- loggerF.info(s"promoting ${artifact.filename} and it's sources and javadoc jars")
           workDir <- workDirectoryZ
           preparedArtifacts <-
             ClassifierExtension
