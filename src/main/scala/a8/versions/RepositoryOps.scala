@@ -176,6 +176,9 @@ case class RepositoryOps(repoConfigPrefix: RepoConfigPrefix) extends Logging {
 
   def resolveDependencyTree(module: Module, resolvedVersion: ParsedVersion)(implicit buildType: BuildType): DependencyTree = {
 
+    val context = s"resolveDependencyTree ${module} ${resolvedVersion}"
+    logger.debug(s"start ${context}")
+
     // a8-qubes-server_2.12/2.7.0-20180324_1028_master
 
     val start = Resolution(
@@ -199,6 +202,7 @@ case class RepositoryOps(repoConfigPrefix: RepoConfigPrefix) extends Logging {
     if ( errors.nonEmpty ) {
       throw new RuntimeException(errors.map(_._2.mkString("\n")).mkString("\n"))
     } else {
+      logger.debug(s"completed ${context}")
       DependencyTree(resolution)
     }
   }

@@ -39,10 +39,12 @@ case class InstallBuilder(
 //    JarMetadata.process(appDir, jarFile)
   }
 
-  lazy val dependencyResult: DependencyTree =
-    repositoryOps
-      .resolveDependencyTree(unresolvedArtifact.asCoursierModule, rootVersion)(BuildType.ArtifactoryBuild)
-      .debugLog(s"resolveDependencyTree ${unresolvedArtifact}")
+  lazy val dependencyResult: DependencyTree = {
+    val result =
+      repositoryOps
+        .resolveDependencyTree(unresolvedArtifact.asCoursierModule, rootVersion)(BuildType.ArtifactoryBuild)
+    result
+  }
 
   private def buildLibDir() = {
     libDir.makeDirectories()
