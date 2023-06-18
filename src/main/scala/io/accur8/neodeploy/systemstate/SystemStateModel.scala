@@ -5,15 +5,16 @@ import a8.shared.ZFileSystem.Directory
 import a8.shared.{CompanionGen, FileSystem, SecretValue, StringValue}
 import io.accur8.neodeploy.{DnsService, HealthchecksDotIo, LocalUserSyncSubCommand}
 import io.accur8.neodeploy.Sync.SyncName
-import io.accur8.neodeploy.systemstate.MxSystemStateModel._
+import io.accur8.neodeploy.systemstate.MxSystemStateModel.*
 import zio.{Task, Trace, ZIO, ZLayer}
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.app.LoggingF
 import com.typesafe.config.Config
-import io.accur8.neodeploy.model.{AppsRootDirectory, CaddyDirectory, SupervisorDirectory}
+import io.accur8.neodeploy.model.{AppsInfo, AppsRootDirectory, CaddyDirectory, SupervisorDirectory}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedRepository, ResolvedServer, ResolvedUser}
 
 import java.nio.file.attribute.PosixFilePermission
+import java.time.LocalDateTime
 
 object SystemStateModel {
 
@@ -136,9 +137,27 @@ object SystemStateModel {
     def warn(message: String)(implicit trace: Trace): zio.Task[Unit]
   }
 
+  object RunTimestamp {
+    lazy val layer =
+      ZLayer.fromZIO(
+        zsucceed(RunTimestamp(LocalDateTime.now()))
+      )
+  }
+
+  case class RunTimestamp(value: LocalDateTime) {
+    lazy val asFileSystemCompatibleStr: String = {
+      val now = value
+      f"${now.getYear}${now.getMonthValue}%02d${now.getDayOfMonth}%02d_${now.getHour}%02d${now.getMinute}%02d${now.getSecond}%02d"
+    }
+
+  }
+
   type Environ = SystemStateLogger with HealthchecksDotIo with ResolvedRepository with ResolvedServer with ResolvedUser with DnsService
-//  type Environ = SystemStateLogger & HealthchecksDotIo & SupervisorDirectory & CaddyDirectory & AppsRootDirectory
+
+  type ApplyStateEnviron = AppsInfo with RunTimestamp
 
   type M[A] = zio.ZIO[Environ, Throwable, A]
+
+  type ApplyState[A] = zio.ZIO[ApplyStateEnviron & Environ, Throwable, A]
 
 }

@@ -12,7 +12,6 @@ import a8.shared.json.ast.{JsDoc, JsObj, JsVal}
 import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
 import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedServer, ResolvedUser}
-import io.accur8.neodeploy.systemstate.SystemdSync
 import systemstate.SystemStateModel._
 
 
@@ -49,14 +48,14 @@ case class LocalUserSync(resolvedUser: ResolvedUser, syncsFilter: Filter[SyncNam
 
   }
 
-  def userSyncRun: ZIO[Environ, Throwable, Unit] =
+  def userSyncRun: ApplyState[Unit] =
     SyncContainer.loadState(stateDirectory, SyncContainer.Prefix("user"))
       .flatMap { previousStates =>
         UserSync(previousStates)
           .run
       }
 
-  def run: ZIO[Environ, Throwable, Unit] =
+  def run: ApplyState[Unit] =
     for {
       _ <- loggerF.info(z"running for ${resolvedUser.qualifiedUserName}")
       _ <- loggerF.debug(z"resolved user ${resolvedUser.qualifiedUserName} -- ${resolvedUser.descriptor.prettyJson.indent("    ")}")

@@ -3,8 +3,8 @@ package io.accur8.neodeploy
 
 import io.accur8.neodeploy.model.{DomainName, ManagedDomain}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedRepository, ResolvedUser, VirtualHost}
-import io.accur8.neodeploy.systemstate.SystemStateModel.{Environ, M, PreviousState}
-import a8.shared.SharedImports._
+import io.accur8.neodeploy.systemstate.SystemStateModel.{ApplyState, Environ, M, PreviousState}
+import a8.shared.SharedImports.*
 import a8.shared.StringValue
 import a8.shared.ZFileSystem.File
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
@@ -27,13 +27,13 @@ case class InfrastructureSetupSubCommand(resolvedRepository: ResolvedRepository)
   def run: Task[Unit] =
     Layers.provide(runM)
 
-  def runM: M[Unit] =
+  def runM: ApplyState[Unit] =
     for {
       _ <- loggerF.debug(z"resolved repo plugins -- ${resolvedRepository.repositoryPlugins.descriptorJson.prettyJson.indent("    ")}")
       result <- repoSyncRun
     } yield ()
 
-  def repoSyncRun: ZIO[Environ, Throwable, Unit] =
+  def repoSyncRun: ApplyState[Unit] =
     SyncContainer
       .loadState(stateDirectory, syncContainerPrefix)
       .flatMap { previousStates =>

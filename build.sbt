@@ -15,7 +15,7 @@
 //      
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
-
+val syncVersion = "1.0.0-20230617_0942_master"
 val scalaLibVersion = "3.2.2"
 
 Global / scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
@@ -74,7 +74,7 @@ lazy val versions =
 
         "com.softwaremill.sttp.client3" %% "core" % "3.8.15",
         "com.lihaoyi" %% "fastparse" % "3.0.1",
-        "io.accur8" %% "a8-sync-api" % "1.0.0-20230419_2025_master",
+        "io.accur8" %% "a8-sync-api" % syncVersion,
         "org.rogach" %% "scallop" % "4.1.0",
         "dev.zio" %% "zio-process" % "0.7.2",
         "org.typelevel" %% "cats-parse" % "0.3.8",

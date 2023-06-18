@@ -38,10 +38,10 @@ case class Interpreter(newState: NewState, previousState: PreviousState, actionN
     }
   }
 
-  def runApplyNewState: M[Unit] =
+  def runApplyNewState: ApplyState[Unit] =
     SystemStateImpl.runApplyNewState(this)
 
-  def runUninstallObsolete: M[Unit] =
+  def runUninstallObsolete: ApplyState[Unit] =
     SystemStateImpl.runUninstallObsolete(statesToUninstall)
 
   lazy val statesToUninstall: Vector[SystemState] = {

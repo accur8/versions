@@ -1,29 +1,30 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.ZFileSystem.{Directory, File, Z, dir}
-import a8.shared.{CascadingHocon, CompanionGen, ConfigMojo, Exec, LongValue, StringValue, ZString}
-import io.accur8.neodeploy.Mxmodel._
-import a8.shared.SharedImports._
+import a8.shared.ZFileSystem.{Directory, File, Z, dir, Symlink}
+import a8.shared.{CascadingHocon, CompanionGen, ConfigMojo, Exec, LongValue, StringValue, ZFileSystem, ZString}
+import io.accur8.neodeploy.Mxmodel.*
+import a8.shared.SharedImports.*
 import a8.shared.ZString.ZStringer
 import a8.shared.app.{LoggerF, Logging, LoggingF}
-import a8.shared.json.ast.{JsArr, JsDoc, JsNothing, JsObj, JsStr, JsVal}
+import a8.shared.json.ast.{JsArr, JsDoc, JsNothing, JsObj, JsStr, JsVal, resolveAliases}
 import a8.shared.json.{EnumCodecBuilder, JsonCodec, JsonTypedCodec, UnionCodecBuilder}
 import a8.versions.RepositoryOps.RepoConfigPrefix
 import sttp.model.Uri
 import io.accur8.neodeploy.Sync.SyncName
-import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedAuthorizedKey}
+import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedAuthorizedKey, ResolvedUser}
 import zio.process.CommandError
 import zio.process.CommandError.NonZeroErrorCode
-import zio.{Chunk, ExitCode, UIO, ZIO}
+import zio.{Chunk, ExitCode, UIO, ZIO, ZLayer}
 
 import scala.collection.Iterable
-import PredefAssist._
+import PredefAssist.*
 import io.accur8.neodeploy.model.DockerDescriptor.UninstallAction
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
 import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
-
 import a8.Scala3Hacks.*
+import io.accur8.neodeploy.systemstate.SystemState.RunCommandState
+import io.accur8.neodeploy.systemstate.{SystemState, SystemdLauncherMixin}
 
 object model extends LoggingF {
 
@@ -97,21 +98,25 @@ object model extends LoggingF {
       asNioPath.toFile.getAbsolutePath
 
     lazy val resolved: M[Directory] = {
-      val d = unresolved
-      d.exists
+      val dirValue = unresolved
+      dirValue
+        .exists
         .map {
           case true =>
-            d.makeDirectories
+            dirValue.makeDirectories
           case false =>
             zunit
         }
-        .as(d)
+        .as(dirValue)
     }
 
     lazy val unresolved: Directory = dir(value)
 
     def asNioPath =
       unresolved.asNioPath
+
+    def symlink(name: String): Symlink =
+      unresolved.symlink(name)
 
     def subdir(path: String): Directory =
       unresolved.subdir(path)
@@ -139,11 +144,71 @@ object model extends LoggingF {
   object AppsRootDirectory extends StringValue.Companion[AppsRootDirectory]
   case class AppsRootDirectory(value: String) extends DirectoryValue
 
+  object AppsInfo {
+    lazy val layer: ZLayer[ResolvedUser, Nothing, AppsInfo] = ZLayer(effect)
+    lazy val effect: ZIO[ResolvedUser, Nothing, AppsInfo] =
+      zservice[ResolvedUser]
+        .map(u => AppsInfo(u.appsRootDirectory))
+  }
+  case class AppsInfo(
+    appsRoot: AppsRootDirectory,
+  ) {
+    lazy val installsDir: ZFileSystem.Directory = appsRoot.subdir(".installs")
+    lazy val persistenceDir: ZFileSystem.Directory = appsRoot.subdir(".data")
+    lazy val nixHashCacheDir: ZFileSystem.Directory = installsDir.subdir(".nixhashcache")
+  }
+
   object GitServerDirectory extends StringValue.Companion[GitServerDirectory]
   case class GitServerDirectory(value: String) extends DirectoryValue
 
   object GitRootDirectory extends StringValue.Companion[GitRootDirectory]
   case class GitRootDirectory(value: String) extends DirectoryValue
+
+  sealed trait Launcher {
+
+    def installService: SystemState
+
+    def startService: SystemState =
+      runCommandState("start")
+
+    def stopService: SystemState =
+      runCommandState("stop")
+
+    def runCommandState(action: String): SystemState =
+      serviceCommand(action)
+        .map { cmd =>
+          RunCommandState(
+            installCommands = Vector(cmd.asSystemStateCommand)
+          )
+        }
+        .getOrElse(SystemState.Empty)
+
+    def serviceCommand(action: String): Option[Command]
+
+  }
+
+  object Launcher {
+
+    case class SystemdLauncher(resolvedApp: ResolvedApp, systemdDescriptor: SystemdDescriptor) extends Launcher with SystemdLauncherMixin {
+    }
+
+    case class SupervisorLauncher(resolvedApp: ResolvedApp, supervisorDescriptor: SupervisorDescriptor) extends Launcher with SupervisorLauncherMixin {
+    }
+
+    case class DockerLauncher(resolvedApp: ResolvedApp, dockerDescriptor: DockerDescriptor) extends Launcher with DockerLauncherMixin {
+    }
+
+    def apply(resolvedApp: ResolvedApp): Launcher =
+      resolvedApp.descriptor.launcher match {
+        case sd: SystemdDescriptor =>
+          SystemdLauncher(resolvedApp, sd)
+        case sd: SupervisorDescriptor =>
+          SupervisorLauncher(resolvedApp, sd)
+        case dd: DockerDescriptor =>
+          DockerLauncher(resolvedApp, dd)
+      }
+
+  }
 
   sealed trait Install {
     def command(applicationDescriptor: ApplicationDescriptor, appDirectory: Directory, appsRootDirectory: AppsRootDirectory): Command
@@ -225,7 +290,7 @@ object model extends LoggingF {
     autoRestart: Option[Boolean] = None,
     startRetries: Option[Int] = None,
     startSecs: Option[Int] = None,
-  ) extends Launcher
+  ) extends LauncherDescriptor
 
   object SystemdDescriptor extends MxSystemdDescriptor {
   }
@@ -236,7 +301,7 @@ object model extends LoggingF {
     onCalendar: Option[OnCalendarValue] = None,
     persistent: Option[Boolean] = None,
     `type`: String = "simple",
-  ) extends Launcher
+  ) extends LauncherDescriptor
 
   object DockerDescriptor extends MxDockerDescriptor {
     sealed trait UninstallAction extends enumeratum.EnumEntry
@@ -254,11 +319,11 @@ object model extends LoggingF {
     name: String,
     args: Vector[String],
     uninstallAction: UninstallAction = UninstallAction.Stop,
-  ) extends Launcher
+  ) extends LauncherDescriptor
 
-  object Launcher {
-    implicit val jsonCodec: JsonTypedCodec[Launcher, JsObj] =
-      UnionCodecBuilder[Launcher]
+  object LauncherDescriptor {
+    implicit val jsonCodec: JsonTypedCodec[LauncherDescriptor, JsObj] =
+      UnionCodecBuilder[LauncherDescriptor]
         .typeFieldName("kind")
         .defaultType[SupervisorDescriptor]
         .addType[SystemdDescriptor]("systemd")
@@ -267,7 +332,7 @@ object model extends LoggingF {
         .build
   }
 
-  sealed trait Launcher
+  sealed trait LauncherDescriptor
 
   object ApplicationDescriptor extends MxApplicationDescriptor {
   }
@@ -283,7 +348,7 @@ object model extends LoggingF {
     domainNames: Vector[DomainName] = Vector.empty,
 //    restartOnCalendar: Option[OnCalendarValue] = None,
 //    startOnCalendar: Option[OnCalendarValue] = None,
-    launcher: Launcher = SupervisorDescriptor.empty,
+    launcher: LauncherDescriptor = SupervisorDescriptor.empty,
   ) {
     def resolvedDomainNames = domainNames ++ domainName
   }

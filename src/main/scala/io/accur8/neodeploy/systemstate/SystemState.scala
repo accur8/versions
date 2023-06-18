@@ -17,6 +17,16 @@ object SystemState {
   given CanEqual[SystemState, SystemState] = CanEqual.derived
 
 
+  object Symlink extends MxSymlink
+  @CompanionGen
+  case class Symlink(
+    target: String,
+    link: ZFileSystem.Symlink,
+    perms: UnixPerms = UnixPerms.empty,
+  ) extends NoSubStates with SymlinkMixin {
+
+  }
+
   object TextFile extends MxTextFile
   @CompanionGen
   case class TextFile(
@@ -42,11 +52,16 @@ object SystemState {
   object JavaAppInstall extends MxJavaAppInstall
   @CompanionGen
   case class JavaAppInstall(
-    appInstallDir: ZFileSystem.Directory,
+    canonicalAppDir: ZFileSystem.Symlink,
     fromRepo: JavaApp,
     descriptor: ApplicationDescriptor,
     gitAppDirectory: ZFileSystem.Directory,
-  ) extends NoSubStates with JavaAppInstallMixin
+    startService: SystemState,
+    stopService: SystemState,
+    // a temp hack so JavaAppInstall's are never the same so they are always deployed
+//    neverTheSame: Long = System.currentTimeMillis(),
+  ) extends NoSubStates with JavaAppInstallMixin {
+  }
 
   object Directory extends MxDirectory
   @CompanionGen
@@ -142,6 +157,7 @@ object SystemState {
       UnionCodecBuilder[SystemState]
         .typeFieldName("kind")
         .addSingleton("empty", Empty)
+        .addType[Symlink]("symlink")
         .addType[Composite]("composite")
         .addType[Directory]("directory")
         .addType[DockerState]("docker")

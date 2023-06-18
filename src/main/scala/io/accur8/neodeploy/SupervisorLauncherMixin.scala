@@ -3,20 +3,20 @@ package io.accur8.neodeploy
 
 import a8.shared.ZFileSystem.{Directory, File}
 import zio.{Task, ZIO}
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.{FileSystem, ZString}
 import a8.shared.ZString.ZStringer
+import io.accur8.neodeploy.model.Launcher.SupervisorLauncher
 import io.accur8.neodeploy.model.{SupervisorDescriptor, SupervisorDirectory}
 import io.accur8.neodeploy.resolvedmodel.ResolvedApp
 import io.accur8.neodeploy.systemstate.SystemState
+import io.accur8.neodeploy.systemstate.SystemState.RunCommandState
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
 
-case class SupervisorSync(supervisorDir: SupervisorDirectory) extends Sync[ResolvedApp] {
+trait SupervisorLauncherMixin { self: SupervisorLauncher =>
 
-  override val name: Sync.SyncName = Sync.SyncName("supervisor")
-
-  def configFile(input: ResolvedApp): File =
-    supervisorDir.file(z"${input.descriptor.name}.conf")
+//  def configFile(input: ResolvedApp): File =
+//    supervisorDir.file(z"${input.descriptor.name}.conf")
 
   def supervisorConfigContents(app: ResolvedApp, supervisor: SupervisorDescriptor) = {
 
@@ -63,18 +63,27 @@ user            = ${app.user.login}
   }
 
 
-  override def systemState(user: ResolvedApp): M[SystemState] =
-    zsucceed(rawSystemState(user))
+//  def systemState(user: ResolvedApp): M[SystemState] =
+//    zsucceed(rawSystemState(user))
+//
+//  def rawSystemState(user: ResolvedApp): SystemState =
+//    user.descriptor.launcher match {
+//      case sd: SupervisorDescriptor =>
+//        SystemState.TextFile(
+//          configFile(user),
+//          supervisorConfigContents(user, sd)
+//        )
+//      case _ =>
+//        SystemState.Empty
+//    }
 
-  def rawSystemState(user: ResolvedApp): SystemState =
-    user.descriptor.launcher match {
-      case sd: SupervisorDescriptor =>
-        SystemState.TextFile(
-          configFile(user),
-          supervisorConfigContents(user, sd)
-        )
-      case _ =>
-        SystemState.Empty
-    }
+  def installService: SystemState =
+    SystemState.Empty
+
+  def serviceCommand(action: String) =
+    Overrides
+      .supervisorCtlCommand
+      .appendArgs(action, resolvedApp.name.value)
+      .some
 
 }

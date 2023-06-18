@@ -12,6 +12,7 @@ import a8.versions.{RepositoryOps, ParsedVersion, ast}
 import a8.versions.ast.Dependency
 import predef._
 import a8.shared.SharedImports._
+import io.accur8.neodeploy.PredefAssist._
 
 case class InstallBuilder(
   unresolvedConfig: AppInstallerConfig,
@@ -39,7 +40,9 @@ case class InstallBuilder(
   }
 
   lazy val dependencyResult: DependencyTree =
-    repositoryOps.resolveDependencyTree(unresolvedArtifact.asCoursierModule, rootVersion)(BuildType.ArtifactoryBuild)
+    repositoryOps
+      .resolveDependencyTree(unresolvedArtifact.asCoursierModule, rootVersion)(BuildType.ArtifactoryBuild)
+      .debugLog(s"resolveDependencyTree ${unresolvedArtifact}")
 
   private def buildLibDir() = {
     libDir.makeDirectories()

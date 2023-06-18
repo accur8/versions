@@ -11,7 +11,6 @@ import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.model.*
 import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedServer, ResolvedUser}
 import io.accur8.neodeploy.systemstate.SystemStateModel.*
-import io.accur8.neodeploy.systemstate.SystemdSync
 import zio.{Task, UIO, ZIO}
 
 
@@ -36,10 +35,7 @@ case class LocalAppSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicati
 
     override val staticSyncs: Seq[Sync[ResolvedApp]] =
       Vector(
-        SupervisorSync(resolvedServer.supervisorDirectory),
         ApplicationInstallSync(resolvedUser.appsRootDirectory),
-        DockerSync,
-        SystemdSync,
       ).filter(s => syncsFilter.include(s.name))
 
     override def resolvedSyncs(resolved: ResolvedApp): Seq[Sync[ResolvedApp]] =
@@ -47,7 +43,7 @@ case class LocalAppSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicati
 
   }
 
-  def appSyncRun: ZIO[Environ, Throwable, Unit] =
+  def appSyncRun: ApplyState[Unit] =
     loggerF.trace("appSyncRun") *> loggerF.debug("appSyncRun") *>
     SyncContainer.loadState(stateDirectory, SyncContainer.Prefix("app"))
       .flatMap { previousStates =>
@@ -55,7 +51,7 @@ case class LocalAppSync(resolvedUser: ResolvedUser, appsFilter: Filter[Applicati
           .run
       }
 
-  def run: ZIO[Environ, Throwable, Unit] =
+  def run: ApplyState[Unit] =
     for {
       _ <- loggerF.info(z"running for ${resolvedUser.qualifiedUserName}")
       _ <- loggerF.debug(z"resolved user ${resolvedUser.qualifiedUserName} -- ${resolvedUser.descriptor.prettyJson.indent("    ")}")

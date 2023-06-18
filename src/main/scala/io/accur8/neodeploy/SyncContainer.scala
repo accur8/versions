@@ -103,7 +103,7 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
 
   }
 
-  def run: ZIO[Environ, Throwable, Unit] =
+  def run: ApplyState[Unit] =
     loggerF.debug(s"running allNamePairs = ${allNamePairs}") *>
     allNamePairs
       .map { pair =>
@@ -116,7 +116,7 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
       .sequence
       .as(())
 
-  def run(namePair: NamePair, previousState: PreviousState): M[Unit] = {
+  def run(namePair: NamePair, previousState: PreviousState): ApplyState[Unit] = {
 
     val resolvedOpt = newResolveds.find(r => name(r) === namePair.resolvedName)
     val syncOpt = syncs(resolvedOpt).find(_.name === namePair.syncName)
@@ -133,7 +133,7 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
         }
       ).map(s => NewState(ResolvedState(namePair.resolvedName.value, namePair.syncName, s)))
 
-    val effect: M[Unit] =
+    val effect: ApplyState[Unit] =
       for {
         _ <- loggerF.trace(s"starting run(${namePair})")
         newState <- newStateEffect

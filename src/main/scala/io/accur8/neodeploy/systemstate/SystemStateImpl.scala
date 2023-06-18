@@ -5,7 +5,7 @@ import a8.shared.{FileSystem, StringValue, ZFileSystem}
 import a8.shared.SharedImports._
 import a8.shared.app.LoggingF
 import a8.sync.qubes.QubesApiClient
-import io.accur8.neodeploy.ApplicationInstallSync.Installer
+import io.accur8.neodeploy.Installer
 import io.accur8.neodeploy.systemstate.Interpreter.ActionNeededCache
 import io.accur8.neodeploy.systemstate.SystemState.TriggeredState
 import io.accur8.neodeploy.systemstate.SystemStateModel._
@@ -60,7 +60,7 @@ object SystemStateImpl extends LoggingF {
     }
   }
 
-  def runUninstallObsolete(obsoleteStates: Vector[SystemState]): M[Unit] = {
+  def runUninstallObsolete(obsoleteStates: Vector[SystemState]): ApplyState[Unit] = {
     // we reverse because we want file cleanup to happen before directory cleanup
     obsoleteStates
       .reverse
@@ -69,7 +69,7 @@ object SystemStateImpl extends LoggingF {
       .as(())
   }
 
-  def runApplyNewState(state: SystemState, interpreter: Interpreter, inner: SystemState => M[Unit]): M[Unit] =
+  def runApplyNewState(state: SystemState, interpreter: Interpreter, inner: SystemState => ApplyState[Unit]): ApplyState[Unit] =
     for {
       _ <- state.runApplyNewState
       _ <-
@@ -204,8 +204,8 @@ object SystemStateImpl extends LoggingF {
         false
     }
 
-  def runApplyNewState(interpretter: Interpreter): M[Unit] = {
-    def inner(s0: SystemState): M[Unit] =
+  def runApplyNewState(interpretter: Interpreter): ApplyState[Unit] = {
+    def inner(s0: SystemState): ApplyState[Unit] =
       if (interpretter.actionNeededCache.cache(s0)) {
         SystemStateImpl.runApplyNewState(s0, interpretter, inner)
       } else {

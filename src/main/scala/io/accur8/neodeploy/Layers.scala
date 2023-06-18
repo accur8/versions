@@ -1,17 +1,18 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.ZFileSystem
 import a8.shared.app.LoggingF
 import io.accur8.neodeploy.LocalUserSyncSubCommand.Config
+import io.accur8.neodeploy.model.AppsInfo
 import io.accur8.neodeploy.resolvedmodel.{ResolvedRepository, ResolvedServer}
-import io.accur8.neodeploy.systemstate.SystemStateModel.{Environ, M, SystemStateLogger}
+import io.accur8.neodeploy.systemstate.SystemStateModel.{ApplyState, Environ, M, RunTimestamp, SystemStateLogger}
 import zio.{Task, ZIO, ZLayer}
 
 object Layers extends LoggingF {
 
-  def provide[A](effect: ZIO[Environ, Throwable, A]): Task[A] =
+  def provide[A](effect: ApplyState[A]): Task[A] =
     effect
       .provide(
         DnsService.layer,
@@ -21,6 +22,8 @@ object Layers extends LoggingF {
         resolvedUserL,
         resolvedServerL,
         SystemStateLogger.simpleLayer,
+        RunTimestamp.layer,
+        AppsInfo.layer,
       )
 
   lazy val configFile =

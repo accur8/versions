@@ -409,7 +409,7 @@ object Mxmodel {
       lazy val startServerCommand: CaseClassParm[ApplicationDescriptor,Option[Command]] = CaseClassParm[ApplicationDescriptor,Option[Command]]("startServerCommand", _.startServerCommand, (d,v) => d.copy(startServerCommand = v), Some(()=> None), 5)
       lazy val domainName: CaseClassParm[ApplicationDescriptor,Option[DomainName]] = CaseClassParm[ApplicationDescriptor,Option[DomainName]]("domainName", _.domainName, (d,v) => d.copy(domainName = v), Some(()=> None), 6)
       lazy val domainNames: CaseClassParm[ApplicationDescriptor,Vector[DomainName]] = CaseClassParm[ApplicationDescriptor,Vector[DomainName]]("domainNames", _.domainNames, (d,v) => d.copy(domainNames = v), Some(()=> Vector.empty), 7)
-      lazy val launcher: CaseClassParm[ApplicationDescriptor,Launcher] = CaseClassParm[ApplicationDescriptor,Launcher]("launcher", _.launcher, (d,v) => d.copy(launcher = v), Some(()=> SupervisorDescriptor.empty), 8)
+      lazy val launcher: CaseClassParm[ApplicationDescriptor,LauncherDescriptor] = CaseClassParm[ApplicationDescriptor,LauncherDescriptor]("launcher", _.launcher, (d,v) => d.copy(launcher = v), Some(()=> SupervisorDescriptor.empty), 8)
     }
     
     
@@ -425,7 +425,7 @@ object Mxmodel {
           startServerCommand = values(5).asInstanceOf[Option[Command]],
           domainName = values(6).asInstanceOf[Option[DomainName]],
           domainNames = values(7).asInstanceOf[Vector[DomainName]],
-          launcher = values(8).asInstanceOf[Launcher],
+          launcher = values(8).asInstanceOf[LauncherDescriptor],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): ApplicationDescriptor = {
@@ -439,13 +439,13 @@ object Mxmodel {
             startServerCommand = values.next().asInstanceOf[Option[Command]],
             domainName = values.next().asInstanceOf[Option[DomainName]],
             domainNames = values.next().asInstanceOf[Vector[DomainName]],
-            launcher = values.next().asInstanceOf[Launcher],
+            launcher = values.next().asInstanceOf[LauncherDescriptor],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(name: ApplicationName, install: Install, caddyConfig: Option[String], listenPort: Option[ListenPort], stopServerCommand: Option[Command], startServerCommand: Option[Command], domainName: Option[DomainName], domainNames: Vector[DomainName], launcher: Launcher): ApplicationDescriptor =
+      def typedConstruct(name: ApplicationName, install: Install, caddyConfig: Option[String], listenPort: Option[ListenPort], stopServerCommand: Option[Command], startServerCommand: Option[Command], domainName: Option[DomainName], domainNames: Vector[DomainName], launcher: LauncherDescriptor): ApplicationDescriptor =
         ApplicationDescriptor(name, install, caddyConfig, listenPort, stopServerCommand, startServerCommand, domainName, domainNames, launcher)
     
     }

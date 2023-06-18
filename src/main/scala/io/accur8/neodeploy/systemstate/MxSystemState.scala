@@ -23,6 +23,69 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxSystemState {
   
+  trait MxSymlink {
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Symlink,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Symlink,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[Symlink,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.target)
+          .addField(_.link)
+          .addField(_.perms)
+      )
+      .build
+    
+    
+    given scala.CanEqual[Symlink, Symlink] = scala.CanEqual.derived
+    
+    
+    
+    lazy val generator: Generator[Symlink,parameters.type] =  {
+      val constructors = Constructors[Symlink](3, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val target: CaseClassParm[Symlink,String] = CaseClassParm[Symlink,String]("target", _.target, (d,v) => d.copy(target = v), None, 0)
+      lazy val link: CaseClassParm[Symlink,ZFileSystem.Symlink] = CaseClassParm[Symlink,ZFileSystem.Symlink]("link", _.link, (d,v) => d.copy(link = v), None, 1)
+      lazy val perms: CaseClassParm[Symlink,UnixPerms] = CaseClassParm[Symlink,UnixPerms]("perms", _.perms, (d,v) => d.copy(perms = v), Some(()=> UnixPerms.empty), 2)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): Symlink = {
+        Symlink(
+          target = values(0).asInstanceOf[String],
+          link = values(1).asInstanceOf[ZFileSystem.Symlink],
+          perms = values(2).asInstanceOf[UnixPerms],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): Symlink = {
+        val value =
+          Symlink(
+            target = values.next().asInstanceOf[String],
+            link = values.next().asInstanceOf[ZFileSystem.Symlink],
+            perms = values.next().asInstanceOf[UnixPerms],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(target: String, link: ZFileSystem.Symlink, perms: UnixPerms): Symlink =
+        Symlink(target, link, perms)
+    
+    }
+    
+    
+    lazy val typeName = "Symlink"
+  
+  }
+  
+  
+  
+  
   trait MxTextFile {
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[TextFile,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[TextFile,parameters.type] = builder
@@ -156,10 +219,12 @@ object MxSystemState {
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[JavaAppInstall,a8.shared.json.ast.JsObj] =
       jsonCodecBuilder(
         a8.shared.json.JsonObjectCodecBuilder(generator)
-          .addField(_.appInstallDir)
+          .addField(_.canonicalAppDir)
           .addField(_.fromRepo)
           .addField(_.descriptor)
           .addField(_.gitAppDirectory)
+          .addField(_.startService)
+          .addField(_.stopService)
       )
       .build
     
@@ -169,15 +234,17 @@ object MxSystemState {
     
     
     lazy val generator: Generator[JavaAppInstall,parameters.type] =  {
-      val constructors = Constructors[JavaAppInstall](4, unsafe.iterRawConstruct)
+      val constructors = Constructors[JavaAppInstall](6, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
     object parameters {
-      lazy val appInstallDir: CaseClassParm[JavaAppInstall,ZFileSystem.Directory] = CaseClassParm[JavaAppInstall,ZFileSystem.Directory]("appInstallDir", _.appInstallDir, (d,v) => d.copy(appInstallDir = v), None, 0)
+      lazy val canonicalAppDir: CaseClassParm[JavaAppInstall,ZFileSystem.Symlink] = CaseClassParm[JavaAppInstall,ZFileSystem.Symlink]("canonicalAppDir", _.canonicalAppDir, (d,v) => d.copy(canonicalAppDir = v), None, 0)
       lazy val fromRepo: CaseClassParm[JavaAppInstall,JavaApp] = CaseClassParm[JavaAppInstall,JavaApp]("fromRepo", _.fromRepo, (d,v) => d.copy(fromRepo = v), None, 1)
       lazy val descriptor: CaseClassParm[JavaAppInstall,ApplicationDescriptor] = CaseClassParm[JavaAppInstall,ApplicationDescriptor]("descriptor", _.descriptor, (d,v) => d.copy(descriptor = v), None, 2)
       lazy val gitAppDirectory: CaseClassParm[JavaAppInstall,ZFileSystem.Directory] = CaseClassParm[JavaAppInstall,ZFileSystem.Directory]("gitAppDirectory", _.gitAppDirectory, (d,v) => d.copy(gitAppDirectory = v), None, 3)
+      lazy val startService: CaseClassParm[JavaAppInstall,SystemState] = CaseClassParm[JavaAppInstall,SystemState]("startService", _.startService, (d,v) => d.copy(startService = v), None, 4)
+      lazy val stopService: CaseClassParm[JavaAppInstall,SystemState] = CaseClassParm[JavaAppInstall,SystemState]("stopService", _.stopService, (d,v) => d.copy(stopService = v), None, 5)
     }
     
     
@@ -185,26 +252,30 @@ object MxSystemState {
     
       def rawConstruct(values: IndexedSeq[Any]): JavaAppInstall = {
         JavaAppInstall(
-          appInstallDir = values(0).asInstanceOf[ZFileSystem.Directory],
+          canonicalAppDir = values(0).asInstanceOf[ZFileSystem.Symlink],
           fromRepo = values(1).asInstanceOf[JavaApp],
           descriptor = values(2).asInstanceOf[ApplicationDescriptor],
           gitAppDirectory = values(3).asInstanceOf[ZFileSystem.Directory],
+          startService = values(4).asInstanceOf[SystemState],
+          stopService = values(5).asInstanceOf[SystemState],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): JavaAppInstall = {
         val value =
           JavaAppInstall(
-            appInstallDir = values.next().asInstanceOf[ZFileSystem.Directory],
+            canonicalAppDir = values.next().asInstanceOf[ZFileSystem.Symlink],
             fromRepo = values.next().asInstanceOf[JavaApp],
             descriptor = values.next().asInstanceOf[ApplicationDescriptor],
             gitAppDirectory = values.next().asInstanceOf[ZFileSystem.Directory],
+            startService = values.next().asInstanceOf[SystemState],
+            stopService = values.next().asInstanceOf[SystemState],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(appInstallDir: ZFileSystem.Directory, fromRepo: JavaApp, descriptor: ApplicationDescriptor, gitAppDirectory: ZFileSystem.Directory): JavaAppInstall =
-        JavaAppInstall(appInstallDir, fromRepo, descriptor, gitAppDirectory)
+      def typedConstruct(canonicalAppDir: ZFileSystem.Symlink, fromRepo: JavaApp, descriptor: ApplicationDescriptor, gitAppDirectory: ZFileSystem.Directory, startService: SystemState, stopService: SystemState): JavaAppInstall =
+        JavaAppInstall(canonicalAppDir, fromRepo, descriptor, gitAppDirectory, startService, stopService)
     
     }
     

@@ -95,6 +95,7 @@ object GenerateJavaLauncherDotNix extends LoggingF {
 
 case class GenerateJavaLauncherDotNix(
   parms: GenerateJavaLauncherDotNix.Parms,
+  nixHashCacheDir: Option[Directory],
 )
   extends LoggingF
 {
@@ -141,16 +142,50 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
   object NixHash extends StringValue.Companion[NixHash]
   case class NixHash(value: String) extends StringValue
 
-  def nixHash(url: sttp.model.Uri): Task[NixHash] =
-    nixHashFromRepo(url)
-      .flatMap {
-        case scala.util.Success(value) =>
-          zsucceed(value)
-        case _ =>
-          nixPrefetchUrl(url)
-            .map(_.nixHash)
+  def nixHashFromCache(artifactResponse: ArtifactResponse, loadCacheEffect: Task[NixHash]): Task[NixHash] = {
+    import a8.shared.ZFileSystem.SymlinkHandlerDefaults.follow
+    nixHashCacheDir
+      .map { nhcd =>
+        val cacheFile =
+          nhcd
+            .subdir(artifactResponse.organization.value)
+            .file(artifactResponse.filename + ".nixhash")
+        cacheFile
+          .exists
+          .flatMap {
+            case true =>
+              cacheFile
+                .readAsString
+                .map(v => NixHash(v.trim))
+            case false =>
+              loadCacheEffect
+                .flatMap(nh =>
+                  cacheFile
+                    .parent
+                    .makeDirectories
+                    .asZIO(cacheFile.write(nh.value))
+                    .as(nh)
+                )
+          }
       }
-      .debugLog(s"nixHash(${url})")
+      .getOrElse(loadCacheEffect)
+  }
+
+  def nixHash(artifactResponse: ArtifactResponse): Task[NixHash] = {
+    import artifactResponse.url
+    val loadHashEffect =
+      nixHashFromRepo(url)
+        .flatMap {
+          case scala.util.Success(value) =>
+            zsucceed(value)
+          case _ =>
+            nixPrefetchUrl(url)
+              .map(_.nixHash)
+        }
+    nixHashFromCache(artifactResponse, loadHashEffect)
+      .traceLog(s"nixHash(${url})")
+
+  }
 
   def repoAuthHeaders: Seq[(String,String)] =
     repositoryOps
@@ -250,7 +285,7 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
     for {
       resolutionResponse <- resolutionResponseZ
       artifacts <-
-        ZIO.foreachPar(resolutionResponse.artifacts)(a => nixHash(a.url).map(a -> _))
+        ZIO.foreachPar(resolutionResponse.artifacts)(a => nixHash(a).map(a -> _))
           .withParallelism(parallelism)
     } yield
       BuildDescription(

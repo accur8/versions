@@ -46,7 +46,7 @@ case class LocalUserSyncSubCommand(syncsFilter: Filter[SyncName], wvletDefaultLo
   override def runT: ZIO[BootstrapEnv, Throwable, Unit] =
     Layers.provide(runM)
 
-  def runM: M[Unit] =
+  def runM: ApplyState[Unit] =
     for {
       user <- zservice[ResolvedUser]
       _ <-
