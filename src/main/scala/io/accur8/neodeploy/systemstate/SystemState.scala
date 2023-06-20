@@ -16,6 +16,23 @@ object SystemState {
 
   given CanEqual[SystemState, SystemState] = CanEqual.derived
 
+  def statesByKey(state: SystemState): Map[StateKey,SystemState] = {
+    val thisEntry =
+      state
+        .stateKey
+        .map(_ -> state)
+    val substateEntries =
+      state match {
+        case hss: HasSubStates =>
+          hss
+            .subStates
+            .flatMap(statesByKey)
+        case _ =>
+          Map.empty
+      }
+    (substateEntries ++ thisEntry)
+      .toMap
+  }
 
   object Symlink extends MxSymlink
   @CompanionGen
@@ -75,7 +92,7 @@ object SystemState {
     override def dryRunInstall: Vector[String] = Vector.empty
     override def isActionNeeded = zsucceed(false)
     override def runApplyNewState = zunit
-    override def runUninstallObsolete = zunit
+    override def runUninstallObsolete(interpreter: Interpreter) = zunit
   }
 
   object Composite extends MxComposite {

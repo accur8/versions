@@ -22,6 +22,12 @@ object Interpreter {
 
 case class Interpreter(newState: NewState, previousState: PreviousState, actionNeededCache: ActionNeededCache) {
 
+  lazy val newStatesByKey =
+    SystemState.statesByKey(newState.systemState)
+
+  lazy val previousStatesByKey =
+    SystemState.statesByKey(previousState.systemState)
+
   lazy val dryRunLog: Option[String] = {
     val newIsEmpty = SystemStateImpl.isEmpty(newState.systemState)
     val previousIsEmpty = SystemStateImpl.isEmpty(previousState.systemState)
@@ -42,7 +48,12 @@ case class Interpreter(newState: NewState, previousState: PreviousState, actionN
     SystemStateImpl.runApplyNewState(this)
 
   def runUninstallObsolete: ApplyState[Unit] =
-    SystemStateImpl.runUninstallObsolete(statesToUninstall)
+    // we reverse because we want file cleanup to happen before directory cleanup
+    statesToUninstall
+      .reverse
+      .map(_.runUninstallObsolete(this))
+      .sequence
+      .as(())
 
   lazy val statesToUninstall: Vector[SystemState] = {
 

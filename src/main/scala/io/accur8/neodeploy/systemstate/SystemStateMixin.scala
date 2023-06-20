@@ -7,7 +7,7 @@ trait SystemStateMixin {
   def stateKey: Option[StateKey]
 
   def dryRunInstall: Vector[String]
-  def dryRunUninstall: Vector[String] =
+  def dryRunUninstall(interpreter: Interpreter): Vector[String] =
     dryRunInstall.map("uninstall " + _)
   
   def isActionNeeded: M[Boolean]
@@ -20,7 +20,7 @@ trait SystemStateMixin {
   /**
    * uninstalls the state for just this system state and no sub states
    */
-  def runUninstallObsolete: ApplyState[Unit]
+  def runUninstallObsolete(interpreter: Interpreter): ApplyState[Unit]
 
 }
 

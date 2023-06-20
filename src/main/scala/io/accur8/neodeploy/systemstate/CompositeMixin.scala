@@ -9,5 +9,5 @@ trait CompositeMixin extends SystemStateMixin { self: SystemState.Composite =>
   override def isActionNeeded: M[Boolean] = zsucceed(false)
   override def stateKey: Option[StateKey] = None
   override def runApplyNewState = zunit
-  override def runUninstallObsolete = zunit
+  override def runUninstallObsolete(interpreter: Interpreter) = zunit
 }

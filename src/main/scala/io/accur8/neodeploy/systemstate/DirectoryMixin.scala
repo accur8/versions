@@ -28,7 +28,7 @@ trait DirectoryMixin extends SystemStateMixin { self: SystemState.Directory =>
     } yield ()
   }
 
-  override def runUninstallObsolete = {
+  override def runUninstallObsolete(interpreter: Interpreter) = {
 
     for {
       entries <- path.entries

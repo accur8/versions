@@ -27,7 +27,7 @@ trait DnsRecordMixin extends SystemStateMixin { self: SystemState.DnsRecord =>
   /**
    * uninstalls the state for just this system state and no sub states
    */
-  override def runUninstallObsolete: M[Unit] =
+  override def runUninstallObsolete(interpreter: Interpreter): M[Unit] =
     zservice[DnsService]
       .flatMap(_.delete(this))
 

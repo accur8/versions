@@ -21,7 +21,7 @@ trait TriggeredStateMixin extends SystemStateMixin { self: SystemState.Triggered
   /**
    * uninstalls the state for just this system state and no sub states
    */
-  override def runUninstallObsolete: M[Unit] =
+  override def runUninstallObsolete(interpreter: Interpreter): M[Unit] =
     zunit
 
 }

@@ -14,7 +14,7 @@ trait SymlinkMixin extends SystemStateMixin { self: SystemState.Symlink =>
   override def dryRunInstall: Vector[String] =
     Vector(s"symlink ${link} -> ${target}")
 
-  override def dryRunUninstall: Vector[String] =
+  override def dryRunUninstall(interpreter: Interpreter): Vector[String] =
     dryRunInstall.map("uninstall " + _)
 
   override def isActionNeeded: M[Boolean] =
@@ -41,7 +41,7 @@ trait SymlinkMixin extends SystemStateMixin { self: SystemState.Symlink =>
   /**
    * uninstalls the state for just this system state and no sub states
    */
-  override def runUninstallObsolete: ApplyState[Unit] =
+  override def runUninstallObsolete(interpreter: Interpreter): ApplyState[Unit] =
     link
       .exists
       .flatMap {

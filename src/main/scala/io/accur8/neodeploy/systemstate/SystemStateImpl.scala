@@ -22,11 +22,11 @@ import io.accur8.neodeploy.PredefAssist._
 
 object SystemStateImpl extends LoggingF {
 
-  def dryRunUninstall(statesToUninstall: Vector[SystemState]): Vector[String] = {
+  def dryRunUninstall(interpreter: Interpreter, statesToUninstall: Vector[SystemState]): Vector[String] = {
     val dryRunUninstallLogs =
       statesToUninstall
         .flatMap { ss =>
-          rawDryRun(_.dryRunUninstall, ss, _ => Vector.empty)
+          rawDryRun(_.dryRunUninstall(interpreter), ss, _ => Vector.empty)
         }
     if ( dryRunUninstallLogs.nonEmpty )
       Vector("uninstaller actions") ++ dryRunUninstallLogs.map("   " + _)
@@ -58,15 +58,6 @@ object SystemStateImpl extends LoggingF {
         // indent the substates if we have top level dry run values
         stateDryRun ++ subStatesDryRun.map("    " + _)
     }
-  }
-
-  def runUninstallObsolete(obsoleteStates: Vector[SystemState]): ApplyState[Unit] = {
-    // we reverse because we want file cleanup to happen before directory cleanup
-    obsoleteStates
-      .reverse
-      .map(_.runUninstallObsolete)
-      .sequence
-      .as(())
   }
 
   def runApplyNewState(state: SystemState, interpreter: Interpreter, inner: SystemState => ApplyState[Unit]): ApplyState[Unit] =
@@ -131,16 +122,16 @@ object SystemStateImpl extends LoggingF {
           zunit
       }
 
-  def dryRun(interpretter: Interpreter): Vector[String] = {
+  def dryRun(interpreter: Interpreter): Vector[String] = {
     def inner(s0: SystemState): Vector[String] = {
-      interpretter.actionNeededCache.cache.get(s0) match {
+      interpreter.actionNeededCache.cache.get(s0) match {
         case Some(false) =>
           Vector.empty
         case _ =>
           SystemStateImpl.rawDryRun(_.dryRunInstall, s0, inner)
       }
     }
-    inner(interpretter.newState.systemState) ++ SystemStateImpl.dryRunUninstall(interpretter.statesToUninstall)
+    inner(interpreter.newState.systemState) ++ SystemStateImpl.dryRunUninstall(interpreter, interpreter.statesToUninstall)
   }
 
   def actionNeededCache(newState: NewState): M[ActionNeededCache] = {
@@ -204,14 +195,14 @@ object SystemStateImpl extends LoggingF {
         false
     }
 
-  def runApplyNewState(interpretter: Interpreter): ApplyState[Unit] = {
+  def runApplyNewState(interpreter: Interpreter): ApplyState[Unit] = {
     def inner(s0: SystemState): ApplyState[Unit] =
-      if (interpretter.actionNeededCache.cache(s0)) {
-        SystemStateImpl.runApplyNewState(s0, interpretter, inner)
+      if (interpreter.actionNeededCache.cache(s0)) {
+        SystemStateImpl.runApplyNewState(s0, interpreter, inner)
       } else {
         zunit
       }
-    inner(interpretter.newState.systemState)
+    inner(interpreter.newState.systemState)
   }
 
 

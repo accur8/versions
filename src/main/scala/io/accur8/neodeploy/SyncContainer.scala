@@ -138,13 +138,13 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
         _ <- loggerF.trace(s"starting run(${namePair})")
         newState <- newStateEffect
         _ <- loggerF.trace(s"new state calculated ${namePair}")
-        interpretter <- systemstate.Interpreter(newState, previousState)
+        interpreter <- systemstate.Interpreter(newState, previousState)
         _ <- loggerF.trace(s"interpreter created ${namePair}")
-        _ <- interpretter.dryRunLog.map(m => loggerF.info(m)).getOrElse(zunit)
+        _ <- interpreter.dryRunLog.map(m => loggerF.info(m)).getOrElse(zunit)
         _ <- loggerF.trace(s"applying new state ${namePair}")
-        _ <- interpretter.runApplyNewState
+        _ <- interpreter.runApplyNewState
         _ <- loggerF.trace(s"applying uninstall if obsolete state ${namePair}")
-        _ <- interpretter.runUninstallObsolete
+        _ <- interpreter.runUninstallObsolete
         _ <- loggerF.trace(s"updating state ${namePair}")
         _ <- runSystemStateServicesCommit
         _ <- updateState(newState)

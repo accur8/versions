@@ -15,7 +15,7 @@ trait RunCommandStateMixin extends SystemStateMixin { self: SystemState.RunComma
         s"run ${actionName} command -- ${cmd.args.mkString(" ")}${cmd.workingDirectory.map(wd => s" in working directory ${wd}").getOrElse("")}"
       }
 
-  override def dryRunUninstall: Vector[String] =
+  override def dryRunUninstall(interpreter: Interpreter): Vector[String] =
     dryRun("uninstall", uninstallCommands)
 
   override def isActionNeeded: M[Boolean] = zsucceed(true)
@@ -26,7 +26,7 @@ trait RunCommandStateMixin extends SystemStateMixin { self: SystemState.RunComma
       .sequence
       .as(())
 
-  override def runUninstallObsolete =
+  override def runUninstallObsolete(interpreter: Interpreter) =
     uninstallCommands
       .map(_.asRunnableCommand.execCaptureOutput)
       .sequence

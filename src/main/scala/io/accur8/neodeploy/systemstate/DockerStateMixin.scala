@@ -43,7 +43,7 @@ trait DockerStateMixin extends SystemStateMixin with LoggingF { self: SystemStat
   /**
    * uninstalls the state for just this system state and no sub states
    */
-  override def runUninstallObsolete: M[Unit] =
+  override def runUninstallObsolete(interpreter: Interpreter): M[Unit] =
     descriptor.uninstallAction match {
       case UninstallAction.Stop =>
         runDockerStop

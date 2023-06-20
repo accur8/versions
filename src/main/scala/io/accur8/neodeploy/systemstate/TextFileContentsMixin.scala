@@ -61,7 +61,7 @@ trait TextFileContentsMixin extends SystemStateMixin {
   }
 
 
-  override def runUninstallObsolete =
+  override def runUninstallObsolete(interpreter: Interpreter) =
     ZFileSystem.file(filename).delete
 
 }

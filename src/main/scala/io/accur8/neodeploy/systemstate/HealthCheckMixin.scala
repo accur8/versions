@@ -8,7 +8,7 @@ import io.accur8.neodeploy.systemstate.SystemStateModel._
 trait HealthCheckMixin extends SystemStateMixin { self: SystemState.HealthCheck =>
 
   override def dryRunInstall: Vector[String] = Vector(s"upsert and enable healthcheck ${data.name}")
-  override def dryRunUninstall: Vector[String] = Vector(s"disable healthcheck ${data.name}")
+  override def dryRunUninstall(interpreter: Interpreter): Vector[String] = Vector(s"disable healthcheck ${data.name}")
 
   def stateKey = StateKey("healthcheck", data.name).some
 
@@ -24,7 +24,7 @@ trait HealthCheckMixin extends SystemStateMixin { self: SystemState.HealthCheck 
       b <- service.upsert(data)
     } yield ()
 
-  override def runUninstallObsolete: M[Unit] =
+  override def runUninstallObsolete(interpreter: Interpreter): M[Unit] =
     for {
       service <- zservice[HealthchecksDotIo]
       b <- service.disable(data)
