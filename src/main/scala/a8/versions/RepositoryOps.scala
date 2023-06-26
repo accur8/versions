@@ -149,12 +149,20 @@ object RepositoryOps extends Logging {
         }
         .distinctBy(_._3)
         .map { case (dep, pub, artifact) =>
+          val classifier =
+            dep.publication.classifier.value.trim match {
+              case "" =>
+                None
+              case s =>
+                Some(s)
+            }
           ArtifactResponse(
             Uri.unsafeParse(artifact.url),
             neodeploy.model.Organization(dep.module.organization.value),
             neodeploy.model.Artifact(dep.module.name.value),
             neodeploy.model.Version(dep.version),
             pub.ext.value,
+            classifier,
           )
         }
 

@@ -305,9 +305,14 @@ object model {
     module: Artifact,
     version: io.accur8.neodeploy.model.Version,
     extension: String,
+    classifier: Option[String],
   ) {
 
-    lazy val filename = z"${module}-${version}.${extension}"
+    lazy val filename = {
+      val urlStr = url.toString
+      val r = urlStr.substring(urlStr.lastIndexOf("/")+1)
+      r
+    }
 
     lazy val organizationAsPath = organization.value.replace('.', '/')
 

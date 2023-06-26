@@ -33,6 +33,7 @@ object Mxmodel {
           .addField(_.module)
           .addField(_.version)
           .addField(_.extension)
+          .addField(_.classifier)
       )
       .build
     
@@ -42,7 +43,7 @@ object Mxmodel {
     
     
     lazy val generator: Generator[ArtifactResponse,parameters.type] =  {
-      val constructors = Constructors[ArtifactResponse](5, unsafe.iterRawConstruct)
+      val constructors = Constructors[ArtifactResponse](6, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -52,6 +53,7 @@ object Mxmodel {
       lazy val module: CaseClassParm[ArtifactResponse,Artifact] = CaseClassParm[ArtifactResponse,Artifact]("module", _.module, (d,v) => d.copy(module = v), None, 2)
       lazy val version: CaseClassParm[ArtifactResponse,io.accur8.neodeploy.model.Version] = CaseClassParm[ArtifactResponse,io.accur8.neodeploy.model.Version]("version", _.version, (d,v) => d.copy(version = v), None, 3)
       lazy val extension: CaseClassParm[ArtifactResponse,String] = CaseClassParm[ArtifactResponse,String]("extension", _.extension, (d,v) => d.copy(extension = v), None, 4)
+      lazy val classifier: CaseClassParm[ArtifactResponse,Option[String]] = CaseClassParm[ArtifactResponse,Option[String]]("classifier", _.classifier, (d,v) => d.copy(classifier = v), None, 5)
     }
     
     
@@ -64,6 +66,7 @@ object Mxmodel {
           module = values(2).asInstanceOf[Artifact],
           version = values(3).asInstanceOf[io.accur8.neodeploy.model.Version],
           extension = values(4).asInstanceOf[String],
+          classifier = values(5).asInstanceOf[Option[String]],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): ArtifactResponse = {
@@ -74,13 +77,14 @@ object Mxmodel {
             module = values.next().asInstanceOf[Artifact],
             version = values.next().asInstanceOf[io.accur8.neodeploy.model.Version],
             extension = values.next().asInstanceOf[String],
+            classifier = values.next().asInstanceOf[Option[String]],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(url: Uri, organization: Organization, module: Artifact, version: io.accur8.neodeploy.model.Version, extension: String): ArtifactResponse =
-        ArtifactResponse(url, organization, module, version, extension)
+      def typedConstruct(url: Uri, organization: Organization, module: Artifact, version: io.accur8.neodeploy.model.Version, extension: String, classifier: Option[String]): ArtifactResponse =
+        ArtifactResponse(url, organization, module, version, extension, classifier)
     
     }
     

@@ -98,7 +98,7 @@ credentials are in the place you would expect them to be
     val atp = artifactsToPromote(artifacts).toSet
     artifacts
       .collect {
-        case ar@ArtifactResponse(_, Organization, _, _, _) if dependencies == Dependencies.Validate && !atp.contains(ar)=>
+        case ar@ArtifactResponse(_, Organization, _, _, _, _) if dependencies == Dependencies.Validate && !atp.contains(ar)=>
           ar
       }
   }
@@ -106,9 +106,9 @@ credentials are in the place you would expect them to be
   def artifactsToPromote(artifacts: Iterable[ArtifactResponse]): Iterable[ArtifactResponse] =
     artifacts
       .collect {
-        case ar@ ArtifactResponse(_, Organization, _, _, _) if dependencies == Dependencies.Promote =>
+        case ar@ ArtifactResponse(_, Organization, _, _, _, _) if dependencies == Dependencies.Promote =>
           ar
-        case ar@ ArtifactResponse(_, Organization, Artifact, _, _) =>
+        case ar@ ArtifactResponse(_, Organization, Artifact, _, _, _) =>
           ar
       }
 
