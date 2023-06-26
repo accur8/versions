@@ -2,13 +2,16 @@ package io.accur8.neodeploy
 
 
 import a8.shared.{Exec, StringValue}
-import io.accur8.neodeploy.model.{DomainName, Version}
+import io.accur8.neodeploy.model.{DomainName, Install, Version}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedRepository}
 import zio.Task
 import a8.shared.SharedImports.*
 import a8.shared.app.LoggingF
+import a8.versions.{ParsedVersion, RepositoryOps, VersionParser}
+import a8.versions.model.{RepoPrefix, ResolutionRequest}
 import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
 import io.accur8.neodeploy.Sync.SyncName
+import io.accur8.neodeploy.systemstate.SystemState.JavaAppInstall
 
 object DeploySubCommand {
 }
@@ -16,7 +19,7 @@ object DeploySubCommand {
 case class DeploySubCommand(
   resolvedRepository: ResolvedRepository,
   runner: Runner,
-  version: Version,
+  rawVersion: Version,
   appName: DomainName,
 )
   extends LoggingF
@@ -24,28 +27,55 @@ case class DeploySubCommand(
 
   def run: Task[Unit] = {
 
-    // todo: get overloaded properties working
-
-//    ??? // git pull
-//    ??? // run neo deploy runner to load resolvedRepository
-
     // find the apps to deploy
-    val deployEachAppEffect =
+    def deployEachAppEffect =
       resolvedRepository
         .applications
         .filter(_.isNamed(appName))
-        .map(deployApp)
+        .map(ra => deployApp(ra))
         .sequence
 
     for {
-      _ <- deployEachAppEffect
-      _ <- gitCommit
+      versions <- deployEachAppEffect
+      _ <- gitCommit(versions.head)
       _ <- gitPush
     } yield ()
 
   }
 
-  def gitCommit: Task[Unit] =
+  def resolveVersion(app: ResolvedApp): Task[Version] =
+    rawVersion.value.toLowerCase.trim match {
+      case "latest" =>
+        app.loadedApplicationDescriptor.descriptor.install match {
+          case ja: Install.JavaApp =>
+            zblock {
+              val parsedVersion = ParsedVersion.parse(ja.version.value).get
+              val resolutionRequest =
+                ResolutionRequest(
+                  repoPrefix = ja.repository.getOrElse(RepositoryOps.default.repoConfigPrefix),
+                  organization = ja.organization,
+                  artifact = ja.artifact,
+                  version = Version("latest"),
+                  branch = parsedVersion.buildInfo.get.branch.some,
+                )
+              val resolutionResponse = RepositoryOps.runResolve(resolutionRequest)
+              resolutionResponse.version
+            }
+          case _ =>
+            zfail(new RuntimeException(s"latest is only valid on java apps not ${app.loadedApplicationDescriptor.descriptor.install}"))
+        }
+      case "current" =>
+        app.loadedApplicationDescriptor.descriptor.install match {
+          case ja: Install.JavaApp =>
+            zsucceed(ja.version)
+          case _ =>
+            zfail(new RuntimeException(s"current is only valid on java apps not ${app.loadedApplicationDescriptor.descriptor.install}"))
+        }
+      case _ =>
+        zsucceed(rawVersion)
+    }
+
+  def gitCommit(version: Version): Task[Unit] =
     zblock(
       Exec("git", "commit", "-am", z"deploy --version ${version} --app ${appName}")
         .inDirectory(a8.shared.FileSystem.dir(resolvedRepository.gitRootDirectory.unresolved.absolutePath))
@@ -59,7 +89,7 @@ case class DeploySubCommand(
         .execInline(): @scala.annotation.nowarn
     )
 
-  def deployApp(app: ResolvedApp): Task[Unit] = {
+  def deployApp(app: ResolvedApp): Task[Version] = {
 
     val resolvedRunner =
       runner
@@ -71,38 +101,41 @@ case class DeploySubCommand(
 
     val versionDotPropsFile = app.gitDirectory.file("version.properties")
 
-    // set the version
-    val setVersionEffect =
-      versionDotPropsFile
-        .write(z"""# ${a8.shared.FileSystem.fileSystemCompatibleTimestamp()}${"\n"}version_override=${version}""")
+    resolveVersion(app).flatMap { version =>
 
-    val runPushRemoteSyncEffect =
-      PushRemoteSyncSubCommand(
-        resolvedRepository,
-        resolvedRunner,
-        PushRemoteSyncSubCommand.ApplicationSync,
-      ).run
+      // set the version
+      val setVersionEffect =
+        versionDotPropsFile
+          .write(z"""# ${a8.shared.FileSystem.fileSystemCompatibleTimestamp()}${"\n"}version_override=${version}""")
 
-    versionDotPropsFile.readAsStringOpt.flatMap { savedVersionDotProps =>
-      val effect =
-        for {
-          _ <- setVersionEffect
-          _ <- runPushRemoteSyncEffect
-        } yield ()
-      effect
-        .onError { _ =>
-          val revertEffect =
-            savedVersionDotProps match {
-              case None =>
-                versionDotPropsFile.delete
-              case Some(content) =>
-                versionDotPropsFile.write(content)
-            }
+      val runPushRemoteSyncEffect =
+        PushRemoteSyncSubCommand(
+          resolvedRepository,
+          resolvedRunner,
+          PushRemoteSyncSubCommand.ApplicationSync,
+        ).run
+
+      versionDotPropsFile.readAsStringOpt.flatMap { savedVersionDotProps =>
+        val effect =
           for {
-            _ <- loggerF.info(s"deploy failed reverting ${versionDotPropsFile}")
-            _ <- revertEffect.logVoid
-          } yield ()
-        }
+            _ <- setVersionEffect
+            _ <- runPushRemoteSyncEffect
+          } yield version
+        effect
+          .onError { _ =>
+            val revertEffect =
+              savedVersionDotProps match {
+                case None =>
+                  versionDotPropsFile.delete
+                case Some(content) =>
+                  versionDotPropsFile.write(content)
+              }
+            for {
+              _ <- loggerF.info(s"deploy failed reverting ${versionDotPropsFile}")
+              _ <- revertEffect.logVoid
+            } yield ()
+          }
+      }
     }
 
   }
