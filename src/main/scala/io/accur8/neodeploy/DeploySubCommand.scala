@@ -45,9 +45,11 @@ case class DeploySubCommand(
 
   def resolveVersion(app: ResolvedApp): Task[Version] =
     rawVersion.value.toLowerCase.trim match {
-      case "latest" =>
-        app.loadedApplicationDescriptor.descriptor.install match {
-          case ja: Install.JavaApp =>
+      case v: ("latest" | "current") =>
+        (app.loadedApplicationDescriptor.descriptor.install, v) match {
+          case (ja: Install.JavaApp, "current") =>
+            zsucceed(ja.version)
+          case (ja: Install.JavaApp, "latest") =>
             zblock {
               val parsedVersion = ParsedVersion.parse(ja.version.value).get
               val resolutionRequest =
@@ -62,14 +64,7 @@ case class DeploySubCommand(
               resolutionResponse.version
             }
           case _ =>
-            zfail(new RuntimeException(s"latest is only valid on java apps not ${app.loadedApplicationDescriptor.descriptor.install}"))
-        }
-      case "current" =>
-        app.loadedApplicationDescriptor.descriptor.install match {
-          case ja: Install.JavaApp =>
-            zsucceed(ja.version)
-          case _ =>
-            zfail(new RuntimeException(s"current is only valid on java apps not ${app.loadedApplicationDescriptor.descriptor.install}"))
+            zfail(new RuntimeException(s"${v} is only valid on java apps not ${app.loadedApplicationDescriptor.descriptor.install}"))
         }
       case _ =>
         zsucceed(rawVersion)
