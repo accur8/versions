@@ -77,7 +77,7 @@ case class DeploySubCommand(
 
   def gitCommit(version: Version): Task[Unit] =
     zblock(
-      Exec("git", "commit", "-am", z"deploy --version ${version} --app ${appName}")
+      Exec("git", "commit", "-am", z"deploy --version ${rawVersion.value} --app ${appName} --> resolved version is ${version.value}")
         .inDirectory(a8.shared.FileSystem.dir(resolvedRepository.gitRootDirectory.unresolved.absolutePath))
         .execInline(): @scala.annotation.nowarn
     )
@@ -106,7 +106,7 @@ case class DeploySubCommand(
       // set the version
       val setVersionEffect =
         versionDotPropsFile
-          .write(z"""# ${a8.shared.FileSystem.fileSystemCompatibleTimestamp()}${"\n"}version_override=${version}""")
+          .write(z"""# ${a8.shared.FileSystem.fileSystemCompatibleTimestamp()} -- rawVersion is ${rawVersion.value}${"\n"}version_override=${version}""")
 
       val runPushRemoteSyncEffect =
         PushRemoteSyncSubCommand(
