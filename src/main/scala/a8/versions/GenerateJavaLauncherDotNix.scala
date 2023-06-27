@@ -371,8 +371,12 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
           echo exploding webapp-composite folder
           for jar in $${classpathBuilder}/*.jar
           do
-            $${unzip}/bin/unzip $$jar "webapp/*" -d $$out/webapp-composite 2> /dev/null 1> /dev/null || true
+            $${unzip}/bin/unzip $$jar "webapp/*" -d $$out 2> /dev/null 1> /dev/null || true
           done
+          if [ -d $$out/webapp ]; then
+            mv $$out/webapp $$out/webapp-composite
+            mkdir -p $$out/webapp-composite/WEB-INF/tmp-file-upload
+          fi
         ''
       else
         ""
