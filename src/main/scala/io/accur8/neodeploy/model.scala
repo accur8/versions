@@ -438,8 +438,8 @@ object model extends LoggingF {
   case class ServerDescriptor(
     name: ServerName,
     aliases: Iterable[ServerName] = Iterable.empty,
-    supervisorDirectory: SupervisorDirectory,
-    caddyDirectory: CaddyDirectory,
+//    supervisorDirectory: SupervisorDirectory,
+//    caddyDirectory: CaddyDirectory,
     publicDomainName: Option[DomainName] = None,
     vpnDomainName: DomainName,
     users: Vector[UserDescriptor],

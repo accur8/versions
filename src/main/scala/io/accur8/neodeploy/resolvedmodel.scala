@@ -191,8 +191,8 @@ object resolvedmodel extends LoggingF {
 
     def name = descriptor.name
 
-    def supervisorDirectory: SupervisorDirectory = descriptor.supervisorDirectory
-    def caddyDirectory: CaddyDirectory = descriptor.caddyDirectory
+//    def supervisorDirectory: SupervisorDirectory = descriptor.supervisorDirectory
+//    def caddyDirectory: CaddyDirectory = descriptor.caddyDirectory
 
   }
 
