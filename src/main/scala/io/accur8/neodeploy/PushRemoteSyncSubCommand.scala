@@ -140,7 +140,7 @@ case class PushRemoteSyncSubCommand(
         .copyTo(stagingDir)
 
     val rsyncEffect =
-      Command("rsync", "--delete", "--archive", "--verbose", "--recursive", ".", z"${resolvedUser.sshName}:server-app-configs/")
+      Command("rsync", "--delete", "--recursive", "--links", "--perms", "--verbose", "--recursive", ".", z"${resolvedUser.sshName}:server-app-configs/")
         .workingDirectory(stagingDir)
         .execLogOutput
 

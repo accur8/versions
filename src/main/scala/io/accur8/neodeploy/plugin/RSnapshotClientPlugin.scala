@@ -33,7 +33,7 @@ case class RSnapshotClientPlugin(
       }
       .mkString("\n")
 
-  lazy val sshUrl: String = z"${user.login}@${server.name}"
+  lazy val sshUrl: String = z"${user.login}@${server.vpnName}"
 
   // this makes sure there is a tab separate the include|exclude keyword and the path
   lazy val resolvedBackupLines =

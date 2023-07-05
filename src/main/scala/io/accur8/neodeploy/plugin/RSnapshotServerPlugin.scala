@@ -97,7 +97,7 @@ case class RSnapshotServerPlugin(
         UnitFile(
           Type = "oneshot",
           workingDirectory = rsnapshotConfigFile.parent.absolutePath,
-          execStart = z"/bootstrap/bin/run-rsnapshot ${rsnapshotConfigFile} ${client.server.name}",
+          execStart = z"${user.home}/.nix-profile/bin/run-rsnapshot ${rsnapshotConfigFile} ${client.server.name}",
         ),
         TimerFile(
           onCalendar = OnCalendarValue.hourly,

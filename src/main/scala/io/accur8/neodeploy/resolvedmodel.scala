@@ -189,6 +189,7 @@ object resolvedmodel extends LoggingF {
         .as(())
     }
 
+    def vpnName = descriptor.vpnDomainName
     def name = descriptor.name
 
 //    def supervisorDirectory: SupervisorDirectory = descriptor.supervisorDirectory
