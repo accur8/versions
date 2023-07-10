@@ -60,7 +60,7 @@ lazy val versions =
 
         compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.6" cross CrossVersion.full),
 
-        ("io.get-coursier" %% "coursier" % "2.1.2").cross(CrossVersion.for3Use2_13)
+        ("io.get-coursier" %% "coursier" % "2.1.4").cross(CrossVersion.for3Use2_13)
           exclude("org.scala-lang.modules", "scala-collection-compat_2.13")
           exclude("org.scala-lang.modules", "scala-xml_2.13")
         ,

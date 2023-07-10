@@ -5,7 +5,7 @@ import a8.versions.SbtDependencyParser
 object ParseDependencies extends App {
 
   val deps = """
-        "com.github.ghik" %% "silencer-lib" % `myUnresolvedVar % "compile",
+        "com.github.ghik" %% "silencer-lib" % myUnresolvedVar % "compile",
         "com.github.ghik" %% "silencer-lib" % myvar % "compile",
         "com.github.ghik" %% "silencer-lib" % "0.5" % "compile",
     """
