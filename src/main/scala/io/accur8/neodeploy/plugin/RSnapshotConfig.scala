@@ -87,10 +87,10 @@ cmd_du		/usr/bin/du
 #########################################
 
 retain	hourly	24
-retain	daily	7
+retain	daily 7
 retain	weekly	5
 retain	monthly	4
-#retain	delta	3
+retain	yearly	2
 
 ############################################
 #              GLOBAL OPTIONS              #
@@ -149,7 +149,7 @@ lockfile${tab}${serverConfig.descriptor.runDir}/rsnapshot-${client.server.name}.
 # backup point. This essentially passes the -x option to rsync.
 # The default is 0 (off).
 #
-one_fs		1
+one_fs		0
 
 # The include and exclude parameters, if enabled, simply get passed directly
 # to rsync. If you have multiple include/exclude patterns, put each one on a
@@ -179,7 +179,7 @@ link_dest	1
 # and all interval calls simply rotate files. See the man page for more
 # details. The default is 0 (off).
 #
-sync_first	0
+sync_first	1
 
 # If enabled, rsnapshot will move the oldest directory for each interval
 # to [interval_name].delete, then it will remove the lockfile and delete

@@ -166,7 +166,7 @@ object RepositoryOps extends Logging {
           )
         }
 
-    lazy val response =
+    val response =
       ResolutionResponse(
         request,
         io.accur8.neodeploy.model.Version(resolvedVersion.toString()),
