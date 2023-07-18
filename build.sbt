@@ -79,6 +79,9 @@ lazy val versions =
         "dev.zio" %% "zio-process" % "0.7.2",
         "org.typelevel" %% "cats-parse" % "0.3.8",
 
+        "dev.zio" %% "zio-nio"      % "2.0.1",
+        "dev.zio" %% "zio-rocksdb" % "0.4.3",
+
         "software.amazon.awssdk" % "apache-client" % "2.19.6",
         "software.amazon.awssdk" % "route53" % "2.19.6",
 
