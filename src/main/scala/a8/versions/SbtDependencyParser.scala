@@ -42,7 +42,8 @@ object SbtDependencyParser {
 //      .log
 
   def exclusions[$: P]: P[(String, String)] =
-    P(ws0 ~ "exclude(" ~ stringLit ~ op(()=>",") ~ stringLit ~ op(()=>")"))
+    P(ws0 ~ "exclude(" ~ ws0 ~ stringLit ~ ws0 ~ op(()=>",") ~ ws0 ~ stringLit ~ ws0 ~ op(()=>")"))
+//      .log
 
   def scalaVersionSeparator[$: P] =
     P(op(()=>"%%%") | op(()=>"%%") | op(()=>"%"))

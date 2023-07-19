@@ -250,7 +250,7 @@ ${
   singleRepoOpt.flatMap(_.astRepo.header).getOrElse("")
 }
 
-scalacOptions in Global ++= Seq("-deprecation", "-unchecked", "-feature")
+Global / scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 
 ${
   if ( firstRepo.astRepo.public ) {
@@ -267,7 +267,7 @@ Global / publishTo := Some("a8-repo-releases" at Common.readRepoUrl())
 }
 Global / scalaVersion := scalaLibVersion
 
-Global / organization := "${firstRepo.astRepo.organization}"
+Global / organization := "${firstRepo.astRepo.organization.value}"
 
 Global / version := appVersion
 
