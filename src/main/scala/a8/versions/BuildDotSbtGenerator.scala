@@ -255,7 +255,7 @@ Global / scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 ${
   if ( firstRepo.astRepo.public ) {
     s"""
-GLobal / publishTo := sonatypePublishToBundle.value
+Global / publishTo := sonatypePublishToBundle.value
 Global / credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
 """
   } else {
