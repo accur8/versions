@@ -1,6 +1,6 @@
 package a8.versions
 
-import a8.shared.app.Logging
+import a8.common.logging.Logging
 
 import scala.collection.mutable
 

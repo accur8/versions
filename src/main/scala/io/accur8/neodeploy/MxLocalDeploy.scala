@@ -9,15 +9,17 @@ package io.accur8.neodeploy
 */
 
 //====
-import io.accur8.neodeploy.LocalUserSyncSubCommand._
-import io.accur8.neodeploy.model._
+// noop import so IDE generated imports get put inside the comments block, this can be removed once you have at least one other import
+import _root_.scala
+import LocalDeploy.Config
+import io.accur8.neodeploy.model.{GitRootDirectory, ServerName, UserLogin}
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 
 
-object MxLocalUserSyncSubCommand {
+object MxLocalDeploy {
   
   trait MxConfig {
   

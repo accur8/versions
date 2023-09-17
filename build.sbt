@@ -15,8 +15,11 @@
 //      
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
-val syncVersion = "1.0.0-20230617_0942_master"
-val scalaLibVersion = "3.2.2"
+val syncVersion = "1.0.0-20230913_1958_master"
+val scalaLibVersion = "3.3.0"
+val zeroWasteVersion = "0.2.12"
+
+val zeroWastePlugin = compilerPlugin("com.github.ghik" % "zerowaste" % zeroWasteVersion cross CrossVersion.full)
 
 Global / scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 
@@ -58,7 +61,7 @@ lazy val versions =
     .settings(
       libraryDependencies ++= Seq(
 
-        compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.6" cross CrossVersion.full),
+        zeroWastePlugin,
 
         ("io.get-coursier" %% "coursier" % "2.1.4").cross(CrossVersion.for3Use2_13)
           exclude("org.scala-lang.modules", "scala-collection-compat_2.13")

@@ -1,7 +1,7 @@
 package a8.appinstaller
 
 import a8.shared.FileSystem.{Directory, File}
-import a8.shared.app.Logging
+import a8.common.logging.Logging
 
 import java.io.InputStream
 import java.io.PrintStream

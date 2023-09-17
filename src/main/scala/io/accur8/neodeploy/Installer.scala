@@ -6,7 +6,7 @@ import a8.shared.ZFileSystem
 import io.accur8.neodeploy.systemstate.*
 import zio.Task
 import a8.shared.ZFileSystem.*
-import a8.shared.app.LoggingF
+import a8.common.logging.LoggingF
 import a8.versions.GenerateJavaLauncherDotNix
 import io.accur8.neodeploy.model.*
 import io.accur8.neodeploy.model.Install.*
@@ -37,6 +37,7 @@ case class Installer(installState: SystemState.JavaAppInstall, appsInfo: AppsInf
   def createInstallDir: Task[Unit] =
     installDir
       .makeDirectories
+      .as(())
 
   def linkChildrenIntoInstallDir(source: Directory): Task[Unit] = {
     given SymlinkHandler = SymlinkHandler.NoFollow

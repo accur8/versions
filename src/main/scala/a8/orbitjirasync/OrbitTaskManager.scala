@@ -1,7 +1,7 @@
 package a8.orbitjirasync
 
 
-import a8.shared.app.LoggingF
+import a8.common.logging.LoggingF
 import a8.shared.{CompanionGen, ConfigMojo, LongValue, StringValue}
 
 import java.util.{Base64, UUID}

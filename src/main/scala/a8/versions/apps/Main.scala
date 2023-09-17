@@ -3,31 +3,30 @@ package a8.versions.apps
 
 import a8.appinstaller.AppInstallerConfig.LibDirKind
 import a8.appinstaller.{AppInstaller, AppInstallerConfig, InstallBuilder}
+import a8.common.logging.LoggingBootstrapConfig
 import a8.shared.{FileSystem, FromString, StringValue}
 import a8.versions.Build.BuildType
 import a8.versions.*
 import a8.versions.Upgrade.LatestArtifact
-import a8.versions.apps.Main.{Runner}
+import a8.versions.apps.Main.Runner
 import a8.versions.predef.*
 import a8.shared.SharedImports.*
 import a8.shared.ZString.ZStringer
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
-import a8.shared.app.{A8LogFormatter, BootstrappedIOApp}
+import a8.shared.app.BootstrappedIOApp
 import a8.versions.GenerateJavaLauncherDotNix.Parms
 import a8.versions.PromoteArtifacts.Dependencies
 import a8.versions.RepositoryOps.RepoConfigPrefix
 import a8.versions.model.{BranchName, ResolutionRequest, ResolvedRepo}
-import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
-import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.model.{ApplicationName, DomainName, ServerName, UserLogin}
 import io.accur8.neodeploy.resolvedmodel.ResolvedRepository
-import wvlet.log.{LogLevel, Logger}
 
 import scala.annotation.tailrec
-import io.accur8.neodeploy.{DeploySubCommand, InfrastructureSetupSubCommand, PushRemoteSyncSubCommand, ValidateRepo, Runner as NeodeployRunner}
+import io.accur8.neodeploy.{DeploySubCommand, ValidateRepo, Runner as NeodeployRunner}
 import org.rogach.scallop.*
 import zio.{Scope, ZIO, ZIOAppArgs}
-import io.accur8.neodeploy.model._
+import io.accur8.neodeploy.model.*
+import a8.common.logging.Level
 
 object Main extends Logging {
 
@@ -43,12 +42,29 @@ object Main extends Logging {
       "sun.net",
     )
 
+  case class ResolvedArgs(args: Seq[String]) {
+    lazy val defaultLogLevel: Level = Level.Trace // ???
+    lazy val consoleLogging: Boolean = true // ???
+  }
+
+
   def main(args: Array[String]): Unit = {
     try {
-      wvlet.airframe.log.init
-      Logger.setDefaultFormatter(A8LogFormatter.ColorConsole)
-      Logger.setDefaultLogLevel(LogLevel.DEBUG)
-      logLevels.foreach(l => Logger(l).setLogLevel(LogLevel.INFO))
+      val resolvedArgs = ResolvedArgs(args)
+      LoggingBootstrapConfig
+        .finalizeConfig(
+          LoggingBootstrapConfig(
+            overrideSystemErr = true,
+            overrideSystemOut = true,
+            setDefaultUncaughtExceptionHandler = true,
+            fileLogging = false,
+            consoleLogging = resolvedArgs.consoleLogging,
+            hasColorConsole = LoggingBootstrapConfig.defaultHasColorConsole,
+            appName = "a8-versions",
+            defaultLogLevel = resolvedArgs.defaultLogLevel,
+          )
+        )
+      logLevels.foreach(l => a8.common.logging.Logger.logger(l).setLevel(Level.Info))
       val main = new Main(args.toIndexedSeq)
       main.run()
       System.exit(0)

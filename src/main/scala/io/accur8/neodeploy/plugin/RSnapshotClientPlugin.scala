@@ -1,7 +1,6 @@
 package io.accur8.neodeploy.plugin
 
 import a8.shared.SharedImports._
-import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.model.RSnapshotClientDescriptor
 import io.accur8.neodeploy.resolvedmodel.{ResolvedAuthorizedKey, ResolvedServer, ResolvedUser}
 import io.accur8.neodeploy.systemstate.SystemState
@@ -16,9 +15,9 @@ case class RSnapshotClientPlugin(
   user: ResolvedUser,
 ) extends UserPlugin {
 
-  def descriptorJson = descriptor.toJsVal
+  override def name: String = "rsnapshotClient"
 
-  val name = SyncName("rsnapshotClient")
+  def descriptorJson = descriptor.toJsVal
 
   lazy val server: ResolvedServer = user.server
 

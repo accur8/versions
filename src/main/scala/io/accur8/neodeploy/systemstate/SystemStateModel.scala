@@ -3,12 +3,11 @@ package io.accur8.neodeploy.systemstate
 
 import a8.shared.ZFileSystem.Directory
 import a8.shared.{CompanionGen, FileSystem, SecretValue, StringValue}
-import io.accur8.neodeploy.{DnsService, HealthchecksDotIo, LocalUserSyncSubCommand}
-import io.accur8.neodeploy.Sync.SyncName
+import io.accur8.neodeploy.{DeployId, DnsService, HealthchecksDotIo, LocalDeploy}
 import io.accur8.neodeploy.systemstate.MxSystemStateModel.*
 import zio.{Task, Trace, ZIO, ZLayer}
 import a8.shared.SharedImports.*
-import a8.shared.app.LoggingF
+import a8.common.logging.{Logger, LoggingF}
 import com.typesafe.config.Config
 import io.accur8.neodeploy.model.{AppsInfo, AppsRootDirectory, CaddyDirectory, SupervisorDirectory}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedRepository, ResolvedServer, ResolvedUser}
@@ -99,7 +98,7 @@ object SystemStateModel {
 
   object ResolvedState extends MxResolvedState
   @CompanionGen
-  case class ResolvedState(resolvedName: String, syncName: SyncName, value: SystemState)
+  case class ResolvedState(deployId: DeployId, value: SystemState)
 
   object NewState extends MxNewState
   @CompanionGen
@@ -114,8 +113,6 @@ object SystemStateModel {
 
   sealed trait HasResolvedState {
     def isEmpty = SystemStateImpl.isEmpty(systemState)
-    def resolvedName = resolvedSyncState.resolvedName
-    def syncName = resolvedSyncState.syncName
     def systemState = resolvedSyncState.value
     def resolvedSyncState: ResolvedState
     lazy val statesByKey = SystemStateImpl.statesByKey(resolvedSyncState.value)
@@ -126,9 +123,9 @@ object SystemStateModel {
       ZLayer.succeed(
         new SystemStateLogger {
           override def warn(message: String)(implicit trace: Trace): Task[Unit] =
-            ZIO.attemptBlocking(
-              wvlet.log.Logger(trace.toString).warn(message)
-            )
+            ZIO.attemptBlocking {
+              Logger.logger(trace).warn(message)
+            }
         }
       )
   }
@@ -152,7 +149,17 @@ object SystemStateModel {
 
   }
 
-  type Environ = SystemStateLogger with HealthchecksDotIo with ResolvedRepository with ResolvedServer with ResolvedUser with DnsService
+  type Environ = (
+    SystemStateLogger
+      with HealthchecksDotIo
+      with ResolvedRepository
+      with ResolvedServer
+      with ResolvedUser
+      with DnsService
+      with LocalDeploy.Config
+      with CaddyDirectory
+  )
+
 
   type ApplyStateEnviron = AppsInfo with RunTimestamp
 

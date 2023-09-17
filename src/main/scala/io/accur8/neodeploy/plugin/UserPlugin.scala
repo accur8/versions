@@ -7,8 +7,7 @@ import io.accur8.neodeploy.resolvedmodel.{ResolvedAuthorizedKey, ResolvedUser}
 import org.typelevel.ci.CIString
 import a8.shared.SharedImports._
 import a8.shared.ZFileSystem
-import a8.shared.app.Logging
-import io.accur8.neodeploy.Sync.SyncName
+import a8.common.logging.Logging
 import io.accur8.neodeploy.model.{AuthorizedKey, DomainName, ListenPort, QualifiedUserName}
 import io.accur8.neodeploy.plugin.PluginManager.{Factory, SingletonFactory}
 import io.accur8.neodeploy.plugin.{CaddyServerPlugin, PgbackrestClientPlugin, PgbackrestServerPlugin, Plugin, PluginManager, RSnapshotClientPlugin, RSnapshotServerPlugin}
@@ -83,7 +82,7 @@ trait UserPlugin extends Plugin[ResolvedUser] {
 
   final def resolveAuthorizedKeys: Task[Vector[ResolvedAuthorizedKey]] =
     resolveAuthorizedKeysImpl
-      .map(_.map(_.withParent(name.value)))
+      .map(_.map(_.withParent(name)))
 
   def resolveAuthorizedKeysImpl: Task[Vector[ResolvedAuthorizedKey]] =
     zsucceed(Vector.empty)

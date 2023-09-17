@@ -3,9 +3,9 @@ package io.accur8.neodeploy
 
 import a8.shared.SharedImports.*
 import a8.shared.ZFileSystem
-import a8.shared.app.LoggingF
-import io.accur8.neodeploy.LocalUserSyncSubCommand.Config
-import io.accur8.neodeploy.model.AppsInfo
+import a8.common.logging.LoggingF
+import io.accur8.neodeploy.LocalDeploy.Config
+import io.accur8.neodeploy.model.{AppsInfo, CaddyDirectory, EtcDirectory}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedRepository, ResolvedServer}
 import io.accur8.neodeploy.systemstate.SystemStateModel.{ApplyState, Environ, M, RunTimestamp, SystemStateLogger}
 import zio.{Task, ZIO, ZLayer}
@@ -15,6 +15,8 @@ object Layers extends LoggingF {
   def provide[A](effect: ApplyState[A]): Task[A] =
     effect
       .provide(
+        EtcDirectory.layer,
+        CaddyDirectory.layer,
         DnsService.layer,
         configL,
         healthchecksDotIoL,

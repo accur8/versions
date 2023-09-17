@@ -1,8 +1,7 @@
 package io.accur8.neodeploy.systemstate
 
 
-import io.accur8.neodeploy.{Sync, Systemd}
-import io.accur8.neodeploy.Sync.SyncName
+import io.accur8.neodeploy.Systemd
 import io.accur8.neodeploy.Systemd.{TimerFile, UnitFile}
 import io.accur8.neodeploy.model.{Launcher, SystemdDescriptor}
 import io.accur8.neodeploy.resolvedmodel.ResolvedApp

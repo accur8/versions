@@ -7,7 +7,6 @@ import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, ProfileCred
 import software.amazon.awssdk.services.route53.Route53Client
 import software.amazon.awssdk.services.route53.model.{Change, ChangeAction, ChangeBatch, ChangeResourceRecordSetsRequest, ChangeTagsForResourceRequest, HostedZone, ListHostedZonesRequest, ListResourceRecordSetsRequest, ListTagsForResourceRequest, ResourceRecord, ResourceRecordSet, Tag}
 import a8.shared.SharedImports._
-import a8.shared.app.{Logging, LoggingF}
 import io.accur8.neodeploy.model.{AwsCredentials, DomainName}
 import software.amazon.awssdk.regions.Region
 import zio.ZIO

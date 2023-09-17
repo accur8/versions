@@ -467,9 +467,9 @@ object Mxmodel {
         a8.shared.json.JsonObjectCodecBuilder(generator)
           .addField(_.login)
           .addField(_.aliases)
-          .addField(_.home)
           .addField(_.authorizedKeys)
           .addField(_.a8VersionsExec)
+          .addField(_.home)
           .addField(_.manageSshKeys)
           .addField(_.appInstallDirectory)
           .addField(_.plugins)
@@ -489,9 +489,9 @@ object Mxmodel {
     object parameters {
       lazy val login: CaseClassParm[UserDescriptor,UserLogin] = CaseClassParm[UserDescriptor,UserLogin]("login", _.login, (d,v) => d.copy(login = v), None, 0)
       lazy val aliases: CaseClassParm[UserDescriptor,Vector[QualifiedUserName]] = CaseClassParm[UserDescriptor,Vector[QualifiedUserName]]("aliases", _.aliases, (d,v) => d.copy(aliases = v), Some(()=> Vector.empty), 1)
-      lazy val home: CaseClassParm[UserDescriptor,Option[Directory]] = CaseClassParm[UserDescriptor,Option[Directory]]("home", _.home, (d,v) => d.copy(home = v), Some(()=> None), 2)
-      lazy val authorizedKeys: CaseClassParm[UserDescriptor,Vector[QualifiedUserName]] = CaseClassParm[UserDescriptor,Vector[QualifiedUserName]]("authorizedKeys", _.authorizedKeys, (d,v) => d.copy(authorizedKeys = v), Some(()=> Vector.empty), 3)
-      lazy val a8VersionsExec: CaseClassParm[UserDescriptor,Option[String]] = CaseClassParm[UserDescriptor,Option[String]]("a8VersionsExec", _.a8VersionsExec, (d,v) => d.copy(a8VersionsExec = v), Some(()=> None), 4)
+      lazy val authorizedKeys: CaseClassParm[UserDescriptor,Vector[QualifiedUserName]] = CaseClassParm[UserDescriptor,Vector[QualifiedUserName]]("authorizedKeys", _.authorizedKeys, (d,v) => d.copy(authorizedKeys = v), Some(()=> Vector.empty), 2)
+      lazy val a8VersionsExec: CaseClassParm[UserDescriptor,Option[String]] = CaseClassParm[UserDescriptor,Option[String]]("a8VersionsExec", _.a8VersionsExec, (d,v) => d.copy(a8VersionsExec = v), Some(()=> None), 3)
+      lazy val home: CaseClassParm[UserDescriptor,Option[Directory]] = CaseClassParm[UserDescriptor,Option[Directory]]("home", _.home, (d,v) => d.copy(home = v), Some(()=> None), 4)
       lazy val manageSshKeys: CaseClassParm[UserDescriptor,Boolean] = CaseClassParm[UserDescriptor,Boolean]("manageSshKeys", _.manageSshKeys, (d,v) => d.copy(manageSshKeys = v), Some(()=> true), 5)
       lazy val appInstallDirectory: CaseClassParm[UserDescriptor,Option[AppsRootDirectory]] = CaseClassParm[UserDescriptor,Option[AppsRootDirectory]]("appInstallDirectory", _.appInstallDirectory, (d,v) => d.copy(appInstallDirectory = v), Some(()=> None), 6)
       lazy val plugins: CaseClassParm[UserDescriptor,JsDoc] = CaseClassParm[UserDescriptor,JsDoc]("plugins", _.plugins, (d,v) => d.copy(plugins = v), Some(()=> JsDoc.empty), 7)
@@ -504,9 +504,9 @@ object Mxmodel {
         UserDescriptor(
           login = values(0).asInstanceOf[UserLogin],
           aliases = values(1).asInstanceOf[Vector[QualifiedUserName]],
-          home = values(2).asInstanceOf[Option[Directory]],
-          authorizedKeys = values(3).asInstanceOf[Vector[QualifiedUserName]],
-          a8VersionsExec = values(4).asInstanceOf[Option[String]],
+          authorizedKeys = values(2).asInstanceOf[Vector[QualifiedUserName]],
+          a8VersionsExec = values(3).asInstanceOf[Option[String]],
+          home = values(4).asInstanceOf[Option[Directory]],
           manageSshKeys = values(5).asInstanceOf[Boolean],
           appInstallDirectory = values(6).asInstanceOf[Option[AppsRootDirectory]],
           plugins = values(7).asInstanceOf[JsDoc],
@@ -517,9 +517,9 @@ object Mxmodel {
           UserDescriptor(
             login = values.next().asInstanceOf[UserLogin],
             aliases = values.next().asInstanceOf[Vector[QualifiedUserName]],
-            home = values.next().asInstanceOf[Option[Directory]],
             authorizedKeys = values.next().asInstanceOf[Vector[QualifiedUserName]],
             a8VersionsExec = values.next().asInstanceOf[Option[String]],
+            home = values.next().asInstanceOf[Option[Directory]],
             manageSshKeys = values.next().asInstanceOf[Boolean],
             appInstallDirectory = values.next().asInstanceOf[Option[AppsRootDirectory]],
             plugins = values.next().asInstanceOf[JsDoc],
@@ -528,8 +528,8 @@ object Mxmodel {
            sys.error("")
         value
       }
-      def typedConstruct(login: UserLogin, aliases: Vector[QualifiedUserName], home: Option[Directory], authorizedKeys: Vector[QualifiedUserName], a8VersionsExec: Option[String], manageSshKeys: Boolean, appInstallDirectory: Option[AppsRootDirectory], plugins: JsDoc): UserDescriptor =
-        UserDescriptor(login, aliases, home, authorizedKeys, a8VersionsExec, manageSshKeys, appInstallDirectory, plugins)
+      def typedConstruct(login: UserLogin, aliases: Vector[QualifiedUserName], authorizedKeys: Vector[QualifiedUserName], a8VersionsExec: Option[String], home: Option[Directory], manageSshKeys: Boolean, appInstallDirectory: Option[AppsRootDirectory], plugins: JsDoc): UserDescriptor =
+        UserDescriptor(login, aliases, authorizedKeys, a8VersionsExec, home, manageSshKeys, appInstallDirectory, plugins)
     
     }
     

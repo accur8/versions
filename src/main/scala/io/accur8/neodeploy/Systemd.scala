@@ -68,7 +68,7 @@ object Systemd {
          |ExecStart=${unitFile.execStart}
          |
          |[Install]
-         |WantedBy=multi-user.target
+         |WantedBy=default.target
          |""".stripMargin.ltrim
 
     val unitFileState =

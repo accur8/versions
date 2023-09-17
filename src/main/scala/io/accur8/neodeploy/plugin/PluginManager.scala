@@ -1,6 +1,6 @@
 package io.accur8.neodeploy.plugin
 
-import a8.shared.app.LoggingF
+import a8.common.logging.LoggingF
 import a8.shared.json.{JsonCodec, ast}
 import a8.shared.json.ast.{JsArr, JsDoc, JsNothing, JsStr, JsVal}
 import io.accur8.neodeploy.UserPlugin
@@ -16,6 +16,7 @@ object PluginManager {
 
   object Factory {
     abstract class AbstractFactory[A, B <: Plugin[A], Descriptor: JsonCodec](name0: String) extends Factory[A,B] {
+
       lazy val name = CIString(name0)
 
       def apply(jsd: JsDoc, outlet: A): Either[String, B] = {
@@ -38,7 +39,7 @@ object PluginManager {
   }
 
   case class SingletonFactory[A, B <: Plugin[A]](singleton: B) extends Factory[A, B] {
-    override lazy val name: CIString = CIString(singleton.name.value)
+    override lazy val name: CIString = CIString(singleton.name)
     override def apply(jsd: JsDoc, outlet: A): Either[String, B] =
       Right(singleton)
   }

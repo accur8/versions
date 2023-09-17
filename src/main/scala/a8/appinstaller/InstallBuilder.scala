@@ -5,7 +5,7 @@ import java.nio.file.{Files, Path, Paths}
 import java.util
 import a8.appinstaller.AppInstallerConfig.LibDirKind
 import a8.shared.FileSystem.{Directory, File}
-import a8.shared.app.Logging
+import a8.common.logging.Logging
 import a8.versions.Build.BuildType
 import a8.versions.RepositoryOps.DependencyTree
 import a8.versions.{RepositoryOps, ParsedVersion, ast}

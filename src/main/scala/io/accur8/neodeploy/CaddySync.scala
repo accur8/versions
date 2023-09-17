@@ -1,27 +1,21 @@
 package io.accur8.neodeploy
 
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.ZFileSystem.{Directory, File}
 import a8.shared.ZString
-import a8.shared.app.LoggingF
+import a8.common.logging.LoggingF
 import io.accur8.neodeploy.model.CaddyDirectory
-import io.accur8.neodeploy.resolvedmodel.ResolvedApp
+import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedServer}
 import io.accur8.neodeploy.systemstate.SystemState
-import io.accur8.neodeploy.systemstate.SystemStateModel._
+import io.accur8.neodeploy.systemstate.SystemStateModel.*
 import zio.{Task, ZIO}
 
 object CaddySync {
 
-}
+  def configFile(caddyDir: CaddyDirectory, applicationDescriptor: model.ApplicationDescriptor): File =
+    caddyDir.file(z"${applicationDescriptor.name}.caddy")
 
-case class CaddySync(caddyDir: CaddyDirectory) extends Sync[ResolvedApp] {
-
-  override val name: Sync.SyncName = Sync.SyncName("caddy")
-
-  def configFile(resolvedApp: ResolvedApp): File =
-    caddyDir.file(z"${resolvedApp.descriptor.name}.caddy")
-
-  def caddyConfigContents(applicationDescriptor: model.ApplicationDescriptor): Option[String] = {
+  def caddyConfigContents(caddyDir: CaddyDirectory, applicationDescriptor: model.ApplicationDescriptor): Option[SystemState.TextFile] = {
     import applicationDescriptor._
     def result0 =
       for {
@@ -39,40 +33,45 @@ ${applicationDescriptor.resolvedDomainNames.map(_.value).mkString(", ")} {
       .caddyConfig
       .orElse(
         result0.mkString("\n\n").some
-      )
+      ).map(SystemState.TextFile(configFile(caddyDir, applicationDescriptor), _))
 
   }
 
 
-  override def systemState(input: ResolvedApp): M[SystemState] =
-    zsucceed(rawSystemState(input))
+  def systemState(server: ResolvedServer): M[SystemState] =
+    zservice[CaddyDirectory].map { caddyDir =>
 
-  def rawSystemState(input: ResolvedApp): SystemState =
-    caddyConfigContents(input.descriptor) match {
-      case Some(contents) =>
-        val reloadCaddyCommand =
-          Overrides.sudoSystemCtlCommand
-            .appendArgs("reload", "caddy")
-            .asSystemStateCommand
+      val rawFiles =
+        server
+          .applications
+          .flatMap(ra => caddyConfigContents(caddyDir, ra.descriptor))
+
+      val reloadCaddyCommand =
+        Overrides.sudoSystemCtlCommand
+          .appendArgs("reload", "caddy")
+          .asSystemStateCommand
+
+      val filesState =
         SystemState.Composite(
-          z"caddy setup for ${input.name}",
-          Vector(SystemState.TriggeredState(
-            triggerState =
-              SystemState.TextFile(
-                configFile(input),
-                contents,
-              ),
-            postTriggerState =
-              SystemState.RunCommandState(
-                stateKey = StateKey("caddy", input.name.value).some,
-                installCommands = Vector(reloadCaddyCommand),
-                uninstallCommands = Vector(reloadCaddyCommand),
-              )
-          ))
+          z"caddy files",
+          rawFiles,
         )
-      case None =>
-        SystemState.Empty
+
+      SystemState.Composite(
+        z"caddy setup",
+        Vector(SystemState.TriggeredState(
+          triggerState = filesState,
+          postTriggerState =
+            SystemState.RunCommandState(
+              stateKey = StateKey("caddy", "caddy").some,
+              installCommands = Vector(reloadCaddyCommand),
+              uninstallCommands = Vector(reloadCaddyCommand),
+            )
+        ))
+      )
+
     }
+
 
 }
 

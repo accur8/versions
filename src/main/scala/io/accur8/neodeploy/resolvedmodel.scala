@@ -6,10 +6,9 @@ import a8.shared.ZFileSystem.{Directory, File, dir, userHome}
 import model._
 import a8.shared.SharedImports._
 import a8.shared.ZString.ZStringer
-import a8.shared.app.LoggingF
+import a8.common.logging.LoggingF
 import a8.shared.json.{JsonCodec, JsonReader}
 import a8.shared.json.ast.{JsDoc, JsNothing, JsObj, JsVal}
-import io.accur8.neodeploy.Sync.SyncName
 import zio.{Cause, Chunk, Task, UIO, ZIO}
 import PredefAssist._
 import a8.shared.json.JsonReader.ReadResult
@@ -130,6 +129,10 @@ object resolvedmodel extends LoggingF {
     gitServerDirectory: GitServerDirectory,
     repository: ResolvedRepository,
   ) {
+
+    def applications =
+      resolvedUsers
+        .flatMap(_.resolvedApps)
 
     def virtualHosts = {
       val apps = resolvedUsers.flatMap(_.resolvedApps)
@@ -408,6 +411,10 @@ object resolvedmodel extends LoggingF {
         .find(_.name == serverName)
         .getOrError(z"server ${serverName} not found")
 
+    def serverOpt(serverName: ServerName): Option[ResolvedServer] =
+      servers
+        .find(_.name == serverName)
+
     def publicKeys(id: QualifiedUserName) =
       gitRootDirectory
         .subdir("public-keys")
@@ -487,7 +494,7 @@ object resolvedmodel extends LoggingF {
     lazy val users =
       servers.flatMap(_.resolvedUsers)
 
-    lazy val servers =
+    lazy val servers: Vector[ResolvedServer] =
       descriptor
         .servers
         .map { serverDescriptor =>

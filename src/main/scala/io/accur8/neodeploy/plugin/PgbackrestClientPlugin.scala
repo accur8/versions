@@ -2,7 +2,6 @@ package io.accur8.neodeploy.plugin
 
 import a8.shared.SharedImports._
 import io.accur8.neodeploy
-import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.model.PgbackrestClientDescriptor
 import io.accur8.neodeploy.resolvedmodel.{ResolvedAuthorizedKey, ResolvedServer, ResolvedUser}
 import io.accur8.neodeploy.systemstate.SystemState
@@ -17,11 +16,11 @@ case class PgbackrestClientPlugin(
   user: ResolvedUser,
 ) extends UserPlugin {
 
+  override def name: String = "pgbackrestClient"
+
   def stanzaName = descriptor.stanzaNameOverride.getOrElse(user.server.name.value)
 
   def descriptorJson = descriptor.toJsVal
-
-  val name = SyncName("pgbackrestClient")
 
   def resolvedServer: PgbackrestServerPlugin =
     user

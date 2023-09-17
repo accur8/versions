@@ -3,7 +3,6 @@ package io.accur8.neodeploy.plugin
 import a8.shared.SharedImports._
 import a8.shared.ZFileSystem
 import a8.shared.json.ast.{JsNothing, JsVal}
-import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.model.{DomainName, ListenPort}
 import io.accur8.neodeploy.resolvedmodel.ResolvedUser
 import io.accur8.neodeploy.systemstate.SystemState
@@ -12,6 +11,8 @@ import io.accur8.neodeploy.{Overrides, UserPlugin}
 
 case object CaddyServerPlugin extends UserPlugin {
 
+  override def name: String = "caddy"
+
   def configSnippet(listenPort: ListenPort, domains: Iterable[DomainName]): String =
     z"""
 ${domains.map(_.value).mkString(", ")} {
@@ -19,8 +20,6 @@ ${domains.map(_.value).mkString(", ")} {
   reverse_proxy localhost:${listenPort}
 }
       """.trim
-
-  val name = SyncName("caddyServer")
 
   override def descriptorJson: JsVal = JsNothing
 

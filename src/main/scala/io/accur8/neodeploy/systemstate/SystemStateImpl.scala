@@ -3,7 +3,7 @@ package io.accur8.neodeploy.systemstate
 
 import a8.shared.{FileSystem, StringValue, ZFileSystem}
 import a8.shared.SharedImports._
-import a8.shared.app.LoggingF
+import a8.common.logging.LoggingF
 import a8.sync.qubes.QubesApiClient
 import io.accur8.neodeploy.Installer
 import io.accur8.neodeploy.systemstate.Interpreter.ActionNeededCache
@@ -179,7 +179,7 @@ object SystemStateImpl extends LoggingF {
 
     impl(newState.systemState)
       .map(ActionNeededCache.apply)
-      .traceLog(s"actionNeededCache ${newState.resolvedSyncState.syncName} ${newState.resolvedSyncState.resolvedName}")
+      .traceLog(s"actionNeededCache ${newState.resolvedSyncState.deployId}")
 
   }
 

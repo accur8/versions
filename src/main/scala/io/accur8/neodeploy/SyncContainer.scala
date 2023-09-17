@@ -6,12 +6,9 @@ import a8.shared.json.JsonCodec
 import a8.shared.SharedImports.{zservice, _}
 import a8.shared.{StringValue, ZFileSystem}
 import a8.shared.ZString.ZStringer
-import a8.shared.app.{Logging, LoggingF}
+import a8.common.logging.{Logging, LoggingF}
 import a8.shared.jdbcf.ISeriesDialect.logger
 import a8.shared.json.ast.{JsDoc, JsVal}
-import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
-import io.accur8.neodeploy.Sync.SyncName
-import io.accur8.neodeploy.SyncContainer.Prefix
 import io.accur8.neodeploy.model.ApplicationName
 import io.accur8.neodeploy.systemstate.{Interpreter, SystemState}
 import io.accur8.neodeploy.systemstate.SystemStateModel._
@@ -23,115 +20,79 @@ import a8.Scala3Hacks.*
 
 object SyncContainer extends LoggingF {
 
-  case class Prefix(value: String)
+//  def loadState(stateDirectory: ZFileSystem.Directory): Task[Vector[PreviousState]] = {
+//    loggerF.debug(s"loading state ${stateDirectory}") *>
+//    stateDirectory
+//      .files
+//      .flatMap { files =>
+//        val effect: Vector[UIO[Option[PreviousState]]] =
+//          files
+//            .filter(f => f.name.startsWith(prefix.value) && f.name.endsWith(".json"))
+//            .toVector
+//            .map(file =>
+//              json.fromFile[PreviousState](file)
+//                .either
+//                .flatMap {
+//                  case Left(e) =>
+//                    loggerF.warn("error loading previous state", e)
+//                      .as(None)
+//                  case Right(ps) =>
+//                    loggerF.debug(s"loaded previous state -- \n${ps.prettyJson}")
+//                      .as(ps.some)
+//                }
+//              )
+//        ZIO.collectAll(effect)
+//          .map(_.flatten)
+//      }
+//  }
 
-  def loadState(stateDirectory: ZFileSystem.Directory, prefix: Prefix): Task[Vector[PreviousState]] = {
-    loggerF.debug(s"loading state ${stateDirectory}  prefix = ${prefix}") *>
-    stateDirectory
-      .files
-      .flatMap { files =>
-        val effect: Vector[UIO[Option[PreviousState]]] =
-          files
-            .filter(f => f.name.startsWith(prefix.value) && f.name.endsWith(".json"))
-            .toVector
-            .map(file =>
-              json.fromFile[PreviousState](file)
-                .either
-                .flatMap {
-                  case Left(e) =>
-                    loggerF.warn("error loading previous state", e)
-                      .as(None)
-                  case Right(ps) =>
-                    loggerF.debug(s"loaded previous state -- \n${ps.prettyJson}")
-                      .as(ps.some)
-                }
-              )
-        ZIO.collectAll(effect)
-          .map(_.flatten)
-      }
-  }
 }
 
-abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
-  prefix: Prefix,
+case class SyncContainer(
   stateDirectory: Directory,
+  deployUser: DeployUser,
+  deploys: Vector[DeployArg],
 )
   extends LoggingF
 {
 
-  val previousStates: Vector[PreviousState]
-  val newResolveds: Vector[Resolved]
-  val staticSyncs: Seq[Sync[Resolved]]
-  def resolvedSyncs(resolved: Resolved): Seq[Sync[Resolved]]
+  def resolveStateFile(deployId: DeployId): ZFileSystem.File =
+    stateDirectory.file(z"${deployId.value}.json")
 
-  def syncs(resolved: Option[Resolved]) =
-    staticSyncs ++ resolved.toSeq.flatMap(resolvedSyncs)
+  def loadState(deployId: DeployId): Task[PreviousState] =
+    json.fromFile[PreviousState](resolveStateFile(deployId))
+      .either
+      .flatMap {
+        case Left(e) =>
+          loggerF.warn("error loading previous state", e)
+            .as(PreviousState(ResolvedState(deployId, SystemState.Empty)))
+        case Right(ps) =>
+          loggerF.debug(s"loaded previous state -- \n${ps.prettyJson}")
+            .as(ps)
+      }
 
-  lazy val newResolvedsByName: Map[Name,Resolved] =
-    newResolveds
-      .map(r => name(r) -> r)
-      .toMap
-
-  def name(resolved: Resolved): Name
-  def nameFromStr(nameStr: String): Name
-
-  def filter(pair: NamePair): Boolean
-
-  case class NamePair(syncName: SyncName, resolvedName: Name)
-
-  lazy val previousStatesByNamePair: Map[NamePair, PreviousState] =
-    previousStates
-      .map(s => NamePair(s.syncName, nameFromStr(s.resolvedName)) -> s)
-      .toMap
-
-  lazy val allNamePairs: Vector[NamePair] = {
-
-    val currentNamePairs: Vector[NamePair] =
-      newResolveds.flatMap(resolved =>
-        syncs(resolved.some).map(sync =>
-          NamePair(sync.name, name(resolved))
-        )
-      )
-
-    val result =
-      (previousStatesByNamePair.keySet.toVector ++ currentNamePairs)
-        .distinct
-
-//    logger.debug(s"allNamePairs = ${result}")
-
-    result.filter(filter)
-
-  }
 
   def run: ApplyState[Unit] =
-    loggerF.debug(s"running allNamePairs = ${allNamePairs}") *>
-    allNamePairs
-      .map { pair =>
-        val previousState: PreviousState =
-          previousStatesByNamePair
-            .get(pair)
-            .getOrElse(PreviousState(ResolvedState(pair.resolvedName.value, pair.  syncName, SystemState.Empty)))
-        run(pair, previousState)
-      }
-      .sequence
-      .as(())
-
-  def run(namePair: NamePair, previousState: PreviousState): ApplyState[Unit] = {
-
-    val resolvedOpt = newResolveds.find(r => name(r) === namePair.resolvedName)
-    val syncOpt = syncs(resolvedOpt).find(_.name === namePair.syncName)
-
-    val newStateEffect =
-      (
-        (syncOpt, resolvedOpt) match {
-          case (Some(sync), Some(resolved)) =>
-            sync
-              .systemState(resolved)
-              .traceLog(s"systemState(${namePair})")
-          case _ =>
-            zsucceed(SystemState.Empty)
+    loggerF.debug(s"running = ${deploys.map(_.deployId).mkString(" ")}") *>
+      deploys
+        .map { deployArg =>
+          for {
+            previousState <- loadState(deployArg.deployId)
+            _ <- run(deployArg, previousState)
+          } yield ()
         }
-      ).map(s => NewState(ResolvedState(namePair.resolvedName.value, namePair.syncName, s)))
+        .sequence
+        .as(())
+
+  def run(deployArg: DeployArg, previousState: PreviousState): ApplyState[Unit] = {
+
+    val namePair = deployArg.deployId
+
+    val newStateEffect: M[NewState] =
+      deployArg
+        .systemState(deployUser)
+        .traceLog(s"systemState(${namePair})")
+        .map(s => NewState(ResolvedState(namePair, s)))
 
     val effect: ApplyState[Unit] =
       for {
@@ -159,7 +120,7 @@ abstract class SyncContainer[Resolved, Name <: StringValue : Equal](
 
   def updateState(newState: NewState): Task[Unit] = {
     val isEmpty = newState.isEmpty
-    val stateFile = stateDirectory.file(z"${prefix.value}-${newState.resolvedName}-${newState.syncName}.json")
+    val stateFile = resolveStateFile(newState.resolvedSyncState.deployId)
     if (isEmpty) {
       for {
         exists <- stateFile.exists

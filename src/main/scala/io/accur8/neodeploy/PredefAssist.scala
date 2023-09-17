@@ -1,10 +1,10 @@
 package io.accur8.neodeploy
 
+import a8.common.logging.{LoggerF, LoggingF}
 import a8.shared.ZFileSystem
 import a8.shared.ZString
 import a8.shared.ZString.ZStringer
 import a8.shared.app.BootstrapConfig.TempDir
-import a8.shared.app.{LoggerF, LoggingF}
 import org.typelevel.ci.CIString
 import zio.{Trace, URIO, ZIO}
 

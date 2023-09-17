@@ -2,7 +2,7 @@ package io.accur8.neodeploy.systemstate
 
 
 import a8.shared.SharedImports._
-import a8.shared.app.LoggingF
+import a8.common.logging.LoggingF
 import io.accur8.neodeploy.Overrides
 import io.accur8.neodeploy.model.DockerDescriptor.UninstallAction
 import io.accur8.neodeploy.systemstate.SystemStateModel.{M, StateKey}

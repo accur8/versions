@@ -1,7 +1,6 @@
 package io.accur8.neodeploy.plugin
 
 import a8.shared.SharedImports._
-import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.Systemd.{TimerFile, UnitFile}
 import io.accur8.neodeploy.model.{OnCalendarValue, PgbackrestServerDescriptor}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedAuthorizedKey, ResolvedServer, ResolvedUser}
@@ -17,9 +16,9 @@ case class PgbackrestServerPlugin(
   user: ResolvedUser,
 ) extends UserPlugin { resolvedServer =>
 
-  def descriptorJson = descriptor.toJsVal
+  override def name: String = "pgbackrestServer"
 
-  val name = SyncName("pgbackrestServer")
+  def descriptorJson = descriptor.toJsVal
 
   override def resolveAuthorizedKeysImpl: Task[Vector[ResolvedAuthorizedKey]] =
     user

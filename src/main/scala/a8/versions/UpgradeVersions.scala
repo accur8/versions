@@ -1,7 +1,7 @@
 package a8.versions
 
 import a8.shared.FileSystem.File
-import a8.shared.app.Logging
+import a8.common.logging.Logging
 import a8.versions.Build.BuildType
 
 import java.util.Properties

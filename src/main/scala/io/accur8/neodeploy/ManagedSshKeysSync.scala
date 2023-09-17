@@ -2,7 +2,7 @@ package io.accur8.neodeploy
 
 import a8.shared.{CompanionGen, FileSystem}
 import a8.shared.SharedImports._
-import a8.shared.app.{Logging, LoggingF}
+import a8.common.logging.{Logging, LoggingF}
 import a8.sync.RowSync._
 import io.accur8.neodeploy.resolvedmodel.ResolvedUser
 import zio.{Task, ZIO}
@@ -10,11 +10,9 @@ import PredefAssist._
 import io.accur8.neodeploy.systemstate.SystemState
 import io.accur8.neodeploy.systemstate.SystemStateModel._
 
-object ManagedSshKeysSync extends Sync[ResolvedUser] with LoggingF {
+object ManagedSshKeysSync extends LoggingF {
 
-  override val name: Sync.SyncName = Sync.SyncName("managed_ssh_keys")
-
-  override def systemState(user: ResolvedUser): M[SystemState] = {
+  def systemState(user: ResolvedUser): M[SystemState] = {
     val publicKey = user.sshPublicKeyFileInHome
     val privateKey = user.sshPrivateKeyFileInHome
     for {

@@ -1,6 +1,6 @@
 package a8.orbitjirasync
 
-import a8.shared.app.{BootstrappedIOApp, LoggingF}
+import a8.shared.app.{BootstrappedIOApp}
 import a8.sync.http.RequestProcessor
 import a8.sync.qubes.QubesApiClient
 import a8.orbitjirasync.model._

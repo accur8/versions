@@ -1,6 +1,7 @@
 package io.accur8.neodeploy
 
-import a8.shared.app.Logging
+
+import a8.common.logging.Logging
 import io.accur8.neodeploy.model.AuthorizedKey
 
 import java.net.URL

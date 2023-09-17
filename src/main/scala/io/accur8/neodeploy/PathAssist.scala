@@ -1,7 +1,7 @@
 package io.accur8.neodeploy
 
 import a8.shared.ZFileSystem.{File, Path}
-import a8.shared.app.LoggingF
+import a8.common.logging.LoggingF
 import zio.{Task, ZIO}
 
 import java.nio.file.Files

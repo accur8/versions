@@ -6,7 +6,7 @@ import io.accur8.neodeploy.systemstate.SystemState.DnsRecord
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
 import zio.{Ref, ZLayer}
 import a8.shared.SharedImports._
-import a8.shared.app.LoggingF
+import a8.common.logging.LoggingF
 import io.accur8.neodeploy.resolvedmodel.ResolvedRepository
 
 object DnsService extends LoggingF {

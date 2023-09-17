@@ -1,7 +1,7 @@
 package a8.orbitjirasync
 
 
-import a8.shared.app.Logging
+import a8.common.logging.Logging
 import a8.shared.{CompanionGen, LongValue, StringValue}
 import a8.shared.jdbcf.mapper.PK
 import a8.sync.http.RequestProcessor

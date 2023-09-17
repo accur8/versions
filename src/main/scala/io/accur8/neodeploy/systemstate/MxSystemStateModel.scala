@@ -10,8 +10,8 @@ package io.accur8.neodeploy.systemstate
 
 //====
 import a8.shared.ZFileSystem.Directory
-import io.accur8.neodeploy.Sync.SyncName
-import io.accur8.neodeploy.systemstate.SystemStateModel._
+import io.accur8.neodeploy.DeployId
+import io.accur8.neodeploy.systemstate.SystemStateModel.*
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
@@ -141,8 +141,7 @@ object MxSystemStateModel {
     implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[ResolvedState,a8.shared.json.ast.JsObj] =
       jsonCodecBuilder(
         a8.shared.json.JsonObjectCodecBuilder(generator)
-          .addField(_.resolvedName)
-          .addField(_.syncName)
+          .addField(_.deployId)
           .addField(_.value)
       )
       .build
@@ -153,14 +152,13 @@ object MxSystemStateModel {
     
     
     lazy val generator: Generator[ResolvedState,parameters.type] =  {
-      val constructors = Constructors[ResolvedState](3, unsafe.iterRawConstruct)
+      val constructors = Constructors[ResolvedState](2, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
     object parameters {
-      lazy val resolvedName: CaseClassParm[ResolvedState,String] = CaseClassParm[ResolvedState,String]("resolvedName", _.resolvedName, (d,v) => d.copy(resolvedName = v), None, 0)
-      lazy val syncName: CaseClassParm[ResolvedState,SyncName] = CaseClassParm[ResolvedState,SyncName]("syncName", _.syncName, (d,v) => d.copy(syncName = v), None, 1)
-      lazy val value: CaseClassParm[ResolvedState,SystemState] = CaseClassParm[ResolvedState,SystemState]("value", _.value, (d,v) => d.copy(value = v), None, 2)
+      lazy val deployId: CaseClassParm[ResolvedState,DeployId] = CaseClassParm[ResolvedState,DeployId]("deployId", _.deployId, (d,v) => d.copy(deployId = v), None, 0)
+      lazy val value: CaseClassParm[ResolvedState,SystemState] = CaseClassParm[ResolvedState,SystemState]("value", _.value, (d,v) => d.copy(value = v), None, 1)
     }
     
     
@@ -168,24 +166,22 @@ object MxSystemStateModel {
     
       def rawConstruct(values: IndexedSeq[Any]): ResolvedState = {
         ResolvedState(
-          resolvedName = values(0).asInstanceOf[String],
-          syncName = values(1).asInstanceOf[SyncName],
-          value = values(2).asInstanceOf[SystemState],
+          deployId = values(0).asInstanceOf[DeployId],
+          value = values(1).asInstanceOf[SystemState],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): ResolvedState = {
         val value =
           ResolvedState(
-            resolvedName = values.next().asInstanceOf[String],
-            syncName = values.next().asInstanceOf[SyncName],
+            deployId = values.next().asInstanceOf[DeployId],
             value = values.next().asInstanceOf[SystemState],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(resolvedName: String, syncName: SyncName, value: SystemState): ResolvedState =
-        ResolvedState(resolvedName, syncName, value)
+      def typedConstruct(deployId: DeployId, value: SystemState): ResolvedState =
+        ResolvedState(deployId, value)
     
     }
     

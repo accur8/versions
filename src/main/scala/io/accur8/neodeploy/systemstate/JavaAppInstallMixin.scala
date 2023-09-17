@@ -2,7 +2,7 @@ package io.accur8.neodeploy.systemstate
 
 
 import a8.shared.SharedImports.*
-import a8.shared.app.LoggingF
+import a8.common.logging.LoggingF
 import a8.shared.{FileSystem, ZFileSystem}
 import io.accur8.neodeploy.Installer
 import io.accur8.neodeploy.model.{ApplicationDescriptor, AppsInfo, AppsRootDirectory}

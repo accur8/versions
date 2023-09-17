@@ -5,7 +5,7 @@ import a8.appinstaller.AppInstallerConfig.LibDirKind
 import a8.shared.{CompanionGen, Exec, ZFileSystem}
 import a8.shared.ZFileSystem.{Directory, File, Path, SymlinkHandler, dir, symlink}
 import a8.shared.SharedImports.*
-import a8.shared.app.{Logging, LoggingF}
+import a8.common.logging.{Logging, LoggingF}
 import a8.versions.GenerateJavaLauncherDotNix.FullInstallResults
 import a8.versions.RepositoryOps.RepoConfigPrefix
 import coursier.core.{ModuleName, Organization}
@@ -25,7 +25,7 @@ object ApplicationInstallSync extends Logging with LoggingF {
 
 }
 
-case class ApplicationInstallSync(appsRootDirectory: AppsRootDirectory) extends ApplicationSync with LoggingF {
+case class ApplicationInstallSync(appsRootDirectory: AppsRootDirectory) extends LoggingF {
 
   // Install
   //    create app directory
@@ -38,10 +38,7 @@ case class ApplicationInstallSync(appsRootDirectory: AppsRootDirectory) extends 
   // Uninstall
   //     remove app directory
 
-  override val name: Sync.SyncName = Sync.SyncName("installer")
-
-
-  override def systemState(input: ResolvedApp): M[SystemState] =
+  def systemState(input: ResolvedApp): M[SystemState] =
     zsucceed(rawSystemState(input))
 
   def rawSystemState(resolvedApp: ResolvedApp): SystemState = {

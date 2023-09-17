@@ -2,9 +2,8 @@ package io.accur8.neodeploy
 
 
 import a8.shared.StringValue
-import a8.shared.app.{Logging, LoggingF}
+import a8.common.logging.{Logging, LoggingF}
 import io.accur8.neodeploy.InfrastructureSync.Name
-import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
 import io.accur8.neodeploy.model.UserLogin
 import io.accur8.neodeploy.resolvedmodel.{ResolvedRepository, ResolvedUser}
 import io.accur8.neodeploy.systemstate.SystemStateModel.PreviousState

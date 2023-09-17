@@ -1,13 +1,12 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.app.{BootstrappedIOApp, LoggingF}
+import a8.shared.app.{BootstrappedIOApp}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import zio.{Task, ZIO}
 import a8.shared.SharedImports._
 import io.accur8.neodeploy.resolvedmodel.ResolvedRepository
 import PredefAssist._
-import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
 
 import a8.Scala3Hacks.*
 

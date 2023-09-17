@@ -2,7 +2,6 @@ package io.accur8.neodeploy.systemstate
 
 import a8.shared.ZFileSystem
 import a8.shared.SharedImports._
-import a8.shared.app.LoggerF
 import io.accur8.neodeploy.HealthchecksDotIo
 import io.accur8.neodeploy.model.ApplicationDescriptor
 import io.accur8.neodeploy.systemstate.Interpreter.ActionNeededCache
@@ -35,7 +34,7 @@ case class Interpreter(newState: NewState, previousState: PreviousState, actionN
       None
     } else Some {
       val dryRunLogs = SystemStateImpl.dryRun(this)
-      val context = z"${newState.resolvedName}-${newState.syncName}"
+      val context = z"${newState.resolvedSyncState.deployId}"
       if (dryRunLogs.isEmpty) {
         s"dry run for ${context} is up to date"
       } else {
@@ -49,11 +48,11 @@ case class Interpreter(newState: NewState, previousState: PreviousState, actionN
 
   def runUninstallObsolete: ApplyState[Unit] =
     // we reverse because we want file cleanup to happen before directory cleanup
-    statesToUninstall
-      .reverse
-      .map(_.runUninstallObsolete(this))
-      .sequence
-      .as(())
+    zio.ZIO.collectAll(
+      statesToUninstall
+        .reverse
+        .map(_.runUninstallObsolete(this))
+    ).as(())
 
   lazy val statesToUninstall: Vector[SystemState] = {
 

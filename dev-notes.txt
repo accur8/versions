@@ -1,6 +1,10 @@
 
 
+* list applications
+* list syncs
 
+
+* deploy allows version from command line
 
 
 

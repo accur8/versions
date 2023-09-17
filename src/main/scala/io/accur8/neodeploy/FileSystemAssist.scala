@@ -6,7 +6,7 @@ import java.nio.file.Paths
 import java.nio.file.Files
 import a8.shared.SharedImports._
 import zio.ZIO
-import a8.shared.app.LoggingF
+import a8.common.logging.LoggingF
 import PredefAssist._
 
 object FileSystemAssist extends LoggingF {

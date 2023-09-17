@@ -2,7 +2,7 @@ package a8.versions
 
 
 import a8.shared.{CompanionGen, FileSystem, StringValue, ZFileSystem}
-import a8.shared.app.{BootstrappedIOApp, LoggingF}
+import a8.shared.app.{BootstrappedIOApp}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.versions.Build.BuildType
 import a8.versions.RepositoryOps.RepoConfigPrefix

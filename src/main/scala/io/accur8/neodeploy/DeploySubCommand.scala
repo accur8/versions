@@ -2,51 +2,62 @@ package io.accur8.neodeploy
 
 
 import a8.shared.{Exec, StringValue}
-import io.accur8.neodeploy.model.{DomainName, Install, Version}
-import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedRepository}
-import zio.Task
+import io.accur8.neodeploy.model.{ApplicationName, DomainName, Install, ServerName, UserLogin, Version}
+import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedRepository, ResolvedUser}
+import zio.{Task, ZIO}
 import a8.shared.SharedImports.*
-import a8.shared.app.LoggingF
+import a8.common.logging.LoggingF
 import a8.versions.{ParsedVersion, RepositoryOps, VersionParser}
 import a8.versions.model.{RepoPrefix, ResolutionRequest}
-import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
-import io.accur8.neodeploy.Sync.SyncName
+import io.accur8.neodeploy.DeploySubCommand.DeployAppEffects
+import io.accur8.neodeploy.DeployUser.{InfraUser, RegularUser}
+import io.accur8.neodeploy.Deployable.{InfraStructureDeployable, ServerDeployable, UserDeployable}
 import io.accur8.neodeploy.systemstate.SystemState.JavaAppInstall
+import org.rogach.scallop.{ArgType, ScallopOption, ValueConverter}
 
 object DeploySubCommand {
+
+  case class DeployAppEffects(
+    appDeploy: AppDeploy,
+    version: Version,
+    successEffect: Task[Unit],
+    errorEffect: Task[Unit],
+  )
+
 }
 
 case class DeploySubCommand(
   resolvedRepository: ResolvedRepository,
   runner: Runner,
-  rawVersion: Version,
-  appName: DomainName,
+  deployArgs: ResolvedDeployArgs,
 )
   extends LoggingF
 {
 
+  lazy val deployArgsByUser: Map[DeployUser, Iterable[DeployArg]] =
+    deployArgs
+      .args
+      .flatMap(da => da.deployUsers.map(_ -> da))
+      .groupBy(_._1)
+      .map(t => t._1 -> t._2.map(_._2))
+
   def run: Task[Unit] = {
-
-    // find the apps to deploy
-    def deployEachAppEffect =
-      resolvedRepository
-        .applications
-        .filter(_.isNamed(appName))
-        .map(ra => deployApp(ra))
-        .sequence
-
     for {
-      versions <- deployEachAppEffect
-      _ <- gitCommit(versions.head)
+      deployResults <-
+        deployArgsByUser
+          .map(e => runDeploy(e._1, e._2))
+          .sequence
+      _ <- gitCommit(deployResults)
       _ <- gitPush
     } yield ()
 
   }
 
-  def resolveVersion(app: ResolvedApp): Task[Version] =
-    rawVersion.value.toLowerCase.trim match {
+  def resolveVersion(appDeploy: AppDeploy): Task[Version] = {
+    import appDeploy.resolvedApp
+    appDeploy.version.map(_.value).getOrElse("current").toLowerCase.trim match {
       case v: ("latest" | "current") =>
-        (app.loadedApplicationDescriptor.descriptor.install, v) match {
+        (resolvedApp.loadedApplicationDescriptor.descriptor.install, v) match {
           case (ja: Install.JavaApp, "current") =>
             zsucceed(ja.version)
           case (ja: Install.JavaApp, "latest") =>
@@ -64,18 +75,27 @@ case class DeploySubCommand(
               resolutionResponse.version
             }
           case _ =>
-            zfail(new RuntimeException(s"${v} is only valid on java apps not ${app.loadedApplicationDescriptor.descriptor.install}"))
+            zfail(new RuntimeException(s"${v} is only valid on java apps not ${resolvedApp.loadedApplicationDescriptor.descriptor.install}"))
         }
       case _ =>
-        zsucceed(rawVersion)
+        zsucceed(appDeploy.version.get)
     }
+  }
 
-  def gitCommit(version: Version): Task[Unit] =
-    zblock(
-      Exec("git", "commit", "-am", z"deploy --version ${rawVersion.value} --app ${appName} --> resolved version is ${version.value}")
+  def gitCommit(deployResults: Iterable[DeployResult]): Task[Unit] =
+    zblock {
+      val appVersions = deployResults.flatMap(_.appVersions)
+      val versionInfo =
+        if ( appVersions.nonEmpty ) {
+          appVersions
+            .map(t => s"${t._1.value} -> ${t._2.value}").mkString("\n","\n","").indent("        ")
+        } else {
+          ""
+        }
+      Exec("git", "commit", "-am", z"deploy ${deployArgs.asCommandLineArgs.mkString(" ")}${versionInfo}")
         .inDirectory(a8.shared.FileSystem.dir(resolvedRepository.gitRootDirectory.unresolved.absolutePath))
         .execInline(): @scala.annotation.nowarn
-    )
+    }
 
   def gitPush: Task[Unit] =
     zblock(
@@ -84,53 +104,109 @@ case class DeploySubCommand(
         .execInline(): @scala.annotation.nowarn
     )
 
-  def deployApp(app: ResolvedApp): Task[Version] = {
+  def prepareDeployArgs(args: Iterable[DeployArg], deployAppEffects: Iterable[DeployAppEffects]): Iterable[String] = {
+    val nonAppArgs =
+      args.flatMap {
+        case a: AppDeploy => None
+        case a => Some(a.originalArg.originalValue)
+      }
+    val appArgs =
+      deployAppEffects
+        .map(dae => s"${dae.appDeploy.resolvedApp.name.value}:${dae.version.value}")
+    nonAppArgs ++ appArgs
+  }
 
-    val resolvedRunner =
-      runner
-        .copy(
-          serversFilter = Filter("server", Iterable(app.server.name)),
-          usersFilter = Filter("user", Iterable(app.user.login)),
-          appsFilter = Filter("app", Iterable(app.name)),
-        )
+  def runDeploy(deployUser: DeployUser, args: Iterable[DeployArg]): Task[DeployResult] = {
+    deployUser match {
+      case InfraUser(_) =>
+        runInfraDeploy(args)
+      case ru: RegularUser =>
+        runDeploy(ru, args)
+    }
+  }
+
+  def runInfraDeploy(args: Iterable[DeployArg]): Task[DeployResult] = {
+    ???
+  }
+
+  def runDeploy(deployUser: RegularUser, args: Iterable[DeployArg]): Task[DeployResult] = {
+
+    val resolvedUser = deployUser.user
+
+    val deployAppEffects: Task[Iterable[DeployAppEffects]] =
+      args
+        .collect { case a: AppDeploy => a }
+        .map(deployAppEffectsT)
+        .sequence
+
+    args
+      .collect { case a: AppDeploy => a }
+      .map(deployAppEffectsT)
+      .sequence
+      .flatMap { deployAppEffects =>
+
+        val happyPathEffect: Task[DeployResult] =
+          PushRemoteDeploy(
+            resolvedRepository,
+            runner,
+            resolvedUser,
+            prepareDeployArgs(args, deployAppEffects),
+          ).run.map { _ =>
+            DeployResult(
+              deployUser,
+              deployAppEffects.map(dae => dae.appDeploy.resolvedApp.name -> dae.version),
+            )
+          }
+
+        happyPathEffect
+          .onError(_ =>
+            deployAppEffects
+              .map(_.errorEffect)
+              .sequence
+              .logVoid
+          )
+      }
+
+  }
+
+  def deployAppEffectsT(appDeploy: AppDeploy): Task[DeployAppEffects] = {
+
+    val app = appDeploy.resolvedApp
+
+    val resolvedRunner = runner
 
     val versionDotPropsFile = app.gitDirectory.file("version.properties")
 
-    resolveVersion(app).flatMap { version =>
+    for {
+      version <- resolveVersion(appDeploy)
+      savedVersionDotProps <- versionDotPropsFile.readAsStringOpt
+    } yield {
 
       // set the version
       val setVersionEffect =
         versionDotPropsFile
-          .write(z"""# ${a8.shared.FileSystem.fileSystemCompatibleTimestamp()} -- rawVersion is ${rawVersion.value}${"\n"}version_override=${version}""")
+          .write(z"""# ${a8.shared.FileSystem.fileSystemCompatibleTimestamp()} -- rawVersion is ${version.value}${"\n"}version_override=${version}""")
 
-      val runPushRemoteSyncEffect =
-        PushRemoteSyncSubCommand(
-          resolvedRepository,
-          resolvedRunner,
-          PushRemoteSyncSubCommand.ApplicationSync,
-        ).run
+      val revertEffect =
+        savedVersionDotProps match {
+          case None =>
+            versionDotPropsFile.delete
+          case Some(content) =>
+            versionDotPropsFile.write(content)
+        }
+      val onErrorEffect =
+        for {
+          _ <- loggerF.info(s"deploy failed reverting ${versionDotPropsFile}")
+          _ <- revertEffect.logVoid
+        } yield ()
 
-      versionDotPropsFile.readAsStringOpt.flatMap { savedVersionDotProps =>
-        val effect =
-          for {
-            _ <- setVersionEffect
-            _ <- runPushRemoteSyncEffect
-          } yield version
-        effect
-          .onError { _ =>
-            val revertEffect =
-              savedVersionDotProps match {
-                case None =>
-                  versionDotPropsFile.delete
-                case Some(content) =>
-                  versionDotPropsFile.write(content)
-              }
-            for {
-              _ <- loggerF.info(s"deploy failed reverting ${versionDotPropsFile}")
-              _ <- revertEffect.logVoid
-            } yield ()
-          }
-      }
+      DeployAppEffects(
+        appDeploy,
+        version,
+        setVersionEffect,
+        onErrorEffect,
+      )
+
     }
 
   }

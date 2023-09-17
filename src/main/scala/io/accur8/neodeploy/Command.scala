@@ -8,7 +8,6 @@ import a8.shared.SharedImports._
 import PredefAssist._
 import a8.shared.CompanionGen
 import a8.shared.ZFileSystem.Directory
-import a8.shared.app.{LoggerF, LoggingF}
 import io.accur8.neodeploy.Command.CommandException
 import io.accur8.neodeploy.MxCommand.MxCommand
 import io.accur8.neodeploy.systemstate.SystemState.RunCommandState

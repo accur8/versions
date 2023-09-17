@@ -1,9 +1,8 @@
 package a8.appinstaller
 
 
-import a8.shared.app.Logging
+import a8.common.logging.Logging
 import a8.shared.FileSystem
-import wvlet.log.Logger
 
 import java.io.{File => JFile}
 import language.implicitConversions

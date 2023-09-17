@@ -6,12 +6,10 @@ import a8.shared.{CascadingHocon, CompanionGen, ConfigMojo, Exec, LongValue, Str
 import io.accur8.neodeploy.Mxmodel.*
 import a8.shared.SharedImports.*
 import a8.shared.ZString.ZStringer
-import a8.shared.app.{LoggerF, Logging, LoggingF}
 import a8.shared.json.ast.{JsArr, JsDoc, JsNothing, JsObj, JsStr, JsVal, resolveAliases}
 import a8.shared.json.{EnumCodecBuilder, JsonCodec, JsonTypedCodec, UnionCodecBuilder}
 import a8.versions.RepositoryOps.RepoConfigPrefix
 import sttp.model.Uri
-import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedAuthorizedKey, ResolvedUser}
 import zio.process.CommandError
 import zio.process.CommandError.NonZeroErrorCode
@@ -138,8 +136,19 @@ object model extends LoggingF {
   object SupervisorDirectory extends StringValue.Companion[SupervisorDirectory]
   case class SupervisorDirectory(value: String) extends DirectoryValue
 
-  object CaddyDirectory extends StringValue.Companion[CaddyDirectory]
+  object CaddyDirectory extends StringValue.Companion[CaddyDirectory] {
+    val layer = ZLayer(effect)
+    val effect = zservice[EtcDirectory].map(ed => CaddyDirectory(ed.subdir("caddy/apps").absolutePath))
+  }
   case class CaddyDirectory(value: String) extends DirectoryValue
+
+  object UserHomesDirectory extends StringValue.Companion[UserHomesDirectory]
+  case class UserHomesDirectory(value: String) extends DirectoryValue
+
+  object EtcDirectory extends StringValue.Companion[EtcDirectory] {
+    val layer = zl_succeed(EtcDirectory("/etc"))
+  }
+  case class EtcDirectory(value: String) extends DirectoryValue
 
   object AppsRootDirectory extends StringValue.Companion[AppsRootDirectory]
   case class AppsRootDirectory(value: String) extends DirectoryValue
@@ -367,9 +376,9 @@ object model extends LoggingF {
   case class UserDescriptor(
     login: UserLogin,
     aliases: Vector[QualifiedUserName] = Vector.empty,
-    home: Option[Directory] = None,
     authorizedKeys: Vector[QualifiedUserName] = Vector.empty,
     a8VersionsExec: Option[String] = None,
+    home: Option[Directory] = None,
     manageSshKeys: Boolean = true,
     appInstallDirectory: Option[AppsRootDirectory] = None,
     plugins: JsDoc = JsDoc.empty,

@@ -1,25 +1,24 @@
 package a8.versions
 
 
-import a8.shared.AtomicMap
-import a8.shared.app.Logging
-import wvlet.log.Logger
+import a8.common.logging.Logging
 
-import java.io._
+import java.io.*
 import java.net.URL
 import java.util
 import java.util.Properties
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.versions.Versioning.Entry
 
 import java.nio.ByteBuffer
+import scala.collection.concurrent.TrieMap
 
 object Versioning extends Logging {
 
   lazy val VersioningFile: String = "META-INF/version.properties"
   lazy val VersioningDetailFile: String = "META-INF/version-details.properties"
   lazy val INDENT: String = "   "
-  lazy val versionCache = AtomicMap[Class[_], Versioning]
+  lazy val versionCache = TrieMap.empty[Class[_], Versioning]
 
   def getAllVersioningResources(classLoader: ClassLoader): List[Versioning] =
     classLoader

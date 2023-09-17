@@ -1,7 +1,7 @@
 package a8.versions
 
-import sttp.client3._
-import wvlet.log.Logger
+import a8.common.logging.Logger
+import sttp.client3.*
 
 import scala.collection.convert.{AsJavaExtensions, AsScalaExtensions}
 
@@ -12,7 +12,8 @@ trait predef
   with AsScalaExtensions
 {
 
-  type Logging = a8.shared.app.Logging
+  type Logging = a8.common.logging.Logging
+  type LoggingF = a8.common.logging.LoggingF
 
 
   type Closable = { def close(): Unit }

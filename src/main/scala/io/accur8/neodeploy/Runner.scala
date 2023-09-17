@@ -2,14 +2,11 @@ package io.accur8.neodeploy
 
 
 import a8.shared.app.BootstrapConfig.TempDir
-import a8.shared.app.{BootstrapConfig, BootstrappedIOApp, LoggerF}
+import a8.shared.app.{BootstrapConfig, BootstrappedIOApp}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.versions.apps.Main
-import io.accur8.neodeploy.PushRemoteSyncSubCommand.Filter
-import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.model.{ApplicationName, ServerName, UserLogin}
 import io.accur8.neodeploy.resolvedmodel.ResolvedRepository
-import wvlet.log.LogLevel
 import zio.{Task, ZIO}
 
 object Runner {
@@ -17,20 +14,16 @@ object Runner {
 }
 
 case class Runner(
-  serversFilter: Filter[ServerName] = Filter.allowAll,
-  usersFilter: Filter[UserLogin] = Filter.allowAll,
-  appsFilter: Filter[ApplicationName] = Filter.allowAll,
-  syncsFilter: Filter[SyncName] = Filter.allowAll,
+//  serversFilter: Filter[ServerName] = Filter.allowAll,
+//  usersFilter: Filter[UserLogin] = Filter.allowAll,
+//  appsFilter: Filter[ApplicationName] = Filter.allowAll,
+//  syncsFilter: Filter[SyncName] = Filter.allowAll,
   remoteDebug: Boolean = false,
   remoteTrace: Boolean = false,
   runnerFn: (ResolvedRepository, Runner) => Runner.M[Unit],
-  wvletDefaultLogLevel: LogLevel,
 )
   extends BootstrappedIOApp
 {
-
-  override def defaultLogLevel =
-    BootstrapConfig.UnifiedLogLevel(wvletDefaultLogLevel)
 
   def unsafeRun(): Unit =
     main(Array[String]())

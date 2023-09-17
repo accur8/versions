@@ -1,7 +1,6 @@
 package io.accur8.neodeploy.plugin
 
 import a8.shared.SharedImports._
-import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.Systemd.{TimerFile, UnitFile}
 import io.accur8.neodeploy.model.{OnCalendarValue, RSnapshotServerDescriptor}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedServer, ResolvedUser}
@@ -16,9 +15,9 @@ case class RSnapshotServerPlugin(
   user: ResolvedUser,
 ) extends UserPlugin {
 
-  def descriptorJson = descriptor.toJsVal
+  override def name: String = s"rsnapshotServer-${user.qname}"
 
-  val name = SyncName("rsnapshotServer")
+  def descriptorJson = descriptor.toJsVal
 
   lazy val server: ResolvedServer = user.server
 
@@ -49,17 +48,16 @@ case class RSnapshotServerPlugin(
     user
       .plugins
       .resolvedRSnapshotServerOpt
-      .map(systemState)
+      .map(_.systemState)
       .getOrElse(SystemState.Empty)
 
 
-  def systemState(resolvedRSnapshotServer: RSnapshotServerPlugin): SystemState =
+  def systemState: SystemState =
     SystemState.Composite(
       "setup rsnapshot server",
-      resolvedRSnapshotServer
-        .clients
+      clients
         .map { client =>
-          setupClientSystemState(resolvedRSnapshotServer, client)
+          setupClientSystemState(this, client)
         }
     )
 

@@ -3,19 +3,18 @@ package io.accur8.neodeploy.plugin
 import a8.shared.json.ast
 import a8.shared.json.ast.JsNothing
 import io.accur8.neodeploy.DomainNameSystem.{SyncRequest, defaultTtl}
-import io.accur8.neodeploy.Sync.SyncName
 import io.accur8.neodeploy.model.{DomainName, ManagedDomain}
 import io.accur8.neodeploy.resolvedmodel.VirtualHost
 import io.accur8.neodeploy.systemstate.SystemState
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
-import io.accur8.neodeploy.{AmazonRoute53DnsApi, DomainNameSystem, Sync, UserPlugin, resolvedmodel}
+import io.accur8.neodeploy.{AmazonRoute53DnsApi, DomainNameSystem, UserPlugin, resolvedmodel}
 import zio.{Task, ZIO}
 import a8.shared.SharedImports._
-import a8.shared.app.LoggingF
+import a8.common.logging.LoggingF
 
 object DnsPlugin extends RepositoryPlugins.RepositoryPlugin with LoggingF {
 
-  override val name: Sync.SyncName = SyncName("dns")
+  override def name: String = "dns"
 
   override def descriptorJson: ast.JsVal = JsNothing
 
