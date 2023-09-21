@@ -1,10 +1,9 @@
 package io.accur8.neodeploy
 
-
-import a8.shared.ZFileSystem.{Directory, File}
+import io.accur8.neodeploy.VFileSystem
 import zio.{Task, ZIO}
 import a8.shared.SharedImports.*
-import a8.shared.{FileSystem, ZString}
+import a8.shared.{ZString}
 import a8.shared.ZString.ZStringer
 import io.accur8.neodeploy.model.Launcher.SupervisorLauncher
 import io.accur8.neodeploy.model.{SupervisorDescriptor, SupervisorDirectory}
@@ -20,14 +19,14 @@ trait SupervisorLauncherMixin { self: SupervisorLauncher =>
 
   def supervisorConfigContents(app: ResolvedApp, supervisor: SupervisorDescriptor) = {
 
-    def pathZStringer[A <: a8.shared.ZFileSystem.Path]: ZStringer[A] =
-      new ZStringer[A] {
-        override def toZString(a: A): ZString =
-          a.asNioPath.toAbsolutePath.toString
-      }
+//    def pathZStringer[A <: a8.shared.ZFileSystem.Path]: ZStringer[A] =
+//      new ZStringer[A] {
+//        override def toZString(a: A): ZString =
+//          a.asNioPath.toAbsolutePath.toString
+//      }
 
-    implicit val dirZStringer = pathZStringer[Directory]
-    implicit val fileZStringer = pathZStringer[File]
+//    implicit val dirZStringer = pathZStringer[Directory]
+//    implicit val fileZStringer = pathZStringer[File]
 
     import app.descriptor._
 
@@ -42,7 +41,7 @@ trait SupervisorLauncherMixin { self: SupervisorLauncher =>
     val appDir = appsRoot.subdir(app.descriptor.name.value)
     val tempDir = appDir.subdir("tmp")
     val command = app.descriptor.install.command(app.descriptor, appDir, appsRoot)
-    val workingDir: Directory = command.workingDirectory.getOrElse(appDir)
+    val workingDir: VFileSystem.Directory = command.workingDirectory.getOrElse(appDir)
 
     z"""
 [program:${app.descriptor.name}]

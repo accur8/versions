@@ -8,7 +8,9 @@ import a8.Scala3Hacks.*
 
 trait DirectoryMixin extends SystemStateMixin { self: SystemState.Directory =>
 
-  override def stateKey: Option[StateKey] = StateKey("directory", path.absolutePath).some
+  def dirZ = path.zdir
+
+  override def stateKey: Option[StateKey] = StateKey("directory", path.path).some
   override def dryRunInstall: Vector[String] = Vector(z"directory ${path} with ${perms}")
 
   override def isActionNeeded = {

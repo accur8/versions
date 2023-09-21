@@ -28,7 +28,7 @@ object Systemd {
   case class UnitFile(
     Type: String = "simple",
     environment: Vector[String] = Vector.empty,
-    workingDirectory: String,
+    workingDirectory: VFileSystem.Directory,
     execStart: String,
   )
 
@@ -102,22 +102,18 @@ object Systemd {
     val daemonReloadCommand =
       Overrides.userSystemCtlCommand
         .appendArgs("daemon-reload")
-        .asSystemStateCommand
 
     val enableTimerCommand =
       Overrides.userSystemCtlCommand
         .appendArgs("enable", "--now", z"${unitName}.timer")
-        .asSystemStateCommand
 
     val disableTimerCommand =
       Overrides.userSystemCtlCommand
         .appendArgs("disable", z"${unitName}.timer")
-        .asSystemStateCommand
 
     val stopTimerCommand =
       Overrides.userSystemCtlCommand
         .appendArgs("stop", z"${unitName}.timer")
-        .asSystemStateCommand
 
     val enableTimerCommands =
       timerFileOpt
@@ -136,7 +132,6 @@ object Systemd {
     val enableUserLingerCommand =
       Overrides.userLoginCtlCommand
         .appendArgs("enable-linger")
-        .asSystemStateCommand
 
     val manageSystemdUnitState: SystemState =
       RunCommandState(

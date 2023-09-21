@@ -1,8 +1,8 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.ZFileSystem.{Directory, File, Z, dir, Symlink}
-import a8.shared.{CascadingHocon, CompanionGen, ConfigMojo, Exec, LongValue, StringValue, ZFileSystem, ZString}
+import io.accur8.neodeploy.VFileSystem.{Directory, File, Symlink, dir}
+import a8.shared.{CascadingHocon, CompanionGen, ConfigMojo, Exec, LongValue, StringValue, ZString}
 import io.accur8.neodeploy.Mxmodel.*
 import a8.shared.SharedImports.*
 import a8.shared.ZString.ZStringer
@@ -21,8 +21,10 @@ import io.accur8.neodeploy.model.DockerDescriptor.UninstallAction
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
 import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
 import a8.Scala3Hacks.*
+import io.accur8.neodeploy.LocalDeploy.Config
 import io.accur8.neodeploy.systemstate.SystemState.RunCommandState
 import io.accur8.neodeploy.systemstate.{SystemState, SystemdLauncherMixin}
+import systemstate.SystemStateModel.Command
 
 object model extends LoggingF {
 
@@ -83,17 +85,14 @@ object model extends LoggingF {
   }
 
   object DirectoryValue {
-    implicit def zstringer[A <: DirectoryValue]: ZStringer[A] =
-      new ZStringer[A] {
-        override def toZString(a: A): ZString =
-          a.asNioPath.toFile.getAbsolutePath
-      }
+//    implicit def zstringer[A <: DirectoryValue]: ZStringer[A] =
+//      new ZStringer[A] {
+//        override def toZString(a: A): ZString =
+//          a.asNioPath.toFile.getAbsolutePath
+//      }
   }
 
   abstract class DirectoryValue extends StringValue {
-
-    def absolutePath =
-      asNioPath.toFile.getAbsolutePath
 
     lazy val resolved: M[Directory] = {
       val dirValue = unresolved
@@ -110,9 +109,6 @@ object model extends LoggingF {
 
     lazy val unresolved: Directory = dir(value)
 
-    def asNioPath =
-      unresolved.asNioPath
-
     def symlink(name: String): Symlink =
       unresolved.symlink(name)
 
@@ -122,8 +118,10 @@ object model extends LoggingF {
     def file(path: String): File =
       unresolved.file(path)
 
-    def exists: Z[Boolean] =
-      unresolved.exists
+    def exists: M[Boolean] =
+      unresolved
+        .zdir
+        .flatMap(_.exists)
 
   }
 
@@ -137,18 +135,18 @@ object model extends LoggingF {
   case class SupervisorDirectory(value: String) extends DirectoryValue
 
   object CaddyDirectory extends StringValue.Companion[CaddyDirectory] {
-    val layer = ZLayer(effect)
-    val effect = zservice[EtcDirectory].map(ed => CaddyDirectory(ed.subdir("caddy/apps").absolutePath))
+    val layer = zl_succeed(CaddyDirectory("/etc/caddy/apps"))
   }
   case class CaddyDirectory(value: String) extends DirectoryValue
 
-  object UserHomesDirectory extends StringValue.Companion[UserHomesDirectory]
-  case class UserHomesDirectory(value: String) extends DirectoryValue
-
-  object EtcDirectory extends StringValue.Companion[EtcDirectory] {
-    val layer = zl_succeed(EtcDirectory("/etc"))
+  object LocalRootDirectory extends StringValue.Companion[LocalRootDirectory] {
+    val default = LocalRootDirectory("/")
+    val layer = ZLayer(effect)
+    val effect =
+      zservice[Config]
+        .map(_.rootDirectory)
   }
-  case class EtcDirectory(value: String) extends DirectoryValue
+  case class LocalRootDirectory(value: String) extends DirectoryValue
 
   object AppsRootDirectory extends StringValue.Companion[AppsRootDirectory]
   case class AppsRootDirectory(value: String) extends DirectoryValue
@@ -162,9 +160,9 @@ object model extends LoggingF {
   case class AppsInfo(
     appsRoot: AppsRootDirectory,
   ) {
-    lazy val installsDir: ZFileSystem.Directory = appsRoot.subdir(".installs")
-    lazy val persistenceDir: ZFileSystem.Directory = appsRoot.subdir(".data")
-    lazy val nixHashCacheDir: ZFileSystem.Directory = installsDir.subdir(".nixhashcache")
+    lazy val installsDir: VFileSystem.Directory = appsRoot.subdir(".installs")
+    lazy val persistenceDir: VFileSystem.Directory = appsRoot.subdir(".data")
+    lazy val nixHashCacheDir: VFileSystem.Directory = installsDir.subdir(".nixhashcache")
   }
 
   object GitServerDirectory extends StringValue.Companion[GitServerDirectory]
@@ -187,7 +185,7 @@ object model extends LoggingF {
       serviceCommand(action)
         .map { cmd =>
           RunCommandState(
-            installCommands = Vector(cmd.asSystemStateCommand)
+            installCommands = Vector(cmd)
           )
         }
         .getOrElse(SystemState.Empty)
@@ -264,9 +262,8 @@ object model extends LoggingF {
         val appDir = appsRoot.subdir(applicationDescriptor.name.value)
         val bin = appDir.subdir("bin").file(applicationDescriptor.name.value)
         Command(
-          List(bin.absolutePath),
-          appDir.some,
-        )
+          bin.path,
+        ).inDirectory(appDir)
       }
 
     }
@@ -383,7 +380,7 @@ object model extends LoggingF {
     appInstallDirectory: Option[AppsRootDirectory] = None,
     plugins: JsDoc = JsDoc.empty,
   ) {
-    def resolvedAppsRootDirectory = appInstallDirectory.getOrElse(AppsRootDirectory(resolvedHome.subdir("apps").absolutePath))
+    def resolvedAppsRootDirectory = appInstallDirectory.getOrElse(AppsRootDirectory(resolvedHome.subdir("apps").path))
     def resolvedHome = home.getOrElse(dir(z"/home/${login}"))
   }
 

@@ -9,13 +9,14 @@ package io.accur8.neodeploy
 */
 
 //====
-import a8.shared.ZFileSystem.Directory
+import VFileSystem._
 import a8.shared.json.ast.{JsDoc, JsObj, JsVal}
 import a8.versions.RepositoryOps.RepoConfigPrefix
 import sttp.model.Uri
 import io.accur8.neodeploy.model.DockerDescriptor.UninstallAction
 import io.accur8.neodeploy.model._
 import io.accur8.neodeploy.model.Install.{JavaApp, Manual}
+import systemstate.SystemStateModel.Command
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

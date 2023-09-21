@@ -1,16 +1,16 @@
 package io.accur8.neodeploy.plugin
 
+
+import io.accur8.neodeploy.VFileSystem
 import a8.shared.SharedImports._
-import a8.shared.ZFileSystem
 import io.accur8.neodeploy.resolvedmodel.ResolvedUser
 import io.accur8.neodeploy.systemstate.SystemState
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
 
-
 object PgbackrestConfig {
 
-  def configFile(input: ResolvedUser): ZFileSystem.File =
-    ZFileSystem.file(
+  def configFile(input: ResolvedUser): VFileSystem.File =
+    VFileSystem.file(
       input
         .plugins
         .pgbackrestClientOpt

@@ -1,13 +1,13 @@
 package io.accur8.neodeploy.plugin
 
 import a8.shared.SharedImports._
-import a8.shared.ZFileSystem
 import a8.shared.json.ast.{JsNothing, JsVal}
 import io.accur8.neodeploy.model.{DomainName, ListenPort}
 import io.accur8.neodeploy.resolvedmodel.ResolvedUser
 import io.accur8.neodeploy.systemstate.SystemState
 import io.accur8.neodeploy.systemstate.SystemStateModel.{M, UnixPerms}
 import io.accur8.neodeploy.{Overrides, UserPlugin}
+import io.accur8.neodeploy.VFileSystem
 
 case object CaddyServerPlugin extends UserPlugin {
 
@@ -25,7 +25,7 @@ ${domains.map(_.value).mkString(", ")} {
 
   override def systemState(input: ResolvedUser): M[SystemState] =
     zsucceed {
-      val file = ZFileSystem.file("/etc/caddy/Caddyfile")
+      val file = VFileSystem.file("/etc/caddy/Caddyfile")
       val apps =
         input
           .server
@@ -65,7 +65,6 @@ ${domains.map(_.value).mkString(", ")} {
         Vector(
           Overrides.systemCtlCommand
             .appendArgs("reload", "caddy")
-            .asSystemStateCommand
         )
 
       val runReloadCaddyCommand =

@@ -1,9 +1,9 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.ZFileSystem.file
+import VFileSystem.File
 import zio.Task
-import a8.shared.SharedImports._
+import SharedImports._
 import a8.common.logging.Logging
 import a8.shared.{FileSystem, ZFileSystem, ZString}
 import sttp.model.Uri
@@ -15,10 +15,10 @@ import io.accur8.neodeploy.systemstate.SystemStateModel._
 
 object AuthorizedKeys2Sync extends Logging {
 
-  def configFile(input: ResolvedUser): ZFileSystem.File =
+  def configFile(input: ResolvedUser): VFileSystem.File =
     input.home.subdir(".ssh").file("authorized_keys2")
 
-  def contents(input: ResolvedUser): Task[String] =
+  def contents(input: ResolvedUser): N[String] =
     input
       .resolvedAuthorizedKeys(Set.empty)
       .map(

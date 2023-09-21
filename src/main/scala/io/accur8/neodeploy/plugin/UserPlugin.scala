@@ -5,15 +5,13 @@ import a8.shared.json.{JsonCodec, ast}
 import a8.shared.json.ast.{JsArr, JsDoc, JsNothing, JsStr, JsVal}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedAuthorizedKey, ResolvedUser}
 import org.typelevel.ci.CIString
-import a8.shared.SharedImports._
-import a8.shared.ZFileSystem
+import SharedImports._
 import a8.common.logging.Logging
 import io.accur8.neodeploy.model.{AuthorizedKey, DomainName, ListenPort, QualifiedUserName}
 import io.accur8.neodeploy.plugin.PluginManager.{Factory, SingletonFactory}
 import io.accur8.neodeploy.plugin.{CaddyServerPlugin, PgbackrestClientPlugin, PgbackrestServerPlugin, Plugin, PluginManager, RSnapshotClientPlugin, RSnapshotServerPlugin}
 import io.accur8.neodeploy.systemstate.SystemState
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
-import zio.Task
 
 object UserPlugin extends Logging {
 
@@ -32,7 +30,7 @@ object UserPlugin extends Logging {
 
     override def context: String = user.qname
 
-    def resolveAuthorizedKeys: Task[Vector[ResolvedAuthorizedKey]] =
+    def resolveAuthorizedKeys: N[Vector[ResolvedAuthorizedKey]] =
       pluginInstances
         .map { plugin =>
           plugin
@@ -80,11 +78,11 @@ object UserPlugin extends Logging {
 
 trait UserPlugin extends Plugin[ResolvedUser] {
 
-  final def resolveAuthorizedKeys: Task[Vector[ResolvedAuthorizedKey]] =
+  final def resolveAuthorizedKeys: N[Vector[ResolvedAuthorizedKey]] =
     resolveAuthorizedKeysImpl
       .map(_.map(_.withParent(name)))
 
-  def resolveAuthorizedKeysImpl: Task[Vector[ResolvedAuthorizedKey]] =
+  def resolveAuthorizedKeysImpl: N[Vector[ResolvedAuthorizedKey]] =
     zsucceed(Vector.empty)
 
 }

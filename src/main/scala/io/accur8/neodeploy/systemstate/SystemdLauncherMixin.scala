@@ -29,7 +29,7 @@ trait SystemdLauncherMixin { self: SystemdLauncher =>
       unitFile = UnitFile(
         Type = sd.`type`,
         environment = sd.environment,
-        workingDirectory = command.workingDirectory.getOrElse(input.appDirectory).absolutePath,
+        workingDirectory = command.workingDirectory.getOrElse(input.appDirectory),
         execStart = command.args.mkString(" "),
       ),
       timerFileOpt =

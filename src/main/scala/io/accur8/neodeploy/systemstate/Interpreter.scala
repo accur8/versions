@@ -43,10 +43,10 @@ case class Interpreter(newState: NewState, previousState: PreviousState, actionN
     }
   }
 
-  def runApplyNewState: ApplyState[Unit] =
+  def runApplyNewState: M[Unit] =
     SystemStateImpl.runApplyNewState(this)
 
-  def runUninstallObsolete: ApplyState[Unit] =
+  def runUninstallObsolete: M[Unit] =
     // we reverse because we want file cleanup to happen before directory cleanup
     zio.ZIO.collectAll(
       statesToUninstall

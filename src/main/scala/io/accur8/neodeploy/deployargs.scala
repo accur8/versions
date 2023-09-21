@@ -2,7 +2,7 @@ package io.accur8.neodeploy
 
 
 import io.accur8.neodeploy.Deployable.{InfraStructureDeployable, ServerDeployable, UserDeployable, allDeployables}
-import io.accur8.neodeploy.model.{ApplicationName, ServerName, UserLogin, Version}
+import io.accur8.neodeploy.model.{ApplicationName, DomainName, ServerName, UserLogin, Version}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedRepository, ResolvedServer, ResolvedUser}
 import org.rogach.scallop.{ArgType, ValueConverter}
 import a8.shared.SharedImports.*
@@ -56,10 +56,10 @@ object DeployArg {
         .toList
 
     def resolveApp(appNameStr: String, version: Option[Version]): Either[String, AppDeploy] = {
-      val appName = ApplicationName(appNameStr)
-      resolvedRepo
-        .applications
-        .find(_.name == appName)
+      val appName = DomainName(appNameStr)
+      val apps = resolvedRepo.applications
+      apps
+        .find(_.isNamed(appName))
         .map(app => AppDeploy(app, version, parsedValue))
         .toRight(s"unable to find app ${appName}")
     }

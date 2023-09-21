@@ -6,18 +6,18 @@ import io.accur8.neodeploy.systemstate.SystemStateModel._
 import a8.shared.SharedImports._
 
 import a8.Scala3Hacks.*
+import io.accur8.neodeploy.VFileSystem
 
 trait TextFileContentsMixin extends SystemStateMixin {
 
-  val file: ZFileSystem.File
   val perms: UnixPerms
-  def filename = file.absolutePath
+  def file: VFileSystem.File
 
   def contents: String
 
   def prefix: String
 
-  override def stateKey: Option[StateKey] = StateKey("text file", file.absolutePath).some
+  override def stateKey: Option[StateKey] = StateKey("text file", file.path).some
 
   override def dryRunInstall: Vector[String] = {
     val permsStr =
@@ -25,14 +25,14 @@ trait TextFileContentsMixin extends SystemStateMixin {
          s" with ${perms}"
        else
         ""
-    Vector(s"${prefix}file ${filename}${permsStr}")
+    Vector(s"${prefix}file ${file}${permsStr}")
   }
 
   override def isActionNeeded = {
-    val file = ZFileSystem.file(filename)
     for {
+      zfile <- file.zfile
       permissionActionNeeded0 <- SystemStateImpl.permissionsActionNeeded(file, perms)
-      actualContentsOpt <- file.readAsStringOpt
+      actualContentsOpt <- zfile.readAsStringOpt
     } yield {
       val contentsMatch = actualContentsOpt === some(contents)
       permissionActionNeeded0 || !contentsMatch
@@ -40,19 +40,19 @@ trait TextFileContentsMixin extends SystemStateMixin {
   }
 
 
-  override def runApplyNewState = {
-    val file = ZFileSystem.file(filename)
+  override def runApplyNewState: M[Unit] = {
     for {
-      parentExists <- file.parent.exists
+      zfile <- file.zfile
+      parentExists <- zfile.parent.exists
       _ <-
         if (parentExists)
           zunit
         else
-          file.parent.makeDirectories
-      _ <- file.write(contents)
+          zfile.parent.makeDirectories
+      _ <- zfile.write(contents)
       _ <-
         if ( perms.value.nonEmpty ) {
-          io.accur8.neodeploy.Command("chmod", perms.value, filename)
+          io.accur8.neodeploy.systemstate.SystemStateModel.Command("chmod", perms.value, zfile.absolutePath)
             .execCaptureOutput
         } else {
           zunit
@@ -62,6 +62,8 @@ trait TextFileContentsMixin extends SystemStateMixin {
 
 
   override def runUninstallObsolete(interpreter: Interpreter) =
-    ZFileSystem.file(filename).delete
+    file
+      .zfile
+      .flatMap(_.delete)
 
 }

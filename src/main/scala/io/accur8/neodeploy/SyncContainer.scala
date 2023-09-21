@@ -1,10 +1,11 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.ZFileSystem.Directory
+import io.accur8.neodeploy.VFileSystem
+import VFileSystem.Directory
 import a8.shared.json.JsonCodec
 import a8.shared.SharedImports.{zservice, _}
-import a8.shared.{StringValue, ZFileSystem}
+import a8.shared.{StringValue}
 import a8.shared.ZString.ZStringer
 import a8.common.logging.{Logging, LoggingF}
 import a8.shared.jdbcf.ISeriesDialect.logger
@@ -56,11 +57,13 @@ case class SyncContainer(
   extends LoggingF
 {
 
-  def resolveStateFile(deployId: DeployId): ZFileSystem.File =
+  def resolveStateFile(deployId: DeployId): VFileSystem.File =
     stateDirectory.file(z"${deployId.value}.json")
 
-  def loadState(deployId: DeployId): Task[PreviousState] =
-    json.fromFile[PreviousState](resolveStateFile(deployId))
+  def loadState(deployId: DeployId): M[PreviousState] =
+    resolveStateFile(deployId)
+      .zfile
+      .flatMap(json.fromFile[PreviousState])
       .either
       .flatMap {
         case Left(e) =>
@@ -72,7 +75,7 @@ case class SyncContainer(
       }
 
 
-  def run: ApplyState[Unit] =
+  def run: M[Unit] =
     loggerF.debug(s"running = ${deploys.map(_.deployId).mkString(" ")}") *>
       deploys
         .map { deployArg =>
@@ -84,7 +87,7 @@ case class SyncContainer(
         .sequence
         .as(())
 
-  def run(deployArg: DeployArg, previousState: PreviousState): ApplyState[Unit] = {
+  def run(deployArg: DeployArg, previousState: PreviousState): M[Unit] = {
 
     val namePair = deployArg.deployId
 
@@ -94,7 +97,7 @@ case class SyncContainer(
         .traceLog(s"systemState(${namePair})")
         .map(s => NewState(ResolvedState(namePair, s)))
 
-    val effect: ApplyState[Unit] =
+    val effect: M[Unit] =
       for {
         _ <- loggerF.trace(s"starting run(${namePair})")
         newState <- newStateEffect
@@ -118,7 +121,7 @@ case class SyncContainer(
 
   def runSystemStateServicesCommit: M[Unit] = zunit
 
-  def updateState(newState: NewState): Task[Unit] = {
+  def updateState(newState: NewState): M[Unit] = {
     val isEmpty = newState.isEmpty
     val stateFile = resolveStateFile(newState.resolvedSyncState.deployId)
     if (isEmpty) {

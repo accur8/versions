@@ -15,6 +15,7 @@ import io.accur8.neodeploy.model.{ApplicationDescriptor, DockerDescriptor, Domai
 import io.accur8.neodeploy.model.Install.JavaApp
 import io.accur8.neodeploy.systemstate.SystemState._
 import io.accur8.neodeploy.systemstate.SystemStateModel._
+import io.accur8.neodeploy.VFileSystem
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
@@ -48,7 +49,7 @@ object MxSystemState {
     
     object parameters {
       lazy val target: CaseClassParm[Symlink,String] = CaseClassParm[Symlink,String]("target", _.target, (d,v) => d.copy(target = v), None, 0)
-      lazy val link: CaseClassParm[Symlink,ZFileSystem.Symlink] = CaseClassParm[Symlink,ZFileSystem.Symlink]("link", _.link, (d,v) => d.copy(link = v), None, 1)
+      lazy val link: CaseClassParm[Symlink,VFileSystem.Symlink] = CaseClassParm[Symlink,VFileSystem.Symlink]("link", _.link, (d,v) => d.copy(link = v), None, 1)
       lazy val perms: CaseClassParm[Symlink,UnixPerms] = CaseClassParm[Symlink,UnixPerms]("perms", _.perms, (d,v) => d.copy(perms = v), Some(()=> UnixPerms.empty), 2)
     }
     
@@ -58,7 +59,7 @@ object MxSystemState {
       def rawConstruct(values: IndexedSeq[Any]): Symlink = {
         Symlink(
           target = values(0).asInstanceOf[String],
-          link = values(1).asInstanceOf[ZFileSystem.Symlink],
+          link = values(1).asInstanceOf[VFileSystem.Symlink],
           perms = values(2).asInstanceOf[UnixPerms],
         )
       }
@@ -66,14 +67,14 @@ object MxSystemState {
         val value =
           Symlink(
             target = values.next().asInstanceOf[String],
-            link = values.next().asInstanceOf[ZFileSystem.Symlink],
+            link = values.next().asInstanceOf[VFileSystem.Symlink],
             perms = values.next().asInstanceOf[UnixPerms],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(target: String, link: ZFileSystem.Symlink, perms: UnixPerms): Symlink =
+      def typedConstruct(target: String, link: VFileSystem.Symlink, perms: UnixPerms): Symlink =
         Symlink(target, link, perms)
     
     }
@@ -110,7 +111,7 @@ object MxSystemState {
     }
     
     object parameters {
-      lazy val file: CaseClassParm[TextFile,ZFileSystem.File] = CaseClassParm[TextFile,ZFileSystem.File]("file", _.file, (d,v) => d.copy(file = v), None, 0)
+      lazy val file: CaseClassParm[TextFile,VFileSystem.File] = CaseClassParm[TextFile,VFileSystem.File]("file", _.file, (d,v) => d.copy(file = v), None, 0)
       lazy val contents: CaseClassParm[TextFile,String] = CaseClassParm[TextFile,String]("contents", _.contents, (d,v) => d.copy(contents = v), None, 1)
       lazy val perms: CaseClassParm[TextFile,UnixPerms] = CaseClassParm[TextFile,UnixPerms]("perms", _.perms, (d,v) => d.copy(perms = v), Some(()=> UnixPerms.empty), 2)
     }
@@ -120,7 +121,7 @@ object MxSystemState {
     
       def rawConstruct(values: IndexedSeq[Any]): TextFile = {
         TextFile(
-          file = values(0).asInstanceOf[ZFileSystem.File],
+          file = values(0).asInstanceOf[VFileSystem.File],
           contents = values(1).asInstanceOf[String],
           perms = values(2).asInstanceOf[UnixPerms],
         )
@@ -128,7 +129,7 @@ object MxSystemState {
       def iterRawConstruct(values: Iterator[Any]): TextFile = {
         val value =
           TextFile(
-            file = values.next().asInstanceOf[ZFileSystem.File],
+            file = values.next().asInstanceOf[VFileSystem.File],
             contents = values.next().asInstanceOf[String],
             perms = values.next().asInstanceOf[UnixPerms],
           )
@@ -136,7 +137,7 @@ object MxSystemState {
            sys.error("")
         value
       }
-      def typedConstruct(file: ZFileSystem.File, contents: String, perms: UnixPerms): TextFile =
+      def typedConstruct(file: VFileSystem.File, contents: String, perms: UnixPerms): TextFile =
         TextFile(file, contents, perms)
     
     }
@@ -173,7 +174,7 @@ object MxSystemState {
     }
     
     object parameters {
-      lazy val file: CaseClassParm[SecretsTextFile,ZFileSystem.File] = CaseClassParm[SecretsTextFile,ZFileSystem.File]("file", _.file, (d,v) => d.copy(file = v), None, 0)
+      lazy val file: CaseClassParm[SecretsTextFile,VFileSystem.File] = CaseClassParm[SecretsTextFile,VFileSystem.File]("file", _.file, (d,v) => d.copy(file = v), None, 0)
       lazy val secretContents: CaseClassParm[SecretsTextFile,SecretContent] = CaseClassParm[SecretsTextFile,SecretContent]("secretContents", _.secretContents, (d,v) => d.copy(secretContents = v), None, 1)
       lazy val perms: CaseClassParm[SecretsTextFile,UnixPerms] = CaseClassParm[SecretsTextFile,UnixPerms]("perms", _.perms, (d,v) => d.copy(perms = v), Some(()=> UnixPerms.empty), 2)
     }
@@ -183,7 +184,7 @@ object MxSystemState {
     
       def rawConstruct(values: IndexedSeq[Any]): SecretsTextFile = {
         SecretsTextFile(
-          file = values(0).asInstanceOf[ZFileSystem.File],
+          file = values(0).asInstanceOf[VFileSystem.File],
           secretContents = values(1).asInstanceOf[SecretContent],
           perms = values(2).asInstanceOf[UnixPerms],
         )
@@ -191,7 +192,7 @@ object MxSystemState {
       def iterRawConstruct(values: Iterator[Any]): SecretsTextFile = {
         val value =
           SecretsTextFile(
-            file = values.next().asInstanceOf[ZFileSystem.File],
+            file = values.next().asInstanceOf[VFileSystem.File],
             secretContents = values.next().asInstanceOf[SecretContent],
             perms = values.next().asInstanceOf[UnixPerms],
           )
@@ -199,7 +200,7 @@ object MxSystemState {
            sys.error("")
         value
       }
-      def typedConstruct(file: ZFileSystem.File, secretContents: SecretContent, perms: UnixPerms): SecretsTextFile =
+      def typedConstruct(file: VFileSystem.File, secretContents: SecretContent, perms: UnixPerms): SecretsTextFile =
         SecretsTextFile(file, secretContents, perms)
     
     }
@@ -239,10 +240,10 @@ object MxSystemState {
     }
     
     object parameters {
-      lazy val canonicalAppDir: CaseClassParm[JavaAppInstall,ZFileSystem.Symlink] = CaseClassParm[JavaAppInstall,ZFileSystem.Symlink]("canonicalAppDir", _.canonicalAppDir, (d,v) => d.copy(canonicalAppDir = v), None, 0)
+      lazy val canonicalAppDir: CaseClassParm[JavaAppInstall,VFileSystem.Symlink] = CaseClassParm[JavaAppInstall,VFileSystem.Symlink]("canonicalAppDir", _.canonicalAppDir, (d,v) => d.copy(canonicalAppDir = v), None, 0)
       lazy val fromRepo: CaseClassParm[JavaAppInstall,JavaApp] = CaseClassParm[JavaAppInstall,JavaApp]("fromRepo", _.fromRepo, (d,v) => d.copy(fromRepo = v), None, 1)
       lazy val descriptor: CaseClassParm[JavaAppInstall,ApplicationDescriptor] = CaseClassParm[JavaAppInstall,ApplicationDescriptor]("descriptor", _.descriptor, (d,v) => d.copy(descriptor = v), None, 2)
-      lazy val gitAppDirectory: CaseClassParm[JavaAppInstall,ZFileSystem.Directory] = CaseClassParm[JavaAppInstall,ZFileSystem.Directory]("gitAppDirectory", _.gitAppDirectory, (d,v) => d.copy(gitAppDirectory = v), None, 3)
+      lazy val gitAppDirectory: CaseClassParm[JavaAppInstall,VFileSystem.Directory] = CaseClassParm[JavaAppInstall,VFileSystem.Directory]("gitAppDirectory", _.gitAppDirectory, (d,v) => d.copy(gitAppDirectory = v), None, 3)
       lazy val startService: CaseClassParm[JavaAppInstall,SystemState] = CaseClassParm[JavaAppInstall,SystemState]("startService", _.startService, (d,v) => d.copy(startService = v), None, 4)
       lazy val stopService: CaseClassParm[JavaAppInstall,SystemState] = CaseClassParm[JavaAppInstall,SystemState]("stopService", _.stopService, (d,v) => d.copy(stopService = v), None, 5)
     }
@@ -252,10 +253,10 @@ object MxSystemState {
     
       def rawConstruct(values: IndexedSeq[Any]): JavaAppInstall = {
         JavaAppInstall(
-          canonicalAppDir = values(0).asInstanceOf[ZFileSystem.Symlink],
+          canonicalAppDir = values(0).asInstanceOf[VFileSystem.Symlink],
           fromRepo = values(1).asInstanceOf[JavaApp],
           descriptor = values(2).asInstanceOf[ApplicationDescriptor],
-          gitAppDirectory = values(3).asInstanceOf[ZFileSystem.Directory],
+          gitAppDirectory = values(3).asInstanceOf[VFileSystem.Directory],
           startService = values(4).asInstanceOf[SystemState],
           stopService = values(5).asInstanceOf[SystemState],
         )
@@ -263,10 +264,10 @@ object MxSystemState {
       def iterRawConstruct(values: Iterator[Any]): JavaAppInstall = {
         val value =
           JavaAppInstall(
-            canonicalAppDir = values.next().asInstanceOf[ZFileSystem.Symlink],
+            canonicalAppDir = values.next().asInstanceOf[VFileSystem.Symlink],
             fromRepo = values.next().asInstanceOf[JavaApp],
             descriptor = values.next().asInstanceOf[ApplicationDescriptor],
-            gitAppDirectory = values.next().asInstanceOf[ZFileSystem.Directory],
+            gitAppDirectory = values.next().asInstanceOf[VFileSystem.Directory],
             startService = values.next().asInstanceOf[SystemState],
             stopService = values.next().asInstanceOf[SystemState],
           )
@@ -274,7 +275,7 @@ object MxSystemState {
            sys.error("")
         value
       }
-      def typedConstruct(canonicalAppDir: ZFileSystem.Symlink, fromRepo: JavaApp, descriptor: ApplicationDescriptor, gitAppDirectory: ZFileSystem.Directory, startService: SystemState, stopService: SystemState): JavaAppInstall =
+      def typedConstruct(canonicalAppDir: VFileSystem.Symlink, fromRepo: JavaApp, descriptor: ApplicationDescriptor, gitAppDirectory: VFileSystem.Directory, startService: SystemState, stopService: SystemState): JavaAppInstall =
         JavaAppInstall(canonicalAppDir, fromRepo, descriptor, gitAppDirectory, startService, stopService)
     
     }
@@ -310,7 +311,7 @@ object MxSystemState {
     }
     
     object parameters {
-      lazy val path: CaseClassParm[Directory,ZFileSystem.Directory] = CaseClassParm[Directory,ZFileSystem.Directory]("path", _.path, (d,v) => d.copy(path = v), None, 0)
+      lazy val path: CaseClassParm[Directory,VFileSystem.Directory] = CaseClassParm[Directory,VFileSystem.Directory]("path", _.path, (d,v) => d.copy(path = v), None, 0)
       lazy val perms: CaseClassParm[Directory,UnixPerms] = CaseClassParm[Directory,UnixPerms]("perms", _.perms, (d,v) => d.copy(perms = v), Some(()=> UnixPerms.empty), 1)
     }
     
@@ -319,21 +320,21 @@ object MxSystemState {
     
       def rawConstruct(values: IndexedSeq[Any]): Directory = {
         Directory(
-          path = values(0).asInstanceOf[ZFileSystem.Directory],
+          path = values(0).asInstanceOf[VFileSystem.Directory],
           perms = values(1).asInstanceOf[UnixPerms],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): Directory = {
         val value =
           Directory(
-            path = values.next().asInstanceOf[ZFileSystem.Directory],
+            path = values.next().asInstanceOf[VFileSystem.Directory],
             perms = values.next().asInstanceOf[UnixPerms],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(path: ZFileSystem.Directory, perms: UnixPerms): Directory =
+      def typedConstruct(path: VFileSystem.Directory, perms: UnixPerms): Directory =
         Directory(path, perms)
     
     }

@@ -9,9 +9,9 @@ package io.accur8.neodeploy.systemstate
 */
 
 //====
-import a8.shared.ZFileSystem.Directory
 import io.accur8.neodeploy.DeployId
 import io.accur8.neodeploy.systemstate.SystemStateModel.*
+import io.accur8.neodeploy.VFileSystem
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
@@ -272,7 +272,7 @@ object MxSystemStateModel {
     
     object parameters {
       lazy val args: CaseClassParm[Command,Iterable[String]] = CaseClassParm[Command,Iterable[String]]("args", _.args, (d,v) => d.copy(args = v), None, 0)
-      lazy val workingDirectory: CaseClassParm[Command,Option[Directory]] = CaseClassParm[Command,Option[Directory]]("workingDirectory", _.workingDirectory, (d,v) => d.copy(workingDirectory = v), Some(()=> None), 1)
+      lazy val workingDirectory: CaseClassParm[Command,Option[VFileSystem.Directory]] = CaseClassParm[Command,Option[VFileSystem.Directory]]("workingDirectory", _.workingDirectory, (d,v) => d.copy(workingDirectory = v), Some(()=> None), 1)
     }
     
     
@@ -281,20 +281,20 @@ object MxSystemStateModel {
       def rawConstruct(values: IndexedSeq[Any]): Command = {
         Command(
           args = values(0).asInstanceOf[Iterable[String]],
-          workingDirectory = values(1).asInstanceOf[Option[Directory]],
+          workingDirectory = values(1).asInstanceOf[Option[VFileSystem.Directory]],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): Command = {
         val value =
           Command(
             args = values.next().asInstanceOf[Iterable[String]],
-            workingDirectory = values.next().asInstanceOf[Option[Directory]],
+            workingDirectory = values.next().asInstanceOf[Option[VFileSystem.Directory]],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(args: Iterable[String], workingDirectory: Option[Directory]): Command =
+      def typedConstruct(args: Iterable[String], workingDirectory: Option[VFileSystem.Directory]): Command =
         Command(args, workingDirectory)
     
     }

@@ -15,7 +15,7 @@
 //      
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
-val syncVersion = "1.0.0-20230913_1958_master"
+val syncVersion = "1.0.0-20230918_1936_glenlogboot"
 val scalaLibVersion = "3.3.0"
 val zeroWasteVersion = "0.2.12"
 
@@ -78,11 +78,11 @@ lazy val versions =
         "com.softwaremill.sttp.client3" %% "core" % "3.8.15",
         "com.lihaoyi" %% "fastparse" % "3.0.1",
         "io.accur8" %% "a8-sync-api" % syncVersion,
-        "org.rogach" %% "scallop" % "4.1.0",
-        "dev.zio" %% "zio-process" % "0.7.2",
+        "org.rogach" %% "scallop"    % "4.1.0",
+        "dev.zio" %% "zio-process"   % "0.7.2",
         "org.typelevel" %% "cats-parse" % "0.3.8",
 
-        "dev.zio" %% "zio-nio"      % "2.0.1",
+        "dev.zio" %% "zio-nio"     % "2.0.1",
         "dev.zio" %% "zio-rocksdb" % "0.4.3",
 
         "software.amazon.awssdk" % "apache-client" % "2.19.6",

@@ -5,20 +5,38 @@ import a8.shared.SharedImports.*
 import a8.shared.ZFileSystem
 import a8.common.logging.LoggingF
 import io.accur8.neodeploy.LocalDeploy.Config
-import io.accur8.neodeploy.model.{AppsInfo, CaddyDirectory, EtcDirectory}
+import io.accur8.neodeploy.model.{AppsInfo, CaddyDirectory, LocalRootDirectory}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedRepository, ResolvedServer}
-import io.accur8.neodeploy.systemstate.SystemStateModel.{ApplyState, Environ, M, RunTimestamp, SystemStateLogger}
+import io.accur8.neodeploy.systemstate.SystemStateModel.{M, Environ, PathLocator, RunTimestamp, SystemStateLogger}
 import zio.{Task, ZIO, ZLayer}
 
 object Layers extends LoggingF {
 
-  def provide[A](effect: ApplyState[A]): Task[A] =
+  import a8.shared.ZFileSystem.SymlinkHandlerDefaults.follow
+
+  type N[A] = zio.ZIO[PathLocator, Throwable, A]
+
+  def provideN[A](effect: N[A], rootDirectory: LocalRootDirectory = LocalRootDirectory.default): Task[A] =
     effect
       .provide(
-        EtcDirectory.layer,
+        PathLocator.layer,
+        zl_succeed(rootDirectory),
+      )
+
+
+  def provide[A](effect: M[A], configOverride: Option[Config] = None): Task[A] = {
+    val resolvedConfigL: ZLayer[Any, Throwable, Config] =
+      configOverride match {
+        case None =>
+          configL
+        case Some(c) =>
+          ZLayer.succeed(c)
+      }
+    effect
+      .provide(
         CaddyDirectory.layer,
         DnsService.layer,
-        configL,
+        resolvedConfigL,
         healthchecksDotIoL,
         resolvedRepositoryL,
         resolvedUserL,
@@ -26,7 +44,10 @@ object Layers extends LoggingF {
         SystemStateLogger.simpleLayer,
         RunTimestamp.layer,
         AppsInfo.layer,
+        PathLocator.layer,
+        LocalRootDirectory.layer,
       )
+  }
 
   lazy val configFile =
     ZFileSystem
@@ -34,14 +55,14 @@ object Layers extends LoggingF {
       .subdir(".a8")
       .file("server_app_sync.conf")
 
-  lazy val configZ =
+  lazy val configZ: Task[Config] =
     configFile
       .readAsStringOpt
       .flatMap {
         case None =>
           val defaultConfig = Config.default()
-          defaultConfig
-            .gitRootDirectory
+          ZFileSystem
+            .dir(defaultConfig.gitRootDirectory.value)
             .exists
             .flatMap {
               case true =>

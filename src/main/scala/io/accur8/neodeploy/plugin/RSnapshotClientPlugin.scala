@@ -1,6 +1,6 @@
 package io.accur8.neodeploy.plugin
 
-import a8.shared.SharedImports._
+import io.accur8.neodeploy.SharedImports._
 import io.accur8.neodeploy.model.RSnapshotClientDescriptor
 import io.accur8.neodeploy.resolvedmodel.{ResolvedAuthorizedKey, ResolvedServer, ResolvedUser}
 import io.accur8.neodeploy.systemstate.SystemState
@@ -46,7 +46,7 @@ case class RSnapshotClientPlugin(
       .mkString("\n")
 
 
-  override def resolveAuthorizedKeysImpl: Task[Vector[ResolvedAuthorizedKey]] =
+  override def resolveAuthorizedKeysImpl: N[Vector[ResolvedAuthorizedKey]] =
     user
       .server
       .repository

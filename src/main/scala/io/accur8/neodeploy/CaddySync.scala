@@ -1,7 +1,7 @@
 package io.accur8.neodeploy
 
 import a8.shared.SharedImports.*
-import a8.shared.ZFileSystem.{Directory, File}
+import VFileSystem._
 import a8.shared.ZString
 import a8.common.logging.LoggingF
 import io.accur8.neodeploy.model.CaddyDirectory
@@ -49,7 +49,6 @@ ${applicationDescriptor.resolvedDomainNames.map(_.value).mkString(", ")} {
       val reloadCaddyCommand =
         Overrides.sudoSystemCtlCommand
           .appendArgs("reload", "caddy")
-          .asSystemStateCommand
 
       val filesState =
         SystemState.Composite(

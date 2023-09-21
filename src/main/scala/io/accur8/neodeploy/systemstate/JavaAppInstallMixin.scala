@@ -14,7 +14,7 @@ import a8.Scala3Hacks.*
 
 trait JavaAppInstallMixin extends SystemStateMixin with LoggingF { self: SystemState.JavaAppInstall =>
 
-  lazy val rawStateKey = StateKey("app install", canonicalAppDir.absolutePath)
+  lazy val rawStateKey = StateKey("app install", canonicalAppDir.path)
 
   override def stateKey: Option[StateKey] = rawStateKey.some
   override def dryRunInstall: Vector[String] = Vector(s"app install into ${canonicalAppDir} -- ${self.fromRepo.compactJson}")
@@ -73,7 +73,7 @@ trait JavaAppInstallMixin extends SystemStateMixin with LoggingF { self: SystemS
 
   override def dryRunUninstall(interpreter: Interpreter): Vector[String] =
     if ( !interpreter.newStatesByKey.contains(rawStateKey) && interpreter.previousStatesByKey.contains(rawStateKey) ) {
-      Vector("uninstall " + canonicalAppDir.absolutePath)
+      Vector("uninstall " + canonicalAppDir.path)
     } else {
       Vector.empty
     }

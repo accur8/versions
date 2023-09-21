@@ -4,7 +4,7 @@ package io.accur8.neodeploy
 import a8.shared.{Exec, StringValue}
 import io.accur8.neodeploy.model.{ApplicationName, DomainName, Install, ServerName, UserLogin, Version}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedRepository, ResolvedUser}
-import zio.{Task, ZIO}
+import zio.{ZIO}
 import a8.shared.SharedImports.*
 import a8.common.logging.LoggingF
 import a8.versions.{ParsedVersion, RepositoryOps, VersionParser}
@@ -12,16 +12,20 @@ import a8.versions.model.{RepoPrefix, ResolutionRequest}
 import io.accur8.neodeploy.DeploySubCommand.DeployAppEffects
 import io.accur8.neodeploy.DeployUser.{InfraUser, RegularUser}
 import io.accur8.neodeploy.Deployable.{InfraStructureDeployable, ServerDeployable, UserDeployable}
+import io.accur8.neodeploy.Layers.N
 import io.accur8.neodeploy.systemstate.SystemState.JavaAppInstall
+import io.accur8.neodeploy.systemstate.SystemStateModel.M
 import org.rogach.scallop.{ArgType, ScallopOption, ValueConverter}
+import io.accur8.neodeploy.systemstate.SystemStateModel
+import SystemStateModel.Command
 
 object DeploySubCommand {
 
   case class DeployAppEffects(
     appDeploy: AppDeploy,
     version: Version,
-    successEffect: Task[Unit],
-    errorEffect: Task[Unit],
+    successEffect: N[Unit],
+    errorEffect: N[Unit],
   )
 
 }
@@ -41,7 +45,7 @@ case class DeploySubCommand(
       .groupBy(_._1)
       .map(t => t._1 -> t._2.map(_._2))
 
-  def run: Task[Unit] = {
+  def run: N[Unit] = {
     for {
       deployResults <-
         deployArgsByUser
@@ -50,10 +54,9 @@ case class DeploySubCommand(
       _ <- gitCommit(deployResults)
       _ <- gitPush
     } yield ()
-
   }
 
-  def resolveVersion(appDeploy: AppDeploy): Task[Version] = {
+  def resolveVersion(appDeploy: AppDeploy): N[Version] = {
     import appDeploy.resolvedApp
     appDeploy.version.map(_.value).getOrElse("current").toLowerCase.trim match {
       case v: ("latest" | "current") =>
@@ -82,7 +85,7 @@ case class DeploySubCommand(
     }
   }
 
-  def gitCommit(deployResults: Iterable[DeployResult]): Task[Unit] =
+  def gitCommit(deployResults: Iterable[DeployResult]): N[Unit] =
     zblock {
       val appVersions = deployResults.flatMap(_.appVersions)
       val versionInfo =
@@ -92,15 +95,15 @@ case class DeploySubCommand(
         } else {
           ""
         }
-      Exec("git", "commit", "-am", z"deploy ${deployArgs.asCommandLineArgs.mkString(" ")}${versionInfo}")
-        .inDirectory(a8.shared.FileSystem.dir(resolvedRepository.gitRootDirectory.unresolved.absolutePath))
+      Command("git", "commit", "-am", z"deploy ${deployArgs.asCommandLineArgs.mkString(" ")}${versionInfo}")
+        .inDirectory(resolvedRepository.gitRootDirectory.unresolved)
         .execInline(): @scala.annotation.nowarn
     }
 
-  def gitPush: Task[Unit] =
+  def gitPush: N[Unit] =
     zblock(
-      Exec("git", "push")
-        .inDirectory(a8.shared.FileSystem.dir(resolvedRepository.gitRootDirectory.unresolved.absolutePath))
+      Command("git", "push")
+        .inDirectory(resolvedRepository.gitRootDirectory.unresolved)
         .execInline(): @scala.annotation.nowarn
     )
 
@@ -116,7 +119,7 @@ case class DeploySubCommand(
     nonAppArgs ++ appArgs
   }
 
-  def runDeploy(deployUser: DeployUser, args: Iterable[DeployArg]): Task[DeployResult] = {
+  def runDeploy(deployUser: DeployUser, args: Iterable[DeployArg]): N[DeployResult] = {
     deployUser match {
       case InfraUser(_) =>
         runInfraDeploy(args)
@@ -125,15 +128,15 @@ case class DeploySubCommand(
     }
   }
 
-  def runInfraDeploy(args: Iterable[DeployArg]): Task[DeployResult] = {
+  def runInfraDeploy(args: Iterable[DeployArg]): N[DeployResult] = {
     ???
   }
 
-  def runDeploy(deployUser: RegularUser, args: Iterable[DeployArg]): Task[DeployResult] = {
+  def runDeploy(deployUser: RegularUser, args: Iterable[DeployArg]): N[DeployResult] = {
 
     val resolvedUser = deployUser.user
 
-    val deployAppEffects: Task[Iterable[DeployAppEffects]] =
+    val deployAppEffects: N[Iterable[DeployAppEffects]] =
       args
         .collect { case a: AppDeploy => a }
         .map(deployAppEffectsT)
@@ -145,7 +148,7 @@ case class DeploySubCommand(
       .sequence
       .flatMap { deployAppEffects =>
 
-        val happyPathEffect: Task[DeployResult] =
+        val happyPathEffect: N[DeployResult] =
           PushRemoteDeploy(
             resolvedRepository,
             runner,
@@ -169,7 +172,7 @@ case class DeploySubCommand(
 
   }
 
-  def deployAppEffectsT(appDeploy: AppDeploy): Task[DeployAppEffects] = {
+  def deployAppEffectsT(appDeploy: AppDeploy): N[DeployAppEffects] = {
 
     val app = appDeploy.resolvedApp
 

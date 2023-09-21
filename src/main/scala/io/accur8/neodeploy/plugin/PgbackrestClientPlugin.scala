@@ -1,6 +1,6 @@
 package io.accur8.neodeploy.plugin
 
-import a8.shared.SharedImports._
+import io.accur8.neodeploy.SharedImports._
 import io.accur8.neodeploy
 import io.accur8.neodeploy.model.PgbackrestClientDescriptor
 import io.accur8.neodeploy.resolvedmodel.{ResolvedAuthorizedKey, ResolvedServer, ResolvedUser}
@@ -30,7 +30,7 @@ case class PgbackrestClientPlugin(
       .getOrError("must have a pgbackrest server configured")
 
 
-  override def resolveAuthorizedKeysImpl: Task[Vector[ResolvedAuthorizedKey]] =
+  override def resolveAuthorizedKeysImpl: N[Vector[ResolvedAuthorizedKey]] =
     user
       .server
       .repository

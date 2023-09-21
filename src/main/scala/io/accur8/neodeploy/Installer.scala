@@ -1,11 +1,9 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.SharedImports.*
-import a8.shared.ZFileSystem
+import SharedImports.*
 import io.accur8.neodeploy.systemstate.*
 import zio.Task
-import a8.shared.ZFileSystem.*
 import a8.common.logging.LoggingF
 import a8.versions.GenerateJavaLauncherDotNix
 import io.accur8.neodeploy.model.*
@@ -14,6 +12,8 @@ import io.accur8.neodeploy.resolvedmodel.ResolvedUser
 import io.accur8.neodeploy.systemstate.SystemStateModel.*
 import a8.versions.RepositoryOps.RepoConfigPrefix
 import a8.versions.GenerateJavaLauncherDotNix.FullInstallResults
+import io.accur8.neodeploy.VFileSystem
+import io.accur8.neodeploy.VFileSystem.Directory
 
 case class Installer(installState: SystemState.JavaAppInstall, appsInfo: AppsInfo, runTimestamp: RunTimestamp) extends LoggingF {
 
@@ -21,12 +21,12 @@ case class Installer(installState: SystemState.JavaAppInstall, appsInfo: AppsInf
 
   lazy val canonicalAppDir = installState.canonicalAppDir
 
-  lazy val installDir: ZFileSystem.Directory =
+  lazy val installDir: VFileSystem.Directory =
     appsInfo
       .installsDir
       .subdir(z"${installState.descriptor.name}-${runTimestamp.asFileSystemCompatibleStr}")
 
-  lazy val persistenceDir: ZFileSystem.Directory =
+  lazy val persistenceDir: VFileSystem.Directory =
     appsInfo
       .persistenceDir
       .subdir(installState.descriptor.name.value)
@@ -34,13 +34,13 @@ case class Installer(installState: SystemState.JavaAppInstall, appsInfo: AppsInf
   def applicationDescriptor: ApplicationDescriptor =
     installState.descriptor
 
-  def createInstallDir: Task[Unit] =
+  def createInstallDir: N[Unit] =
     installDir
       .makeDirectories
       .as(())
 
-  def linkChildrenIntoInstallDir(source: Directory): Task[Unit] = {
-    given SymlinkHandler = SymlinkHandler.NoFollow
+  def linkChildrenIntoInstallDir(source: Directory): N[Unit] = {
+    import a8.shared.ZFileSystem.SymlinkHandlerDefaults.noFollow
     source
       .entries
       .flatMap { entries =>
@@ -51,9 +51,9 @@ case class Installer(installState: SystemState.JavaAppInstall, appsInfo: AppsInf
               .exists
               .flatMap {
                 case true =>
-                  loggerF.info(s"unable to link ${e.absolutePath} into ${link.absolutePath} since it already exists")
+                  loggerF.info(s"unable to link ${e} into ${link} since it already exists")
                 case false =>
-                  link.writeTarget(e.absolutePath)
+                  link.writeTarget(e)
               }
           }
           .toSeq
@@ -83,7 +83,6 @@ case class Installer(installState: SystemState.JavaAppInstall, appsInfo: AppsInf
     val logsDirInInstall: Directory = installDir.subdir("logs")
     val tempDirInInstall: Directory = installDir.subdir("temp")
 
-    given SymlinkHandler = SymlinkHandler.Follow
     val setupPersistentDir: M[Unit] = {
       persistenceDir
         .existsAsDirectory
@@ -119,7 +118,7 @@ case class Installer(installState: SystemState.JavaAppInstall, appsInfo: AppsInf
         javaVersion = Some(repo.javaVersion.value.toString),
       )
 
-    val runNixInstaller: Task[FullInstallResults] =
+    val runNixInstaller: N[FullInstallResults] =
       GenerateJavaLauncherDotNix(request, appsInfo.nixHashCacheDir.some)
         .runFullInstall(nixInstallWorkDir)
 
@@ -161,9 +160,9 @@ case class Installer(installState: SystemState.JavaAppInstall, appsInfo: AppsInf
     def createGcRoot = {
       for {
         user <- zservice[ResolvedUser]
-        gcroot = ZFileSystem.symlink(z"/nix/var/nix/gcroots/per-user/${user.login}/java-app-${applicationDescriptor.name}")
-        _ <- zblock(java.nio.file.Files.deleteIfExists(gcroot.asNioPath))
-        _ <- gcroot.writeTarget(nixInstallWorkDir.subdir("build").absolutePath)
+        gcroot = VFileSystem.link(z"/nix/var/nix/gcroots/per-user/${user.login}/java-app-${applicationDescriptor.name}")
+        _ <- gcroot.deleteIfExists
+        _ <- gcroot.writeTarget(nixInstallWorkDir.subdir("build"))
       } yield ()
     }
 
@@ -181,7 +180,7 @@ case class Installer(installState: SystemState.JavaAppInstall, appsInfo: AppsInf
 
   }
 
-  def copyConfig: Task[Unit] = {
+  def copyConfig: N[Unit] = {
     val configDir = installDir.subdir("config")
     (
       configDir.makeDirectories
@@ -201,12 +200,12 @@ case class Installer(installState: SystemState.JavaAppInstall, appsInfo: AppsInf
             .asZIO(canonicalAppDir.delete)
       }
       .asZIO(
-        loggerF.debug(s"writing new app link ${canonicalAppDir} -> ${installDir.absolutePath}")
-          *> canonicalAppDir.writeTarget(installDir.absolutePath)
+        loggerF.debug(s"writing new app link ${canonicalAppDir} -> ${installDir}")
+          *> canonicalAppDir.writeTarget(installDir)
       )
   }
 
-  def installAction: ApplyState[Unit] =
+  def installAction: M[Unit] =
     for {
       _ <- createInstallDir
       _ <- runInstall(applicationDescriptor.install)

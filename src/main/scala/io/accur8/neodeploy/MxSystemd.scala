@@ -45,7 +45,7 @@ object MxSystemd {
     object parameters {
       lazy val Type: CaseClassParm[UnitFile,String] = CaseClassParm[UnitFile,String]("Type", _.Type, (d,v) => d.copy(Type = v), Some(()=> "simple"), 0)
       lazy val environment: CaseClassParm[UnitFile,Vector[String]] = CaseClassParm[UnitFile,Vector[String]]("environment", _.environment, (d,v) => d.copy(environment = v), Some(()=> Vector.empty), 1)
-      lazy val workingDirectory: CaseClassParm[UnitFile,String] = CaseClassParm[UnitFile,String]("workingDirectory", _.workingDirectory, (d,v) => d.copy(workingDirectory = v), None, 2)
+      lazy val workingDirectory: CaseClassParm[UnitFile,VFileSystem.Directory] = CaseClassParm[UnitFile,VFileSystem.Directory]("workingDirectory", _.workingDirectory, (d,v) => d.copy(workingDirectory = v), None, 2)
       lazy val execStart: CaseClassParm[UnitFile,String] = CaseClassParm[UnitFile,String]("execStart", _.execStart, (d,v) => d.copy(execStart = v), None, 3)
     }
     
@@ -56,7 +56,7 @@ object MxSystemd {
         UnitFile(
           Type = values(0).asInstanceOf[String],
           environment = values(1).asInstanceOf[Vector[String]],
-          workingDirectory = values(2).asInstanceOf[String],
+          workingDirectory = values(2).asInstanceOf[VFileSystem.Directory],
           execStart = values(3).asInstanceOf[String],
         )
       }
@@ -65,14 +65,14 @@ object MxSystemd {
           UnitFile(
             Type = values.next().asInstanceOf[String],
             environment = values.next().asInstanceOf[Vector[String]],
-            workingDirectory = values.next().asInstanceOf[String],
+            workingDirectory = values.next().asInstanceOf[VFileSystem.Directory],
             execStart = values.next().asInstanceOf[String],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(Type: String, environment: Vector[String], workingDirectory: String, execStart: String): UnitFile =
+      def typedConstruct(Type: String, environment: Vector[String], workingDirectory: VFileSystem.Directory, execStart: String): UnitFile =
         UnitFile(Type, environment, workingDirectory, execStart)
     
     }

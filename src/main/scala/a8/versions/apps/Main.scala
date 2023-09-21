@@ -13,10 +13,10 @@ import a8.versions.predef.*
 import a8.shared.SharedImports.*
 import a8.shared.ZString.ZStringer
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
-import a8.shared.app.BootstrappedIOApp
+import a8.shared.app.{BootstrappedIOApp, Bootstrapper}
 import a8.versions.GenerateJavaLauncherDotNix.Parms
 import a8.versions.PromoteArtifacts.Dependencies
-import a8.versions.RepositoryOps.RepoConfigPrefix
+import a8.versions.RepositoryOps.{RepoConfigPrefix, default}
 import a8.versions.model.{BranchName, ResolutionRequest, ResolvedRepo}
 import io.accur8.neodeploy.model.{ApplicationName, DomainName, ServerName, UserLogin}
 import io.accur8.neodeploy.resolvedmodel.ResolvedRepository
@@ -27,52 +27,77 @@ import org.rogach.scallop.*
 import zio.{Scope, ZIO, ZIOAppArgs}
 import io.accur8.neodeploy.model.*
 import a8.common.logging.Level
+import ch.qos.logback.classic.LoggerContext
+import zio.ZLayer
 
-object Main extends Logging {
+object Main extends BootstrappedIOApp {
 
   import a8.Scala3Hacks.*
 
   trait Runner {
-    def run(main: Main): Unit
+    def runZ(main: Main): zio.ZIO[BootstrapEnv, Throwable, Unit]
   }
-
-  lazy val logLevels =
-    Seq(
-      "jdk.event",
-      "sun.net",
-    )
 
   case class ResolvedArgs(args: Seq[String]) {
-    lazy val defaultLogLevel: Level = Level.Trace // ???
-    lazy val consoleLogging: Boolean = true // ???
+    lazy val defaultLogLevel: Level = {
+      if (args.contains("--debug")) {
+        Level.Debug
+      } else if (args.contains("--trace")) {
+        Level.Trace
+      } else {
+        Level.Info
+      }
+    }
+    lazy val consoleLogging: Boolean = defaultLogLevel != Level.Info
   }
 
 
-  def main(args: Array[String]): Unit = {
-    try {
-      val resolvedArgs = ResolvedArgs(args)
-      LoggingBootstrapConfig
-        .finalizeConfig(
-          LoggingBootstrapConfig(
-            overrideSystemErr = true,
-            overrideSystemOut = true,
-            setDefaultUncaughtExceptionHandler = true,
-            fileLogging = false,
-            consoleLogging = resolvedArgs.consoleLogging,
-            hasColorConsole = LoggingBootstrapConfig.defaultHasColorConsole,
-            appName = "a8-versions",
-            defaultLogLevel = resolvedArgs.defaultLogLevel,
-          )
+  override def provideLayers(effect: ZIO[BootstrapEnv with LoggingBootstrapConfig & LoggerContext, Throwable, Unit]): ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
+    zservice[ZIOAppArgs].flatMap { args =>
+      val resolvedArgs = ResolvedArgs(args.getArgs)
+      val loggingBootstrapConfig =
+        LoggingBootstrapConfig(
+          overrideSystemErr = false,
+          overrideSystemOut = false,
+          setDefaultUncaughtExceptionHandler = true,
+          fileLogging = false,
+          consoleLogging = resolvedArgs.consoleLogging,
+          hasColorConsole = LoggingBootstrapConfig.defaultHasColorConsole,
+          appName = "a8-versions",
+          defaultLogLevel = resolvedArgs.defaultLogLevel,
         )
-      logLevels.foreach(l => a8.common.logging.Logger.logger(l).setLevel(Level.Info))
-      val main = new Main(args.toIndexedSeq)
-      main.run()
-      System.exit(0)
-    } catch {
-      case th: Throwable =>
-        th.printStackTrace(System.err);
-        System.exit(1)
+      effect
+        .provideSome[zio.Scope & zio.ZIOAppArgs](
+            ZLayer.succeed(org.slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]),
+            Bootstrapper.layer,
+            zl_succeed(loggingBootstrapConfig),
+            layers.appName,
+            layers.logsDir,
+            layers.tempDir,
+            layers.dataDir,
+            layers.cacheDir,
+            layers.workDir,
+            layers.bootstrapConfig,
+            loggingLayer,
+            zio.logging.removeDefaultLoggers,
+          )
     }
+
+
+  override def runT: ZIO[BootstrapEnv, Throwable, Unit] = {
+    zservice[ZIOAppArgs]
+      .flatMap { args =>
+        val main = new Main(args.getArgs.toSeq)
+        main.runT
+      }
+      .either
+      .map {
+        case Left(th) =>
+          th.printStackTrace(System.err)
+          System.exit(1)
+        case Right(_) =>
+          System.exit(0)
+      }
   }
 
 
@@ -181,16 +206,18 @@ case class Main(args: Seq[String]) {
 
   lazy val conf = Conf(args)
 
-  def run(): Unit = {
+  def runT: zio.ZIO[BootstrapEnv, Throwable, Unit] = zsuspend {
     conf.impl.setupVerbosity()
-    conf.subcommand match {
+    val subcommand = conf.subcommand
+    subcommand match {
       case Some(r: Runner) =>
-        r.run(this)
+        r.runZ(this)
       case _ =>
         if (args.nonEmpty) {
-          sys.error(s"don't know how to handle -- ${args}")
+          zfail(new RuntimeException(s"don't know how to handle -- ${args}"))
+        } else {
+          zblock(conf.printHelp())
         }
-        conf.printHelp()
     }
   }
 

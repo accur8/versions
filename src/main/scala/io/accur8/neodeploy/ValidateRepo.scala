@@ -1,14 +1,14 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.app.{BootstrappedIOApp}
+import a8.shared.app.BootstrappedIOApp
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import zio.{Task, ZIO}
-import a8.shared.SharedImports._
+import SharedImports.*
 import io.accur8.neodeploy.resolvedmodel.ResolvedRepository
-import PredefAssist._
-
+import PredefAssist.*
 import a8.Scala3Hacks.*
+import io.accur8.neodeploy.systemstate.SystemStateModel.Command
 
 case class ValidateRepo(resolvedRepository: ResolvedRepository) extends LoggingF {
 
@@ -18,8 +18,11 @@ case class ValidateRepo(resolvedRepository: ResolvedRepository) extends LoggingF
     resolvedRepository
       .allUsers
 
-  def run: ZIO[Any, Throwable, Unit] =
-    setupSshKeys zipPar addGitattributesFile zipPar validatePlugins
+  def run: Task[Unit] = {
+    val rawEffect = setupSshKeys zipPar addGitattributesFile zipPar validatePlugins
+    Layers.provideN(rawEffect)
+      .as(())
+  }
 
   def validatePlugins =
     ZIO.attemptBlocking {
@@ -30,7 +33,7 @@ case class ValidateRepo(resolvedRepository: ResolvedRepository) extends LoggingF
         .foreach(_.plugins.pluginInstances)
     }
 
-  def setupSshKeys: Task[Unit] =
+  def setupSshKeys: N[Unit] =
     allUsers
       .map { user =>
         val pkf = user.sshPrivateKeyFileInRepo
@@ -48,7 +51,7 @@ case class ValidateRepo(resolvedRepository: ResolvedRepository) extends LoggingF
         }
       )
       .flatMap { (users: Seq[resolvedmodel.ResolvedUser]) =>
-        val setupUsersEffect: Seq[ZIO[Any, Nothing, Unit]] =
+        val setupUsersEffect: Seq[N[Unit]] =
           users
             .map { user =>
               val tempFile = user.tempSshPrivateKeyFileInRepo
@@ -57,11 +60,11 @@ case class ValidateRepo(resolvedRepository: ResolvedRepository) extends LoggingF
                 Command(
                   "ssh-keygen", "-t", "ed25519", "-a", "100", "-f", z"$tempFile", "-q", "-N", "", "-C", user.qname
                 )
-                  .workingDirectory(user.repoDir)
+                  .inDirectory(user.repoDir)
                   .execLogOutput
                   .asZIO(
                     ZIO.attemptBlocking(
-                      tempFile.asNioPath.toFile.renameTo(user.sshPrivateKeyFileInRepo.asNioPath.toFile)
+                      tempFile.renameTo(user.sshPrivateKeyFileInRepo)
                     )
                   )
               (makeDirectoriesEffect *> sshKeygenEffect)
@@ -71,7 +74,7 @@ case class ValidateRepo(resolvedRepository: ResolvedRepository) extends LoggingF
           .as(())
       }
 
-  def addGitattributesFile: Task[Unit] = {
+  def addGitattributesFile: N[Unit] = {
     val gitAttributesFile = gitRootDirectory.file(".gitattributes")
       gitAttributesFile
         .exists

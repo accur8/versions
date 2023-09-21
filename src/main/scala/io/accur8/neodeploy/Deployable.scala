@@ -44,7 +44,6 @@ object Deployable {
         .fetchUserOpt(UserLogin("postgres"))
         .map(RegularUser(_))
 
-
     override def systemState(resolvedUser: ResolvedUser): M[SystemState] =
       resolvedUser
         .plugins

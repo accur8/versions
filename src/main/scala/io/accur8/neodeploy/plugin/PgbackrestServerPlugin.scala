@@ -1,6 +1,6 @@
 package io.accur8.neodeploy.plugin
 
-import a8.shared.SharedImports._
+import io.accur8.neodeploy.SharedImports._
 import io.accur8.neodeploy.Systemd.{TimerFile, UnitFile}
 import io.accur8.neodeploy.model.{OnCalendarValue, PgbackrestServerDescriptor}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedAuthorizedKey, ResolvedServer, ResolvedUser}
@@ -20,7 +20,7 @@ case class PgbackrestServerPlugin(
 
   def descriptorJson = descriptor.toJsVal
 
-  override def resolveAuthorizedKeysImpl: Task[Vector[ResolvedAuthorizedKey]] =
+  override def resolveAuthorizedKeysImpl: N[Vector[ResolvedAuthorizedKey]] =
     user
       .server
       .repository
@@ -82,7 +82,7 @@ case class PgbackrestServerPlugin(
         resolvedServer.user,
         UnitFile(
           Type = "oneshot",
-          workingDirectory = resolvedServer.user.home.absolutePath,
+          workingDirectory = resolvedServer.user.home,
           execStart = z"/bootstrap/bin/run-pgbackrest ${client.stanzaName} ${client.server.name}",
         ),
         TimerFile(

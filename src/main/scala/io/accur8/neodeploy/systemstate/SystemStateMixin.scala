@@ -15,12 +15,12 @@ trait SystemStateMixin {
   /**
    * applies the state for just this system state and no sub states
    */
-  def runApplyNewState: ApplyState[Unit]
+  def runApplyNewState: M[Unit]
 
   /**
    * uninstalls the state for just this system state and no sub states
    */
-  def runUninstallObsolete(interpreter: Interpreter): ApplyState[Unit]
+  def runUninstallObsolete(interpreter: Interpreter): M[Unit]
 
 }
 

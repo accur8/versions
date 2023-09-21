@@ -22,13 +22,13 @@ trait RunCommandStateMixin extends SystemStateMixin { self: SystemState.RunComma
 
   override def runApplyNewState =
     installCommands
-      .map(_.asRunnableCommand.execCaptureOutput)
+      .map(_.execCaptureOutput)
       .sequence
       .as(())
 
   override def runUninstallObsolete(interpreter: Interpreter) =
     uninstallCommands
-      .map(_.asRunnableCommand.execCaptureOutput)
+      .map(_.execCaptureOutput)
       .sequence
       .as(())
 

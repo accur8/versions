@@ -1,16 +1,17 @@
 package io.accur8.neodeploy.systemstate
 
 
-import a8.shared.{CompanionGen, ZFileSystem}
+import a8.shared.CompanionGen
 import a8.shared.json.ast.JsObj
 import a8.shared.json.{JsonCodec, JsonTypedCodec, UnionCodecBuilder, ast}
-import io.accur8.neodeploy.{HealthchecksDotIo, LazyJsonCodec}
+import io.accur8.neodeploy.{HealthchecksDotIo, LazyJsonCodec, VFileSystem}
 import io.accur8.neodeploy.model.Install.JavaApp
 import io.accur8.neodeploy.model.{ApplicationDescriptor, DockerDescriptor, DomainName, UserLogin}
-import io.accur8.neodeploy.systemstate.MxSystemState._
-import io.accur8.neodeploy.systemstate.SystemStateModel._
+import io.accur8.neodeploy.systemstate.MxSystemState.*
+import io.accur8.neodeploy.systemstate.SystemStateModel.*
 import zio.Chunk
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
+import io.accur8.neodeploy.VFileSystem.PathName
 
 object SystemState {
 
@@ -38,16 +39,16 @@ object SystemState {
   @CompanionGen
   case class Symlink(
     target: String,
-    link: ZFileSystem.Symlink,
+    link: VFileSystem.Symlink,
     perms: UnixPerms = UnixPerms.empty,
   ) extends NoSubStates with SymlinkMixin {
-
+    def targetPath = PathName(target)
   }
 
   object TextFile extends MxTextFile
   @CompanionGen
   case class TextFile(
-    file: ZFileSystem.File,
+    file: VFileSystem.File,
     contents: String,
     perms: UnixPerms = UnixPerms.empty,
   ) extends NoSubStates with TextFileContentsMixin {
@@ -58,7 +59,7 @@ object SystemState {
   }
   @CompanionGen
   case class SecretsTextFile(
-    file: ZFileSystem.File,
+    file: VFileSystem.File,
     secretContents: SecretContent,
     perms: UnixPerms = UnixPerms.empty,
   ) extends NoSubStates with TextFileContentsMixin {
@@ -69,10 +70,10 @@ object SystemState {
   object JavaAppInstall extends MxJavaAppInstall
   @CompanionGen
   case class JavaAppInstall(
-    canonicalAppDir: ZFileSystem.Symlink,
+    canonicalAppDir: VFileSystem.Symlink,
     fromRepo: JavaApp,
     descriptor: ApplicationDescriptor,
-    gitAppDirectory: ZFileSystem.Directory,
+    gitAppDirectory: VFileSystem.Directory,
     startService: SystemState,
     stopService: SystemState,
     // a temp hack so JavaAppInstall's are never the same so they are always deployed
@@ -83,7 +84,7 @@ object SystemState {
   object Directory extends MxDirectory
   @CompanionGen
   case class Directory(
-    path: ZFileSystem.Directory,
+    path: VFileSystem.Directory,
     perms: UnixPerms = UnixPerms.empty,
   ) extends NoSubStates with DirectoryMixin
 

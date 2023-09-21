@@ -1,24 +1,22 @@
 package io.accur8.neodeploy.systemstate
 
 
-import a8.shared.{FileSystem, StringValue, ZFileSystem}
-import a8.shared.SharedImports._
+import a8.shared.StringValue
+import a8.shared.SharedImports.*
 import a8.common.logging.LoggingF
 import a8.sync.qubes.QubesApiClient
-import io.accur8.neodeploy.Installer
+import io.accur8.neodeploy.{HealthchecksDotIo, Installer, VFileSystem}
 import io.accur8.neodeploy.systemstate.Interpreter.ActionNeededCache
 import io.accur8.neodeploy.systemstate.SystemState.TriggeredState
-import io.accur8.neodeploy.systemstate.SystemStateModel._
-import io.accur8.neodeploy.{Command, HealthchecksDotIo}
+import io.accur8.neodeploy.systemstate.SystemStateModel.*
 import zio.ZIO
 
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFileAttributeView
 import scala.collection.immutable.Vector
-import io.accur8.neodeploy.PredefAssist._
-
+import io.accur8.neodeploy.PredefAssist.*
 import a8.Scala3Hacks.*
-import io.accur8.neodeploy.PredefAssist._
+import io.accur8.neodeploy.PredefAssist.*
 
 object SystemStateImpl extends LoggingF {
 
@@ -60,7 +58,7 @@ object SystemStateImpl extends LoggingF {
     }
   }
 
-  def runApplyNewState(state: SystemState, interpreter: Interpreter, inner: SystemState => ApplyState[Unit]): ApplyState[Unit] =
+  def runApplyNewState(state: SystemState, interpreter: Interpreter, inner: SystemState => M[Unit]): M[Unit] =
     for {
       _ <- state.runApplyNewState
       _ <-
@@ -86,16 +84,17 @@ object SystemStateImpl extends LoggingF {
         }
     } yield ()
 
-  def permissionsActionNeeded(path: ZFileSystem.Path, perms: UnixPerms): M[Boolean] = {
+  def permissionsActionNeeded(path: VFileSystem.Path, perms: UnixPerms): M[Boolean] = {
     if (perms.expectedPerms.isEmpty) {
       zsucceed(false)
     } else {
       path
         .exists
+        .zip(path.zpath)
         .flatMap {
-          case true =>
+          case (true, zpath) =>
             ZIO.attemptBlocking(
-              Files.getFileAttributeView(path.asNioPath, classOf[PosixFileAttributeView])
+              Files.getFileAttributeView(zpath.asNioPath, classOf[PosixFileAttributeView])
                 .readAttributes()
                 .permissions()
                 .asScala
@@ -104,21 +103,22 @@ object SystemStateImpl extends LoggingF {
               val result = !(expected eq actual)
               result
             }
-          case false =>
+          case (false, _) =>
             zsucceed(true)
         }
     }
   }
 
 
-  def applyPermissions(path: ZFileSystem.Path, perms: UnixPerms): M[Unit] =
+  def applyPermissions(path: VFileSystem.Path, perms: UnixPerms): M[Unit] =
     permissionsActionNeeded(path, perms)
+      .zip(path.zpath)
       .flatMap {
-        case true =>
-          Command("chmod", perms.value, path.absolutePath)
+        case (true, zpath) =>
+          Command("chmod", perms.value, zpath.absolutePath)
             .execCaptureOutput
             .as(())
-        case false =>
+        case (false, _) =>
           zunit
       }
 
@@ -195,8 +195,8 @@ object SystemStateImpl extends LoggingF {
         false
     }
 
-  def runApplyNewState(interpreter: Interpreter): ApplyState[Unit] = {
-    def inner(s0: SystemState): ApplyState[Unit] =
+  def runApplyNewState(interpreter: Interpreter): M[Unit] = {
+    def inner(s0: SystemState): M[Unit] =
       if (interpreter.actionNeededCache.cache(s0)) {
         SystemStateImpl.runApplyNewState(s0, interpreter, inner)
       } else {

@@ -1,56 +1,64 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.ZFileSystem
 import java.nio.file.Paths
 import java.nio.file.Files
-import a8.shared.SharedImports._
+import SharedImports._
 import zio.ZIO
 import a8.common.logging.LoggingF
 import PredefAssist._
+import io.accur8.neodeploy.VFileSystem
 
 object FileSystemAssist extends LoggingF {
 
-  case class FileSet(root: ZFileSystem.Directory, paths: Vector[ZFileSystem.Path] = Vector.empty) {
-    private val rootPathStr = root.asNioPath.toFile().getAbsolutePath()
-    def addPath(pathStr: String, mustExist: Boolean = true): FileSet = {
-      val nioPath: java.nio.file.Path = Paths.get(rootPathStr, pathStr)
-      val pathAsFile = nioPath.toFile()
-      val absolutePathStr = pathAsFile.getAbsolutePath()
-      val resolvedPathOpt: Option[ZFileSystem.Path] =
-        if ( pathAsFile.isDirectory() ) {
-          ZFileSystem.dir(absolutePathStr).some
-        } else if ( pathAsFile.isFile() ) {
-          ZFileSystem.file(absolutePathStr).some
-        } else if ( pathAsFile.exists() ) {
-          sys.error(s"path ${absolutePathStr} is neither a file or directory")
-        } else if ( mustExist ) {
-          sys.error(s"path ${absolutePathStr} does not exist")
-        } else {
-          None
-        }
-      
-      resolvedPathOpt match {
-        case Some(resolvedPath) =>
-          // validate this path is child of the root
-          resolvedPath.relativeTo(root): @scala.annotation.nowarn
-          copy(paths = paths :+ resolvedPath)
-        case None => 
-          this
-      }
-    }
+  case class FileSet(root: VFileSystem.Directory, paths: Vector[(VFileSystem.File|VFileSystem.Directory, Boolean)] = Vector.empty) {
 
-    def copyTo(target: ZFileSystem.Directory): zio.Task[Unit] =
+    private val rootPathStr = root.path
+
+    def addDirectory(pathStr: String, mustExist: Boolean = true): FileSet =
+      copy(paths = paths :+ (VFileSystem.dir(pathStr) -> mustExist))
+
+
+    def addFile(pathStr: String, mustExist: Boolean = true): FileSet =
+      copy(paths = paths :+ (VFileSystem.file(pathStr) -> mustExist))
+
+//      val nioPath: java.nio.file.Path = Paths.get(rootPathStr, pathStr)
+//      val pathAsFile = nioPath.toFile()
+//      val absolutePathStr = pathAsFile.getAbsolutePath()
+//      val resolvedPathOpt: Option[VFileSystem.Path] =
+//        if ( pathAsFile.isDirectory() ) {
+//          ZFileSystem.dir(absolutePathStr).some
+//        } else if ( pathAsFile.isFile() ) {
+//          ZFileSystem.file(absolutePathStr).some
+//        } else if ( pathAsFile.exists() ) {
+//          sys.error(s"path ${absolutePathStr} is neither a file or directory")
+//        } else if ( mustExist ) {
+//          sys.error(s"path ${absolutePathStr} does not exist")
+//        } else {
+//          None
+//        }
+//
+//      resolvedPathOpt match {
+//        case Some(resolvedPath) =>
+//          // validate this path is child of the root
+//          resolvedPath.relativeTo(root): @scala.annotation.nowarn
+//          copy(paths = paths :+ resolvedPath)
+//        case None =>
+//          this
+//      }
+//    }
+
+    def copyTo(target: VFileSystem.Directory): N[Unit] =
       paths
         .map {
-          case f: ZFileSystem.File =>
+          case (f: VFileSystem.File, mustExist) =>
             val targetFile = target.file(f.relativeTo(root))
-            targetFile.parent.resolve: @scala.annotation.nowarn
             for {
+              _ <- targetFile.parent.resolve
               _ <- loggerF.debug(z"copying file ${f} --> ${targetFile}")
               _ <- f.copyTo(targetFile)
             } yield ()
-          case d: ZFileSystem.Directory =>
+          case (d: VFileSystem.Directory, mustExist) =>
             val targetDir = target.subdir(d.relativeTo(root)).parentOpt.get
             for {
               _ <- targetDir.resolve

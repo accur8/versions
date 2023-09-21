@@ -1,19 +1,20 @@
 package io.accur8.neodeploy.systemstate
 
 
-import a8.shared.ZFileSystem.Directory
 import a8.shared.{CompanionGen, FileSystem, SecretValue, StringValue}
-import io.accur8.neodeploy.{DeployId, DnsService, HealthchecksDotIo, LocalDeploy}
+import io.accur8.neodeploy.{CommandMixin, DeployId, DnsService, HealthchecksDotIo, LocalDeploy, VFileSystem}
 import io.accur8.neodeploy.systemstate.MxSystemStateModel.*
-import zio.{Task, Trace, ZIO, ZLayer}
+import zio.{Chunk, ExitCode, Task, Trace, ZIO, ZLayer}
 import a8.shared.SharedImports.*
 import a8.common.logging.{Logger, LoggingF}
 import com.typesafe.config.Config
-import io.accur8.neodeploy.model.{AppsInfo, AppsRootDirectory, CaddyDirectory, SupervisorDirectory}
+import io.accur8.neodeploy.model.{AppsInfo, AppsRootDirectory, CaddyDirectory, LocalRootDirectory, SupervisorDirectory}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedRepository, ResolvedServer, ResolvedUser}
 
 import java.nio.file.attribute.PosixFilePermission
 import java.time.LocalDateTime
+import io.accur8.neodeploy.Layers.N
+import io.accur8.neodeploy.VFileSystem.PathName
 
 object SystemStateModel {
 
@@ -104,11 +105,20 @@ object SystemStateModel {
   @CompanionGen
   case class NewState(resolvedSyncState: ResolvedState) extends HasResolvedState
 
-  object Command extends MxCommand
+  object Command extends MxCommand {
+
+    def apply(args: String*): Command =
+      Command(args = args)
+
+    case class Result(
+      exitCode: ExitCode,
+      outputLines: Chunk[String],
+    )
+
+  }
   @CompanionGen
-  case class Command(args: Iterable[String], workingDirectory: Option[Directory] = None) {
-    def asRunnableCommand =
-      io.accur8.neodeploy.Command(args, workingDirectory = workingDirectory)
+  case class Command(args: Iterable[String], workingDirectory: Option[VFileSystem.Directory] = None) extends CommandMixin {
+
   }
 
   sealed trait HasResolvedState {
@@ -158,13 +168,36 @@ object SystemStateModel {
       with DnsService
       with LocalDeploy.Config
       with CaddyDirectory
+      with PathLocator
+      with AppsInfo
+      with RunTimestamp
   )
-
-
-  type ApplyStateEnviron = AppsInfo with RunTimestamp
 
   type M[A] = zio.ZIO[Environ, Throwable, A]
 
-  type ApplyState[A] = zio.ZIO[ApplyStateEnviron & Environ, Throwable, A]
+  object PathLocator {
+    lazy val layer: ZLayer[LocalRootDirectory, Nothing, PathLocator] = ZLayer(effect)
+    lazy val effect =
+      zservice[LocalRootDirectory]
+        .map { rootDirectory =>
+          import a8.shared.ZFileSystem
+          new PathLocator {
+            val zRootDirectory = a8.shared.ZFileSystem.dir(rootDirectory.value)
+            override def file(path: PathName): ZFileSystem.File =
+              zRootDirectory.file(path.path)
+            override def dir(path: PathName): ZFileSystem.Directory =
+              zRootDirectory.subdir(path.path)
+            override def link(path: PathName): ZFileSystem.Symlink =
+              zRootDirectory.symlink(path.path)
+          }
+      }
+  }
+
+  trait PathLocator {
+    import a8.shared.ZFileSystem
+    def file(path: PathName): ZFileSystem.File
+    def dir(path: PathName): ZFileSystem.Directory
+    def link(path: PathName): ZFileSystem.Symlink
+  }
 
 }

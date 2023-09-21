@@ -10,9 +10,9 @@ package io.accur8.neodeploy
 
 //====
 import _root_.scala
-import a8.shared.ZFileSystem.Directory
 import io.accur8.neodeploy.model.{ApplicationDescriptor, ServerName, UserLogin}
 import io.accur8.neodeploy.resolvedmodel.ResolvedApp.LoadedApplicationDescriptor
+import io.accur8.neodeploy.VFileSystem.Directory
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}

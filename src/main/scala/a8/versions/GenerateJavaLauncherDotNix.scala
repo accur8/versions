@@ -1,7 +1,7 @@
 package a8.versions
 
 
-import a8.shared.{CompanionGen, FileSystem, StringValue, ZFileSystem}
+import a8.shared.{CompanionGen, StringValue}
 import a8.shared.app.{BootstrappedIOApp}
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.versions.Build.BuildType
@@ -11,7 +11,7 @@ import a8.versions.model.{ArtifactResponse, BranchName, ResolutionRequest, Resol
 import coursier.ModuleName
 import coursier.core.Module
 import io.accur8.neodeploy.HealthchecksDotIo
-import zio.{Chunk, LogLevel, Task, ZIO}
+import zio.{Chunk, LogLevel, ZIO}
 
 import java.io.File
 import java.net.URL
@@ -19,14 +19,15 @@ import java.net.http.HttpRequest
 import java.security.MessageDigest
 import java.util.Base64
 import scala.util.Try
-import a8.shared.SharedImports.*
-import a8.shared.ZFileSystem.{Directory, Symlink}
+import io.accur8.neodeploy.SharedImports.*
 import a8.versions.GenerateJavaLauncherDotNix.{BuildDescription, FileContents, FullInstallResults}
 import a8.versions.MxGenerateJavaLauncherDotNix.*
 import io.accur8.neodeploy.model.{Artifact, Organization, Version}
 import org.apache.commons.codec.binary.{Base32, Hex}
 
 import io.accur8.neodeploy.PredefAssist.{given, _}
+import VFileSystem.{Directory, Symlink}
+
 
 object GenerateJavaLauncherDotNix extends LoggingF {
 
@@ -95,7 +96,7 @@ object GenerateJavaLauncherDotNix extends LoggingF {
 
 case class GenerateJavaLauncherDotNix(
   parms: GenerateJavaLauncherDotNix.Parms,
-  nixHashCacheDir: Option[Directory],
+  nixHashCacheDir: Option[VFileSystem.Directory],
 )
   extends LoggingF
 {
@@ -107,7 +108,7 @@ case class GenerateJavaLauncherDotNix(
   lazy val repositoryOps = RepositoryOps(parms.resolutionRequest.repoPrefix)
 
   // hardcoded to use maven for now
-  val resolutionResponseZ: Task[model.ResolutionResponse] =
+  val resolutionResponseZ: N[model.ResolutionResponse] =
     ZIO
       .attemptBlocking(RepositoryOps.runResolve(parms.resolutionRequest))
       .map(r => r.copy(artifacts = r.artifacts.toList.distinct))
@@ -142,7 +143,7 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
   object NixHash extends StringValue.Companion[NixHash]
   case class NixHash(value: String) extends StringValue
 
-  def nixHashFromCache(artifactResponse: ArtifactResponse, loadCacheEffect: Task[NixHash]): Task[NixHash] = {
+  def nixHashFromCache(artifactResponse: ArtifactResponse, loadCacheEffect: N[NixHash]): N[NixHash] = {
     import a8.shared.ZFileSystem.SymlinkHandlerDefaults.follow
     nixHashCacheDir
       .map { nhcd =>
@@ -171,7 +172,7 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
       .getOrElse(loadCacheEffect)
   }
 
-  def nixHash(artifactResponse: ArtifactResponse): Task[NixHash] = {
+  def nixHash(artifactResponse: ArtifactResponse): N[NixHash] = {
     import artifactResponse.url
     val loadHashEffect =
       nixHashFromRepo(url)
@@ -193,7 +194,7 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
       .toSeq
       .flatMap(_.httpHeaders)
 
-  def nixHashFromRepo(url: sttp.model.Uri): Task[Try[NixHash]] =
+  def nixHashFromRepo(url: sttp.model.Uri): N[Try[NixHash]] =
     ZIO
       .attemptBlocking {
 
@@ -234,7 +235,7 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
       }
       .debugLog(s"nixHashFromRepo(${url})")
 
-  def nixPrefetchUrl(url: sttp.model.Uri): Task[NixPrefetchResult] =
+  def nixPrefetchUrl(url: sttp.model.Uri): N[NixPrefetchResult] =
     ZIO
       .attemptBlocking {
         import sys.process._
@@ -260,28 +261,31 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
       .debugLog(s"nixPrefetchUrl(${url})")
 
 
-  def runNixBuild(workDir: Directory): Task[ZFileSystem.Symlink] = {
+  def runNixBuild(workDir: Directory): N[Symlink] = {
     val symlinkName = "build"
-    ZIO.attemptBlocking(
-      Exec(
-        Seq("/nix/var/nix/profiles/default/bin/nix-build", "--out-link", symlinkName, "-E", "with import <nixpkgs> {}; (callPackage ./launcher {})"),
-        Some(FileSystem.dir(workDir.absolutePath)),
-      ).execCaptureOutput()
-    ).as(workDir.symlink(symlinkName))
+    workDir
+      .zdir
+      .flatMap(workdDirZ =>
+        ZIO.attemptBlocking(
+          Exec(
+            Seq("/nix/var/nix/profiles/default/bin/nix-build", "--out-link", symlinkName, "-E", "with import <nixpkgs> {}; (callPackage ./launcher {})"),
+            Some(a8.shared.FileSystem.dir(workdDirZ.absolutePath)),
+          ).execCaptureOutput()
+        ).as(workDir.symlink(symlinkName))
+      )
   }
 
-  def runFullInstall(workDir: Directory): Task[FullInstallResults] = {
+  def runFullInstall(workDir: Directory): N[FullInstallResults] = {
     val launcherFilesDir = workDir.subdir("launcher")
     for {
       buildDescription <- buildDescriptionT
       _ <- launcherFilesDir.file("default.nix").write(buildDescription.defaultDotNixContent)
       _ <- launcherFilesDir.file("java-launcher-template").write(javaLauncherTemplateContent)
       buildSymlink <- runNixBuild(workDir)
-      nixPackagePath <- buildSymlink.canonicalPath.map(ZFileSystem.dir)
-    } yield FullInstallResults(nixPackagePath, buildSymlink)
+    } yield FullInstallResults(buildSymlink.asDirectory, buildSymlink)
   }
 
-  def buildDescriptionT: Task[BuildDescription] = {
+  def buildDescriptionT: N[BuildDescription] = {
     for {
       resolutionResponse <- resolutionResponseZ
       artifacts <-

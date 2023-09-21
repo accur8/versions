@@ -94,7 +94,7 @@ case class RSnapshotServerPlugin(
         resolvedServer.user,
         UnitFile(
           Type = "oneshot",
-          workingDirectory = rsnapshotConfigFile.parent.absolutePath,
+          workingDirectory = rsnapshotConfigFile.parent,
           execStart = z"${user.home}/.nix-profile/bin/run-rsnapshot ${rsnapshotConfigFile} ${client.server.name}",
         ),
         TimerFile(

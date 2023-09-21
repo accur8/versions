@@ -1,7 +1,6 @@
 package io.accur8.neodeploy
 
 import a8.shared.SharedImports.*
-import a8.shared.ZFileSystem.Directory
 import a8.common.logging.{Logging, LoggingF}
 import a8.shared.json.ast
 import a8.shared.json.ast.{JsDoc, JsObj, JsVal}
@@ -13,12 +12,14 @@ import io.accur8.neodeploy.model.*
 import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedServer, ResolvedUser}
 import io.accur8.neodeploy.systemstate.SystemStateModel.*
 import zio.{Task, UIO, ZIO}
+import io.accur8.neodeploy.VFileSystem.Directory
 
 object LocalDeploy {
 
   object Config extends MxConfig {
     def default() =
       Config(
+        LocalRootDirectory("/"),
         GitRootDirectory(FileSystem.userHome.subdir("server-app-configs").asNioPath.toAbsolutePath.toString),
         ServerName.thisServer(),
         userLogin = UserLogin.thisUser(),
@@ -27,6 +28,7 @@ object LocalDeploy {
 
   @CompanionGen
   case class Config(
+    rootDirectory: LocalRootDirectory,
     gitRootDirectory: GitRootDirectory,
     serverName: ServerName,
     userLogin: UserLogin = UserLogin.thisUser(),
@@ -45,12 +47,12 @@ case class LocalDeploy(resolvedUser: ResolvedUser, deployArgs: ResolvedDeployArg
 
   lazy val healthchecksDotIo = HealthchecksDotIo(resolvedServer.repository.descriptor.healthchecksApiToken)
 
-  def appSyncRun: ApplyState[Unit] =
+  def appSyncRun: M[Unit] =
     loggerF.debug("appSyncRun") *>
       SyncContainer(stateDirectory, RegularUser(resolvedUser), deployArgs.args.toVector)
         .run
 
-  def run: ApplyState[Unit] =
+  def run: M[Unit] =
     for {
       _ <- loggerF.info(z"running for ${resolvedUser.qualifiedUserName}")
       _ <- loggerF.debug(z"resolved user ${resolvedUser.qualifiedUserName} -- ${resolvedUser.descriptor.prettyJson.indent("    ")}")

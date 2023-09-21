@@ -2,22 +2,22 @@ package io.accur8.neodeploy
 
 
 import a8.shared.{CascadingHocon, CompanionGen, ConfigMojo, ConfigMojoOps, Exec, HoconOps, StringValue, ZRefreshable, ZString}
-import a8.shared.ZFileSystem.{Directory, File, dir, userHome}
-import model._
-import a8.shared.SharedImports._
+import io.accur8.neodeploy.VFileSystem.{Directory, File, dir}
+import model.*
+import SharedImports.*
 import a8.shared.ZString.ZStringer
 import a8.common.logging.LoggingF
 import a8.shared.json.{JsonCodec, JsonReader}
 import a8.shared.json.ast.{JsDoc, JsNothing, JsObj, JsVal}
-import zio.{Cause, Chunk, Task, UIO, ZIO}
-import PredefAssist._
+import zio.{Cause, Chunk, UIO, ZIO}
+import PredefAssist.*
 import a8.shared.json.JsonReader.ReadResult
 import com.typesafe.config.{Config, ConfigFactory, ConfigValue}
 import io.accur8.neodeploy.Mxresolvedmodel.MxLoadedApplicationDescriptor
 import io.accur8.neodeploy.plugin.{PgbackrestServerPlugin, RepositoryPlugins}
 import io.accur8.neodeploy.resolvedmodel.ResolvedApp.LoadedApplicationDescriptor
 import io.accur8.neodeploy.resolvedmodel.ResolvedUser
-import io.accur8.neodeploy.systemstate.SystemStateModel.{Environ, M}
+import io.accur8.neodeploy.systemstate.SystemStateModel.{Command, Environ, M}
 import zio.cache.Lookup
 
 object resolvedmodel extends LoggingF {
@@ -31,7 +31,7 @@ object resolvedmodel extends LoggingF {
     loadedApplicationDescriptors: Vector[LoadedApplicationDescriptor],
   ) {
 
-    def resolveLoginKeys: Task[Vector[ResolvedAuthorizedKey]] =
+    def resolveLoginKeys: N[Vector[ResolvedAuthorizedKey]] =
       publicKey
         .flatMap {
           case Some(pk) =>
@@ -59,7 +59,7 @@ object resolvedmodel extends LoggingF {
     lazy val appsRootDirectory: AppsRootDirectory =
       descriptor
         .appInstallDirectory
-        .getOrElse(AppsRootDirectory(home.subdir("apps").absolutePath))
+        .getOrElse(AppsRootDirectory(home.subdir("apps").path))
 
     lazy val qualifiedUserNames: Seq[QualifiedUserName] =
       Vector(qualifiedUserName) ++ descriptor.aliases
@@ -97,14 +97,14 @@ object resolvedmodel extends LoggingF {
     def sshPublicKeyFileInHome =
       home.subdir(".ssh").file("id_ed25519.pub")
 
-    def publicKey: Task[Option[PublicKey]] =
+    def publicKey: N[Option[PublicKey]] =
       sshPublicKeyFileInRepo
         .readAsStringOpt
         .map(
           _.map(line => PublicKey(line))
         )
 
-    def resolvedAuthorizedKeys(stack: Set[QualifiedUserName]): Task[Vector[ResolvedAuthorizedKey]] = {
+    def resolvedAuthorizedKeys(stack: Set[QualifiedUserName]): N[Vector[ResolvedAuthorizedKey]] = {
       if ( stack(qualifiedUserName) ) {
         zsucceed(Vector.empty)
       } else {
@@ -177,13 +177,13 @@ object resolvedmodel extends LoggingF {
         )
 
     def supervisorCommand(action: String, applicationName: ApplicationName): Command =
-      Command(Seq(
+      Command(
         descriptor.supervisorctlExec.getOrElse("supervisorctl"),
         action,
         applicationName.value
-      ))
+      )
 
-    def execCommand(command: Command): Task[Unit] = {
+    def execCommand(command: Command): N[Unit] = {
       val logLinesEffect: Chunk[String] => UIO[Unit] = { (lines: Chunk[String]) =>
         loggerF.debug(s"command output chunk -- ${lines.mkString("\n    ", "\n    ", "\n    ")}")
       }
@@ -211,7 +211,7 @@ object resolvedmodel extends LoggingF {
       descriptor: ApplicationDescriptor,
     )
 
-    def loadDescriptorFromDisk(userLogin: UserLogin, serverName: ServerName, appConfigDir: Directory, appsRootDirectory: AppsRootDirectory): Task[Option[LoadedApplicationDescriptor]] = {
+    def loadDescriptorFromDisk(userLogin: UserLogin, serverName: ServerName, appConfigDir: Directory, appsRootDirectory: AppsRootDirectory): N[Option[LoadedApplicationDescriptor]] = {
       import a8.shared.ZFileSystem.SymlinkHandlerDefaults.follow
       val appDescriptorFilesZ =
         Vector(
@@ -229,14 +229,15 @@ object resolvedmodel extends LoggingF {
                 f
             }
           )
+          .flatMap(_.map(_.zfile).sequence)
 
       val appDir = appsRootDirectory.subdir(appConfigDir.name)
 
 
       val baseConfigMap =
         Map(
-          "appDir" -> appDir.absolutePath,
-          "dataDir" -> appDir.subdir("data").absolutePath,
+          "appDir" -> appDir.path,
+          "dataDir" -> appDir.subdir("data").path,
         )
 
       val baseConfig = ConfigFactory.parseMap(baseConfigMap.asJava)
@@ -300,35 +301,42 @@ object resolvedmodel extends LoggingF {
     val gitDirectory: Directory = loadedApplicationDescriptor.appConfigDir
     val server = user.server
     val name = descriptor.name
-    val appDirectory = user.appsRootDirectory.subdir(descriptor.name.value)
+    val appDirectory: Directory = user.appsRootDirectory.subdir(descriptor.name.value)
   }
 
 
   object ResolvedRepository {
 
-    def loadFromDisk(gitRootDirectory: GitRootDirectory): Task[ResolvedRepository] = {
-      ZIO
-        .attemptBlocking {
-          val cascadingHocon =
-            CascadingHocon
-              .loadConfigsInDirectory(gitRootDirectory.asNioPath, recurse = false)
-              .resolve
-          ConfigMojoOps.impl.ConfigMojoRoot(
-            cascadingHocon.config.root(),
-            cascadingHocon,
-          )
+    def loadFromDisk(gitRootDirectory: GitRootDirectory): N[ResolvedRepository] = {
+      gitRootDirectory
+        .unresolved
+        .zdir
+        .flatMap { dir =>
+          zblock {
+            val cascadingHocon =
+              CascadingHocon
+                .loadConfigsInDirectory(dir.asNioPath, recurse = false)
+                .resolve
+            val result =
+              ConfigMojoOps.impl.ConfigMojoRoot(
+                cascadingHocon.config.root(),
+                cascadingHocon,
+              )
+            result
+          }
         }
         .flatMap(_.asF[RepositoryDescriptor])
+        .logError(s"error loading repository descriptor from ${gitRootDirectory}")
         .flatMap { repositoryDescriptor =>
           repositoryDescriptor
             .serversAndUsers
             .map { case (server, user) =>
               val userAppsDir = gitRootDirectory.subdir(server.name.value).subdir(user.login.value)
-              val effect: ZIO[Any, Throwable, Iterable[LoadedApplicationDescriptor]] =
+              val effect: N[Iterable[LoadedApplicationDescriptor]] =
                 userAppsDir
                   .subdirs
                   .flatMap { appConfDirs =>
-                    val effect: ZIO[Any, Throwable, Iterable[LoadedApplicationDescriptor]] =
+                    val effect: N[Iterable[LoadedApplicationDescriptor]] =
                       appConfDirs
                         .map { appConfDir =>
                           ResolvedApp.loadDescriptorFromDisk(user.login, server.name, appConfDir, user.resolvedAppsRootDirectory)
@@ -441,7 +449,7 @@ object resolvedmodel extends LoggingF {
     /**
      * authorized keys from personnel and public-keys folder in the rpo
      */
-    def resolvedAuthorizedKeys(id: QualifiedUserName, stack: Set[QualifiedUserName]): Task[Vector[ResolvedAuthorizedKey]] = {
+    def resolvedAuthorizedKeys(id: QualifiedUserName, stack: Set[QualifiedUserName]): N[Vector[ResolvedAuthorizedKey]] = {
 
       if (stack(id)) {
         zsucceed(Vector.empty)
@@ -500,7 +508,7 @@ object resolvedmodel extends LoggingF {
         .map { serverDescriptor =>
           ResolvedServer(
             serverDescriptor,
-            GitServerDirectory(gitRootDirectory.subdir(serverDescriptor.name.value).asNioPath.toString),
+            GitServerDirectory(gitRootDirectory.subdir(serverDescriptor.name.value).path),
             this,
           )
         }
@@ -519,7 +527,7 @@ object resolvedmodel extends LoggingF {
 
     val id = descriptor.id
 
-    def resolveKeys(stack: Set[QualifiedUserName]): Task[Vector[ResolvedAuthorizedKey]] = {
+    def resolveKeys(stack: Set[QualifiedUserName]): N[Vector[ResolvedAuthorizedKey]] = {
 
       val keysFromUrl: Seq[ResolvedAuthorizedKey] =
         descriptor
@@ -532,7 +540,7 @@ object resolvedmodel extends LoggingF {
             )
           }
 
-      val keysFromMembersZ: ZIO[Any, Throwable, Vector[ResolvedAuthorizedKey]] =
+      val keysFromMembersZ: N[Vector[ResolvedAuthorizedKey]] =
         descriptor
           .members
           .map(member =>
