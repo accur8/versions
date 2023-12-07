@@ -17,6 +17,7 @@ import io.accur8.neodeploy.model.DockerDescriptor.UninstallAction
 import io.accur8.neodeploy.model._
 import io.accur8.neodeploy.model.Install.{JavaApp, Manual}
 import systemstate.SystemStateModel.Command
+import a8.shared.jdbcf.DatabaseConfig.Password
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
@@ -387,6 +388,7 @@ object Mxmodel {
           .addField(_.startServerCommand)
           .addField(_.domainName)
           .addField(_.domainNames)
+          .addField(_.setup)
           .addField(_.launcher)
       )
       .build
@@ -397,7 +399,7 @@ object Mxmodel {
     
     
     lazy val generator: Generator[ApplicationDescriptor,parameters.type] =  {
-      val constructors = Constructors[ApplicationDescriptor](9, unsafe.iterRawConstruct)
+      val constructors = Constructors[ApplicationDescriptor](10, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -410,7 +412,8 @@ object Mxmodel {
       lazy val startServerCommand: CaseClassParm[ApplicationDescriptor,Option[Command]] = CaseClassParm[ApplicationDescriptor,Option[Command]]("startServerCommand", _.startServerCommand, (d,v) => d.copy(startServerCommand = v), Some(()=> None), 5)
       lazy val domainName: CaseClassParm[ApplicationDescriptor,Option[DomainName]] = CaseClassParm[ApplicationDescriptor,Option[DomainName]]("domainName", _.domainName, (d,v) => d.copy(domainName = v), Some(()=> None), 6)
       lazy val domainNames: CaseClassParm[ApplicationDescriptor,Vector[DomainName]] = CaseClassParm[ApplicationDescriptor,Vector[DomainName]]("domainNames", _.domainNames, (d,v) => d.copy(domainNames = v), Some(()=> Vector.empty), 7)
-      lazy val launcher: CaseClassParm[ApplicationDescriptor,LauncherDescriptor] = CaseClassParm[ApplicationDescriptor,LauncherDescriptor]("launcher", _.launcher, (d,v) => d.copy(launcher = v), Some(()=> SupervisorDescriptor.empty), 8)
+      lazy val setup: CaseClassParm[ApplicationDescriptor,ApplicationSetupDescriptor] = CaseClassParm[ApplicationDescriptor,ApplicationSetupDescriptor]("setup", _.setup, (d,v) => d.copy(setup = v), Some(()=> ApplicationSetupDescriptor.empty), 8)
+      lazy val launcher: CaseClassParm[ApplicationDescriptor,LauncherDescriptor] = CaseClassParm[ApplicationDescriptor,LauncherDescriptor]("launcher", _.launcher, (d,v) => d.copy(launcher = v), Some(()=> SupervisorDescriptor.empty), 9)
     }
     
     
@@ -426,7 +429,8 @@ object Mxmodel {
           startServerCommand = values(5).asInstanceOf[Option[Command]],
           domainName = values(6).asInstanceOf[Option[DomainName]],
           domainNames = values(7).asInstanceOf[Vector[DomainName]],
-          launcher = values(8).asInstanceOf[LauncherDescriptor],
+          setup = values(8).asInstanceOf[ApplicationSetupDescriptor],
+          launcher = values(9).asInstanceOf[LauncherDescriptor],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): ApplicationDescriptor = {
@@ -440,19 +444,272 @@ object Mxmodel {
             startServerCommand = values.next().asInstanceOf[Option[Command]],
             domainName = values.next().asInstanceOf[Option[DomainName]],
             domainNames = values.next().asInstanceOf[Vector[DomainName]],
+            setup = values.next().asInstanceOf[ApplicationSetupDescriptor],
             launcher = values.next().asInstanceOf[LauncherDescriptor],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(name: ApplicationName, install: Install, caddyConfig: Option[String], listenPort: Option[ListenPort], stopServerCommand: Option[Command], startServerCommand: Option[Command], domainName: Option[DomainName], domainNames: Vector[DomainName], launcher: LauncherDescriptor): ApplicationDescriptor =
-        ApplicationDescriptor(name, install, caddyConfig, listenPort, stopServerCommand, startServerCommand, domainName, domainNames, launcher)
+      def typedConstruct(name: ApplicationName, install: Install, caddyConfig: Option[String], listenPort: Option[ListenPort], stopServerCommand: Option[Command], startServerCommand: Option[Command], domainName: Option[DomainName], domainNames: Vector[DomainName], setup: ApplicationSetupDescriptor, launcher: LauncherDescriptor): ApplicationDescriptor =
+        ApplicationDescriptor(name, install, caddyConfig, listenPort, stopServerCommand, startServerCommand, domainName, domainNames, setup, launcher)
     
     }
     
     
     lazy val typeName = "ApplicationDescriptor"
+  
+  }
+  
+  
+  
+  
+  trait MxApplicationSetupDescriptor {
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ApplicationSetupDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ApplicationSetupDescriptor,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[ApplicationSetupDescriptor,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.database)
+          .addField(_.qubes)
+      )
+      .build
+    
+    
+    given scala.CanEqual[ApplicationSetupDescriptor, ApplicationSetupDescriptor] = scala.CanEqual.derived
+    
+    
+    
+    lazy val generator: Generator[ApplicationSetupDescriptor,parameters.type] =  {
+      val constructors = Constructors[ApplicationSetupDescriptor](2, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val database: CaseClassParm[ApplicationSetupDescriptor,Option[DatabaseSetupDescriptor]] = CaseClassParm[ApplicationSetupDescriptor,Option[DatabaseSetupDescriptor]]("database", _.database, (d,v) => d.copy(database = v), Some(()=> None), 0)
+      lazy val qubes: CaseClassParm[ApplicationSetupDescriptor,Option[DomainName]] = CaseClassParm[ApplicationSetupDescriptor,Option[DomainName]]("qubes", _.qubes, (d,v) => d.copy(qubes = v), Some(()=> None), 1)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): ApplicationSetupDescriptor = {
+        ApplicationSetupDescriptor(
+          database = values(0).asInstanceOf[Option[DatabaseSetupDescriptor]],
+          qubes = values(1).asInstanceOf[Option[DomainName]],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): ApplicationSetupDescriptor = {
+        val value =
+          ApplicationSetupDescriptor(
+            database = values.next().asInstanceOf[Option[DatabaseSetupDescriptor]],
+            qubes = values.next().asInstanceOf[Option[DomainName]],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(database: Option[DatabaseSetupDescriptor], qubes: Option[DomainName]): ApplicationSetupDescriptor =
+        ApplicationSetupDescriptor(database, qubes)
+    
+    }
+    
+    
+    lazy val typeName = "ApplicationSetupDescriptor"
+  
+  }
+  
+  
+  
+  
+  trait MxDatabaseSetupDescriptor {
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[DatabaseSetupDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[DatabaseSetupDescriptor,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[DatabaseSetupDescriptor,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.databaseServer)
+          .addField(_.databaseName)
+          .addField(_.owner)
+          .addField(_.extraUsers)
+      )
+      .build
+    
+    
+    given scala.CanEqual[DatabaseSetupDescriptor, DatabaseSetupDescriptor] = scala.CanEqual.derived
+    
+    
+    
+    lazy val generator: Generator[DatabaseSetupDescriptor,parameters.type] =  {
+      val constructors = Constructors[DatabaseSetupDescriptor](4, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val databaseServer: CaseClassParm[DatabaseSetupDescriptor,DomainName] = CaseClassParm[DatabaseSetupDescriptor,DomainName]("databaseServer", _.databaseServer, (d,v) => d.copy(databaseServer = v), None, 0)
+      lazy val databaseName: CaseClassParm[DatabaseSetupDescriptor,DatabaseName] = CaseClassParm[DatabaseSetupDescriptor,DatabaseName]("databaseName", _.databaseName, (d,v) => d.copy(databaseName = v), None, 1)
+      lazy val owner: CaseClassParm[DatabaseSetupDescriptor,DatabaseUserDescriptor] = CaseClassParm[DatabaseSetupDescriptor,DatabaseUserDescriptor]("owner", _.owner, (d,v) => d.copy(owner = v), None, 2)
+      lazy val extraUsers: CaseClassParm[DatabaseSetupDescriptor,Iterable[DatabaseUserDescriptor]] = CaseClassParm[DatabaseSetupDescriptor,Iterable[DatabaseUserDescriptor]]("extraUsers", _.extraUsers, (d,v) => d.copy(extraUsers = v), Some(()=> Iterable.empty), 3)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): DatabaseSetupDescriptor = {
+        DatabaseSetupDescriptor(
+          databaseServer = values(0).asInstanceOf[DomainName],
+          databaseName = values(1).asInstanceOf[DatabaseName],
+          owner = values(2).asInstanceOf[DatabaseUserDescriptor],
+          extraUsers = values(3).asInstanceOf[Iterable[DatabaseUserDescriptor]],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): DatabaseSetupDescriptor = {
+        val value =
+          DatabaseSetupDescriptor(
+            databaseServer = values.next().asInstanceOf[DomainName],
+            databaseName = values.next().asInstanceOf[DatabaseName],
+            owner = values.next().asInstanceOf[DatabaseUserDescriptor],
+            extraUsers = values.next().asInstanceOf[Iterable[DatabaseUserDescriptor]],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(databaseServer: DomainName, databaseName: DatabaseName, owner: DatabaseUserDescriptor, extraUsers: Iterable[DatabaseUserDescriptor]): DatabaseSetupDescriptor =
+        DatabaseSetupDescriptor(databaseServer, databaseName, owner, extraUsers)
+    
+    }
+    
+    
+    lazy val typeName = "DatabaseSetupDescriptor"
+  
+  }
+  
+  
+  
+  
+  trait MxDatabaseUserDescriptor {
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[DatabaseUserDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[DatabaseUserDescriptor,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[DatabaseUserDescriptor,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.name)
+          .addField(_.roles)
+      )
+      .build
+    
+    
+    given scala.CanEqual[DatabaseUserDescriptor, DatabaseUserDescriptor] = scala.CanEqual.derived
+    
+    
+    
+    lazy val generator: Generator[DatabaseUserDescriptor,parameters.type] =  {
+      val constructors = Constructors[DatabaseUserDescriptor](2, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val name: CaseClassParm[DatabaseUserDescriptor,UserLogin] = CaseClassParm[DatabaseUserDescriptor,UserLogin]("name", _.name, (d,v) => d.copy(name = v), None, 0)
+      lazy val roles: CaseClassParm[DatabaseUserDescriptor,Iterable[DatabaseUserRole]] = CaseClassParm[DatabaseUserDescriptor,Iterable[DatabaseUserRole]]("roles", _.roles, (d,v) => d.copy(roles = v), None, 1)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): DatabaseUserDescriptor = {
+        DatabaseUserDescriptor(
+          name = values(0).asInstanceOf[UserLogin],
+          roles = values(1).asInstanceOf[Iterable[DatabaseUserRole]],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): DatabaseUserDescriptor = {
+        val value =
+          DatabaseUserDescriptor(
+            name = values.next().asInstanceOf[UserLogin],
+            roles = values.next().asInstanceOf[Iterable[DatabaseUserRole]],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(name: UserLogin, roles: Iterable[DatabaseUserRole]): DatabaseUserDescriptor =
+        DatabaseUserDescriptor(name, roles)
+    
+    }
+    
+    
+    lazy val typeName = "DatabaseUserDescriptor"
+  
+  }
+  
+  
+  
+  
+  trait MxZooFile {
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ZooFile,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ZooFile,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[ZooFile,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.filename)
+          .addField(_.organization)
+          .addField(_.artifact)
+          .addField(_.zooVersion)
+      )
+      .build
+    
+    
+    given scala.CanEqual[ZooFile, ZooFile] = scala.CanEqual.derived
+    
+    
+    
+    lazy val generator: Generator[ZooFile,parameters.type] =  {
+      val constructors = Constructors[ZooFile](4, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val filename: CaseClassParm[ZooFile,String] = CaseClassParm[ZooFile,String]("filename", _.filename, (d,v) => d.copy(filename = v), None, 0)
+      lazy val organization: CaseClassParm[ZooFile,Organization] = CaseClassParm[ZooFile,Organization]("organization", _.organization, (d,v) => d.copy(organization = v), None, 1)
+      lazy val artifact: CaseClassParm[ZooFile,Artifact] = CaseClassParm[ZooFile,Artifact]("artifact", _.artifact, (d,v) => d.copy(artifact = v), None, 2)
+      lazy val zooVersion: CaseClassParm[ZooFile,Option[String]] = CaseClassParm[ZooFile,Option[String]]("zooVersion", _.zooVersion, (d,v) => d.copy(zooVersion = v), Some(()=> None), 3)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): ZooFile = {
+        ZooFile(
+          filename = values(0).asInstanceOf[String],
+          organization = values(1).asInstanceOf[Organization],
+          artifact = values(2).asInstanceOf[Artifact],
+          zooVersion = values(3).asInstanceOf[Option[String]],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): ZooFile = {
+        val value =
+          ZooFile(
+            filename = values.next().asInstanceOf[String],
+            organization = values.next().asInstanceOf[Organization],
+            artifact = values.next().asInstanceOf[Artifact],
+            zooVersion = values.next().asInstanceOf[Option[String]],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(filename: String, organization: Organization, artifact: Artifact, zooVersion: Option[String]): ZooFile =
+        ZooFile(filename, organization, artifact, zooVersion)
+    
+    }
+    
+    
+    lazy val typeName = "ZooFile"
   
   }
   

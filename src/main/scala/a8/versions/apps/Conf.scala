@@ -11,7 +11,7 @@ import a8.versions.model.*
 import io.accur8.neodeploy.model.*
 import a8.shared.SharedImports.*
 import a8.shared.app.BootstrappedIOApp
-import io.accur8.neodeploy.{DeployArg, DeploySubCommand, Layers, RawDeployArgs, ValidateRepo, resolvedmodel, Runner as NeodeployRunner}
+import io.accur8.neodeploy.{DeployArg, DeploySubCommand, Layers, RawDeployArgs, SetupDatabase, ValidateRepo, resolvedmodel, Runner as NeodeployRunner}
 import zio.ZIO
 import a8.shared.ZString.ZStringer
 import a8.shared.{FileSystem, FromString, ZFileSystem}
@@ -244,7 +244,6 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
     val appArgs: ScallopOption[RawDeployArgs] = trailArg[RawDeployArgs](descr = "fully qualified app names", required = true)
 
     override def runZ(main: Main) = {
-
       NeodeployRunner(
         remoteDebug = debug.toOption.getOrElse(false),
         remoteTrace = trace.toOption.getOrElse(false),
@@ -265,6 +264,28 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
 
     }
 
+  }
+
+  val setupDatabase = new Subcommand("setup-database") with Runner {
+
+    descr("setup database(s) for the supplied apps (does not do zoo files)")
+
+    //    val app: ScallopOption[AppArg] = opt[AppArg](descr = "fully qualified app name", argName = "app[:version]", required = false)
+    val appArgs: ScallopOption[RawDeployArgs] = trailArg[RawDeployArgs](descr = "fully qualified app names", required = true)
+
+    override def runZ(main: Main) = {
+      loadResolvedRepository()
+        .flatMap { resolvedRepo =>
+          appArgs.toOption.get.resolve(resolvedRepo) match {
+            case Left(error) =>
+              ZIO.fail(new RuntimeException(error))
+            case Right(deployArgs) =>
+              val rawEffect = SetupDatabase.setupDatabases(resolvedRepo, deployArgs).scoped
+              val effect = Layers.provideN(rawEffect, LocalRootDirectory.default)
+              effect
+          }
+        }
+    }
   }
 
   val validateServerAppConfigs = new Subcommand("validate_server_app_configs") with Runner {
@@ -386,6 +407,7 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
   addSubcommand(promote)
   addSubcommand(version_bump)
   addSubcommand(validateServerAppConfigs)
+  addSubcommand(setupDatabase)
 
   verify()
 
@@ -410,6 +432,17 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
       case e =>
         throw e
     }
+  }
+
+  def loadResolvedRepository(config: Option[Config] = None) = {
+    val resolvedConfig = config.getOrElse(Config.default())
+    Layers
+      .resolvedRepositoryZ
+      .provide(
+        zl_succeed(resolvedConfig),
+        LocalRootDirectory.layer,
+        PathLocator.layer,
+      )
   }
 
 }

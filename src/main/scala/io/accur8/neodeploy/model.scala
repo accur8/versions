@@ -25,6 +25,7 @@ import io.accur8.neodeploy.LocalDeploy.Config
 import io.accur8.neodeploy.systemstate.SystemState.RunCommandState
 import io.accur8.neodeploy.systemstate.{SystemState, SystemdLauncherMixin}
 import systemstate.SystemStateModel.Command
+import a8.shared.jdbcf.DatabaseConfig.Password
 
 object model extends LoggingF {
 
@@ -352,6 +353,7 @@ object model extends LoggingF {
     startServerCommand: Option[Command] = None,
     domainName: Option[DomainName] = None,
     domainNames: Vector[DomainName] = Vector.empty,
+    setup: ApplicationSetupDescriptor = ApplicationSetupDescriptor.empty,
 //    restartOnCalendar: Option[OnCalendarValue] = None,
 //    startOnCalendar: Option[OnCalendarValue] = None,
     launcher: LauncherDescriptor = SupervisorDescriptor.empty,
@@ -359,14 +361,59 @@ object model extends LoggingF {
     def resolvedDomainNames = domainNames ++ domainName
   }
 
+  object ApplicationSetupDescriptor extends MxApplicationSetupDescriptor {
+    val empty = ApplicationSetupDescriptor()
+  }
+  @CompanionGen
+  case class ApplicationSetupDescriptor(
+    database: Option[DatabaseSetupDescriptor] = None,
+    qubes: Option[DomainName] = None,
+  )
+
+  object DatabaseSetupDescriptor extends MxDatabaseSetupDescriptor {
+  }
+  @CompanionGen
+  case class DatabaseSetupDescriptor(
+    databaseServer: DomainName,
+    databaseName: DatabaseName,
+    owner: DatabaseUserDescriptor,
+    extraUsers: Iterable[DatabaseUserDescriptor] = Iterable.empty,
+//    zooFiles: Iterable[ZooFile] = Iterable.empty,
+  ) {
+    def allUsers: Iterable[UserLogin] = (extraUsers ++ Some(owner)).map(_.name)
+  }
+
+  object DatabaseUserDescriptor extends MxDatabaseUserDescriptor {
+  }
+  @CompanionGen
+  case class DatabaseUserDescriptor(
+    name: UserLogin,
+    roles: Iterable[DatabaseUserRole],
+  )
+
   object UserLogin extends StringValue.Companion[UserLogin] {
     given CanEqual[UserLogin, UserLogin] = CanEqual.derived
     val root = UserLogin("root")
     def thisUser(): UserLogin =
       UserLogin(System.getProperty("user.name"))
   }
-
   case class UserLogin(value: String) extends StringValue
+
+  object ZooFile extends MxZooFile {
+  }
+  @CompanionGen
+  case class ZooFile(
+    filename: String,
+    organization: Organization,
+    artifact: Artifact,
+    zooVersion: Option[String] = None,
+  )
+
+  object DatabaseName extends StringValue.Companion[DatabaseName]
+  case class DatabaseName(value: String) extends StringValue
+
+  object DatabaseUserRole extends StringValue.Companion[DatabaseUserRole]
+  case class DatabaseUserRole(value: String) extends StringValue
 
   object UserDescriptor extends MxUserDescriptor
   @CompanionGen

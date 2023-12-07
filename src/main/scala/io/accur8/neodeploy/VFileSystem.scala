@@ -6,6 +6,7 @@ import io.accur8.neodeploy.model.LocalRootDirectory
 import SharedImports.*
 import a8.shared.ZFileSystem.{Directory, dir}
 import io.accur8.neodeploy.systemstate.SystemStateModel.PathLocator
+import zio.ZIO
 
 object VFileSystem {
 
@@ -68,21 +69,20 @@ object VFileSystem {
       zfile
         .zip(targetFile.zfile)
         .flatMap { (sourcez, targetz) =>
-          zblock {
-            val renameResult =
+          val effect =
+            zblock {
               sourcez
                 .asNioPath
                 .toFile
                 .renameTo(targetz.asNioPath.toFile)
-            renameResult match {
-              case true =>
-                zunit
-              case false =>
-                zfail(new RuntimeException(s"rename ${sourcez.absolutePath} --> ${targetz.absolutePath} failed"))
             }
+          effect.flatMap {
+            case true =>
+              zunit
+            case false =>
+              zfail(new RuntimeException(s"rename ${sourcez.absolutePath} --> ${targetz.absolutePath} failed"))
           }
         }
-
 
   }
 

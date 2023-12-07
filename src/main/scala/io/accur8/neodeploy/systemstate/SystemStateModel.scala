@@ -171,6 +171,7 @@ object SystemStateModel {
       with PathLocator
       with AppsInfo
       with RunTimestamp
+      with zio.Scope
   )
 
   type M[A] = zio.ZIO[Environ, Throwable, A]

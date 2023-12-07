@@ -23,7 +23,6 @@ object Layers extends LoggingF {
         zl_succeed(rootDirectory),
       )
 
-
   def provide[A](effect: M[A], configOverride: Option[Config] = None): Task[A] = {
     val resolvedConfigL: ZLayer[Any, Throwable, Config] =
       configOverride match {
@@ -32,7 +31,7 @@ object Layers extends LoggingF {
         case Some(c) =>
           ZLayer.succeed(c)
       }
-    effect
+    zio.ZIO.scoped(effect)
       .provide(
         CaddyDirectory.layer,
         DnsService.layer,

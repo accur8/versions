@@ -13,7 +13,7 @@ import zio.process.CommandError
 import zio.process.CommandError.NonZeroErrorCode
 import a8.shared.ZFileSystem.Directory
 
-//object Command {
+object Command {
 //
 //  implicit val jsonCodec: JsonCodec[Command] = {
 //    val delegate = new MxCommand {}
@@ -119,4 +119,4 @@ import a8.shared.ZFileSystem.Directory
 //
 //  }
 //
-//}
+}
