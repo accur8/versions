@@ -7,10 +7,10 @@ import SharedImports.*
 import VFileSystem.Directory
 import a8.shared.jdbcf.DatabaseConfig.Password
 import a8.versions.model.ResolvedRepo
-import io.accur8.neodeploy.SetupDatabase.*
+import io.accur8.neodeploy.SetupDatabase.{loggerF as _, *}
 import io.accur8.neodeploy.systemstate.SystemStateModel
 import io.accur8.neodeploy.systemstate.SystemStateModel.PathLocator
-import model.*
+import model.{loggerF as _, *}
 
 import scala.jdk.CollectionConverters.given
 import java.nio.charset.StandardCharsets
@@ -176,7 +176,9 @@ case class SetupDatabase(
   gitRootDirectory: GitRootDirectory,
   gitAppDirectory: Directory,
   passwords: Map[UserLogin,Password],
-) {
+)
+  extends LoggingF
+{
 
   lazy val ownerUser = databaseSetupDescriptor.owner
   lazy val schemaName: SchemaName = SchemaName("public")
@@ -241,11 +243,19 @@ case class SetupDatabase(
   def run: Z[Unit] = {
     for {
       superUserConn <- superUserConnM
-      _ <- createDatabase(superUserConn)
-      ownerConn <- ownerConnM
-      _ <- SetupDatabase.updateSecretsWithDatabaseConfig(gitAppDirectory, ownerConn.config)
-      _ <- databaseSetupDescriptor.extraUsers.map(createUser(_)(ownerConn, superUserConn)).sequence
-//      _ <- databaseSetupDescriptor.zooFiles.map(createTablesAndQubes(_, ownerConn)).sequence
+      databaseExists <- databaseExists(superUserConn)
+      _ <-
+        if ( databaseExists ) {
+          loggerF.info(s"database ${databaseName} on server ${databaseSetupDescriptor.databaseServer} already exists no more setup")
+        } else {
+          for {
+            _ <- createDatabase(superUserConn)
+            ownerConn <- ownerConnM
+            _ <- SetupDatabase.updateSecretsWithDatabaseConfig(gitAppDirectory, ownerConn.config)
+            _ <- databaseSetupDescriptor.extraUsers.map(createUser(_)(ownerConn, superUserConn)).sequence
+            //      _ <- databaseSetupDescriptor.zooFiles.map(createTablesAndQubes(_, ownerConn)).sequence
+          } yield ()
+        }
     } yield ()
   }
 
@@ -310,6 +320,12 @@ case class SetupDatabase(
       }
       .sequence
       .as(())
+  }
+
+  def databaseExists(superUserConn: SuperUserConn): Z[Boolean] = {
+    val conn = superUserConn.value
+    val sql = SqlString.RawSqlString(s"""select exists(SELECT 1 FROM pg_database WHERE datname = '${databaseName.value}')""")
+    conn.query[Boolean](sql).fetch
   }
 
   def runUpdateSql(sql: String*)(implicit ownerConn: OwnerConn): Z[Unit] = {

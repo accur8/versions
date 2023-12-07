@@ -11,7 +11,7 @@ import a8.versions.model.*
 import io.accur8.neodeploy.model.*
 import a8.shared.SharedImports.*
 import a8.shared.app.BootstrappedIOApp
-import io.accur8.neodeploy.{DeployArg, DeploySubCommand, Layers, RawDeployArgs, SetupDatabase, ValidateRepo, resolvedmodel, Runner as NeodeployRunner}
+import io.accur8.neodeploy.{AppDeploy, DeployArg, DeploySubCommand, Layers, RawDeployArgs, SetupDatabase, ValidateRepo, resolvedmodel, Runner as NeodeployRunner}
 import zio.ZIO
 import a8.shared.ZString.ZStringer
 import a8.shared.{FileSystem, FromString, ZFileSystem}
@@ -23,6 +23,7 @@ import io.accur8.neodeploy.LocalDeploy.Config
 import io.accur8.neodeploy.SharedImports.VFileSystem
 import io.accur8.neodeploy.systemstate.SystemStateModel.PathLocator
 import org.rogach.scallop.exceptions.ScallopResult
+import io.accur8.neodeploy.Setup
 
 object Conf {
 
@@ -92,6 +93,36 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
         PartialFunction.empty
       )
 
+    def loadResolvedRepository(config: Option[Config] = None): ZIO[Any, Throwable, resolvedmodel.ResolvedRepository] = {
+      val resolvedConfig = config.getOrElse(Config.default())
+      Layers
+        .resolvedRepositoryZ
+        .provide(
+          zl_succeed(resolvedConfig),
+          LocalRootDirectory.layer,
+          PathLocator.layer,
+        )
+    }
+
+    def runDeploy(rawDeployArgs: RawDeployArgs) = {
+      NeodeployRunner(
+        remoteDebug = debug.toOption.getOrElse(false),
+        remoteTrace = trace.toOption.getOrElse(false),
+        runnerFn = { (resolvedRepo: resolvedmodel.ResolvedRepository, runner: io.accur8.neodeploy.Runner) =>
+          val effect: zio.Task[Unit] =
+            rawDeployArgs.resolve(resolvedRepo) match {
+              case Right(deployArgs) =>
+                val effect =
+                  DeploySubCommand(resolvedRepo, runner, deployArgs)
+                    .run
+                Layers.provideN(effect, LocalRootDirectory.default)
+              case Left(errorMsg) =>
+                ZIO.fail(new RuntimeException(errorMsg))
+            }
+          effect
+        },
+      ).runT
+    }
 
   }
 
@@ -244,26 +275,30 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
     val appArgs: ScallopOption[RawDeployArgs] = trailArg[RawDeployArgs](descr = "fully qualified app names", required = true)
 
     override def runZ(main: Main) = {
-      NeodeployRunner(
-        remoteDebug = debug.toOption.getOrElse(false),
-        remoteTrace = trace.toOption.getOrElse(false),
-        runnerFn = { (resolvedRepo: resolvedmodel.ResolvedRepository, runner: io.accur8.neodeploy.Runner) =>
-          val effect: zio.Task[Unit] =
-            appArgs.toOption.get.resolve(resolvedRepo) match {
-              case Right(deployArgs) =>
-                val effect =
-                  DeploySubCommand(resolvedRepo, runner, deployArgs)
-                    .run
-                Layers.provideN(effect, LocalRootDirectory.default)
-              case Left(errorMsg) =>
-                ZIO.fail(new RuntimeException(errorMsg))
-            }
-          effect
-        },
-      ).runT
-
+      runDeploy(appArgs.toOption.get)
     }
 
+  }
+
+  val setup = new Subcommand("setup") with Runner {
+
+    descr("setup app(s) - caddy supervisor systemd dns(linode amazon-route53)")
+
+    //    val app: ScallopOption[AppArg] = opt[AppArg](descr = "fully qualified app name", argName = "app[:version]", required = false)
+    val appArgs: ScallopOption[RawDeployArgs] = trailArg[RawDeployArgs](descr = "fully qualified app names", required = true)
+
+    override def runZ(main: Main) = {
+      loadResolvedRepository()
+        .flatMap { resolvedRepo =>
+          appArgs.toOption.get.resolve(resolvedRepo) match {
+            case Left(error) =>
+              ZIO.fail(new RuntimeException(error))
+            case Right(deployArgs) =>
+              val setupDeployArgs = Setup.resolveSetupArgs(deployArgs)
+              runDeploy(setupDeployArgs)
+          }
+        }
+    }
   }
 
   val setupDatabase = new Subcommand("setup-database") with Runner {
@@ -434,15 +469,5 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
     }
   }
 
-  def loadResolvedRepository(config: Option[Config] = None) = {
-    val resolvedConfig = config.getOrElse(Config.default())
-    Layers
-      .resolvedRepositoryZ
-      .provide(
-        zl_succeed(resolvedConfig),
-        LocalRootDirectory.layer,
-        PathLocator.layer,
-      )
-  }
 
 }

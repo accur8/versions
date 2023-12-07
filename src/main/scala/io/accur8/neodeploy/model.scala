@@ -358,7 +358,7 @@ object model extends LoggingF {
 //    startOnCalendar: Option[OnCalendarValue] = None,
     launcher: LauncherDescriptor = SupervisorDescriptor.empty,
   ) {
-    def resolvedDomainNames = domainNames ++ domainName
+    def resolvedDomainNames: Vector[DomainName] = domainNames ++ domainName
   }
 
   object ApplicationSetupDescriptor extends MxApplicationSetupDescriptor {

@@ -87,20 +87,22 @@ object DeployArg {
 
 object ParsedDeployArg {
   def parse(value: String): ParsedDeployArg = {
-    value.indexOf(":") match {
-      case -1 =>
+    (value.indexOf(":"), value.indexOf("@")) match {
+      case (-1, -1) =>
         ParsedDeployArg(value, None, None, value)
-      case i =>
-        val name = value.substring(0, i - 1)
-        val rest = value.substring(i + 1)
-        rest.indexOf("@") match {
-          case -1 =>
-            ParsedDeployArg(name, None, Some(rest), value)
-          case j =>
-            val user = rest.substring(0, j - 1)
-            val server = rest.substring(j + 1)
-            ParsedDeployArg(name, Some(user), Some(server), value)
-        }
+      case (-1,i) =>
+        val name = value.substring(0, i)
+        val server = value.substring(i + 1)
+        ParsedDeployArg(name, None, Some(server), value)
+      case (i, -1) =>
+        val name = value.substring(0, i)
+        val user = value.substring(i + 1)
+        ParsedDeployArg(name, Some(user), None, value)
+      case (i, j) =>
+        val name = value.substring(0, i)
+        val user = value.substring(i + 1, j)
+        val server = value.substring(j + 1)
+        ParsedDeployArg(name, Some(user), Some(server), value)
     }
   }
 }
