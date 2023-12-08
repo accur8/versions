@@ -36,7 +36,7 @@ object Setup {
               .resolvedDomainNames
               .map(_.topLevelDomain)
               .distinct
-              .map { d => z"dns@${d}" }
+              .map { d => z"dns" }
 
           val caddy =
             Iterable(
