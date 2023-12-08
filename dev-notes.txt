@@ -12,3 +12,10 @@
 
 * allow deploys to push through the ParsedDeployArg to be more targeted with changes
 
+* support dry run everywhere
+
+
+
+
+
+
