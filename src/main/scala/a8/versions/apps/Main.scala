@@ -10,7 +10,7 @@ import a8.versions.*
 import a8.versions.Upgrade.LatestArtifact
 import a8.versions.apps.Main.Runner
 import a8.versions.predef.*
-import a8.shared.SharedImports.*
+import io.accur8.neodeploy.SharedImports.{zblock, *}
 import a8.shared.ZString.ZStringer
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.shared.app.{BootstrappedIOApp, Bootstrapper}
@@ -24,11 +24,10 @@ import io.accur8.neodeploy.resolvedmodel.ResolvedRepository
 import scala.annotation.tailrec
 import io.accur8.neodeploy.{DeploySubCommand, ValidateRepo, Runner as NeodeployRunner}
 import org.rogach.scallop.*
-import zio.{Scope, ZIO, ZIOAppArgs}
+import zio.{ExitCode, Scope, ZIO, ZIOAppArgs, ZLayer}
 import io.accur8.neodeploy.model.*
 import a8.common.logging.Level
 import ch.qos.logback.classic.LoggerContext
-import zio.ZLayer
 
 object Main extends BootstrappedIOApp {
 
@@ -91,12 +90,14 @@ object Main extends BootstrappedIOApp {
         main.runT
       }
       .either
-      .map {
+      .flatMap {
         case Left(th) =>
+          logger.fatal("fatal error on main fiber exiting with exitCode = 1", th)
           th.printStackTrace(System.err)
-          System.exit(1)
+          exit(ExitCode.failure)
         case Right(_) =>
-          System.exit(0)
+          logger.info("successful program completion exiting with exitCode = 0")
+          exit(ExitCode.success)
       }
   }
 

@@ -3,8 +3,12 @@
 * list applications
 * list syncs
 
-
 * deploy allows version from command line
 
+* allow dns to be dns@domain where
+    * dns@accur8.io update all domains in accur8.net
+    * dns@orbit.accur8.io update orbit.accur8.io domain
+    * dns update all domains
 
+* allow deploys to push through the ParsedDeployArg to be more targeted with changes
 

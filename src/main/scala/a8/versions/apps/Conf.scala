@@ -20,7 +20,7 @@ import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.common.logging.Level
 import a8.common.logging.Logger
 import io.accur8.neodeploy.LocalDeploy.Config
-import io.accur8.neodeploy.SharedImports.VFileSystem
+import io.accur8.neodeploy.SharedImports.{VFileSystem, traceEffect}
 import io.accur8.neodeploy.systemstate.SystemStateModel.PathLocator
 import org.rogach.scallop.exceptions.ScallopResult
 import io.accur8.neodeploy.Setup
