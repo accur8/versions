@@ -10,7 +10,7 @@ import a8.shared.json.ast.{JsArr, JsDoc, JsNothing, JsObj, JsStr, JsVal, resolve
 import a8.shared.json.{EnumCodecBuilder, JsonCodec, JsonTypedCodec, UnionCodecBuilder}
 import a8.versions.RepositoryOps.RepoConfigPrefix
 import sttp.model.Uri
-import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedAuthorizedKey, ResolvedUser}
+import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedAuthorizedKey, ResolvedRepository, ResolvedUser}
 import zio.process.CommandError
 import zio.process.CommandError.NonZeroErrorCode
 import zio.{Chunk, ExitCode, UIO, ZIO, ZLayer}
@@ -153,10 +153,15 @@ object model extends LoggingF {
   case class AppsRootDirectory(value: String) extends DirectoryValue
 
   object AppsInfo {
-    lazy val layer: ZLayer[ResolvedUser, Nothing, AppsInfo] = ZLayer(effect)
-    lazy val effect: ZIO[ResolvedUser, Nothing, AppsInfo] =
-      zservice[ResolvedUser]
-        .map(u => AppsInfo(u.appsRootDirectory))
+    lazy val layer: ZLayer[UserLogin & ResolvedRepository & Config, Throwable, AppsInfo] = ZLayer(effectM)
+    lazy val effectM: ZIO[UserLogin & ResolvedRepository & Config, Throwable, AppsInfo] =
+      for {
+        ru <- ResolvedUser.live
+      } yield {
+        AppsInfo(
+          appsRoot = ru.appsRootDirectory
+        )
+      }
   }
   case class AppsInfo(
     appsRoot: AppsRootDirectory,

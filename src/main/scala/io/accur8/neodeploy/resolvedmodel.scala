@@ -12,7 +12,7 @@ import a8.shared.json.ast.{JsDoc, JsNothing, JsObj, JsVal}
 import zio.{Cause, Chunk, UIO, ZIO}
 import PredefAssist.*
 import a8.shared.json.JsonReader.ReadResult
-import com.typesafe.config.{Config, ConfigFactory, ConfigValue}
+import com.typesafe.config.ConfigFactory
 import io.accur8.neodeploy.Mxresolvedmodel.MxLoadedApplicationDescriptor
 import io.accur8.neodeploy.plugin.{PgbackrestServerPlugin, RepositoryPlugins}
 import io.accur8.neodeploy.resolvedmodel.ResolvedApp.LoadedApplicationDescriptor
@@ -24,6 +24,14 @@ object resolvedmodel extends LoggingF {
 
   import a8.Scala3Hacks.*
 
+  object ResolvedUser {
+    val live: ZIO[UserLogin with ResolvedRepository with LocalDeploy.Config, Throwable, ResolvedUser] =
+      for {
+        rs <- ResolvedServer.live
+        ul <- zservice[UserLogin]
+        ru <- rs.fetchUserZ(ul)
+      } yield ru
+  }
   case class ResolvedUser(
     descriptor: UserDescriptor,
     home: Directory,
@@ -123,6 +131,13 @@ object resolvedmodel extends LoggingF {
 
   }
 
+  object ResolvedServer {
+    val live =
+      for {
+        config <- zservice[LocalDeploy.Config]
+        resolvedRepository <- zservice[ResolvedRepository]
+      } yield resolvedRepository.server(config.serverName)
+  }
 
   case class ResolvedServer(
     descriptor: ServerDescriptor,

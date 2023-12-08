@@ -89,7 +89,7 @@ case class AmazonRoute53DnsApi(
   }
 
 
-  override def applyChangeSet(domainName: DomainName, upserts: Iterable[DomainNameSystem.Record], deletes: Iterable[DomainNameSystem.Record]): T[Unit] =
+  override def applyChangeSet(domainName: DomainName, upserts: Iterable[DomainNameSystem.Record], deletes: Iterable[DomainNameSystem.Record]): T[Unit] = {
     ZIO
       .attemptBlocking {
 
@@ -141,5 +141,6 @@ case class AmazonRoute53DnsApi(
       }
       .as(())
       .trace0(z"AmazonRoute53.applyChangeSet(${domainName}, ${upserts.toString}, ${deletes.toString})")
+  }
 
 }

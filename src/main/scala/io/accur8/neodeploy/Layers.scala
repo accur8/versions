@@ -5,9 +5,9 @@ import a8.shared.SharedImports.*
 import a8.shared.ZFileSystem
 import a8.common.logging.LoggingF
 import io.accur8.neodeploy.LocalDeploy.Config
-import io.accur8.neodeploy.model.{AppsInfo, CaddyDirectory, LocalRootDirectory}
+import io.accur8.neodeploy.model.{AppsInfo, CaddyDirectory, GitRootDirectory, LocalRootDirectory, UserLogin}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedRepository, ResolvedServer}
-import io.accur8.neodeploy.systemstate.SystemStateModel.{M, Environ, PathLocator, RunTimestamp, SystemStateLogger}
+import io.accur8.neodeploy.systemstate.SystemStateModel.{Environ, M, PathLocator, RunTimestamp, SystemStateLogger}
 import zio.{Task, ZIO, ZLayer}
 
 object Layers extends LoggingF {
@@ -38,11 +38,12 @@ object Layers extends LoggingF {
         resolvedConfigL,
         healthchecksDotIoL,
         resolvedRepositoryL,
-        resolvedUserL,
-        resolvedServerL,
+//        resolvedUserL,
+//        resolvedServerL,
+        userLoginL,
         SystemStateLogger.simpleLayer,
         RunTimestamp.layer,
-        AppsInfo.layer,
+//        AppsInfo.layer,
         PathLocator.layer,
         LocalRootDirectory.layer,
       )
@@ -59,7 +60,7 @@ object Layers extends LoggingF {
       .readAsStringOpt
       .flatMap {
         case None =>
-          val defaultConfig = Config.default()
+          val defaultConfig = Config.default
           ZFileSystem
             .dir(defaultConfig.gitRootDirectory.value)
             .exists
@@ -78,7 +79,7 @@ object Layers extends LoggingF {
             }
       }
 
-  lazy val configL = ZLayer.fromZIO(configZ)
+  lazy val configL: ZLayer[Any, Throwable, Config] = ZLayer.fromZIO(configZ)
 
   def resolvedRepositoryL =
     ZLayer.fromZIO(resolvedRepositoryZ)
@@ -88,6 +89,8 @@ object Layers extends LoggingF {
       .flatMap(config =>
         ResolvedRepository.loadFromDisk(config.gitRootDirectory)
       )
+
+  def userLoginL: ZLayer[Config, Throwable, UserLogin] = configL.project(_.userLogin)
 
   def resolvedServerL =
     ZLayer.fromZIO(

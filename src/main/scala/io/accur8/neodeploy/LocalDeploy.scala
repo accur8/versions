@@ -17,7 +17,7 @@ import io.accur8.neodeploy.VFileSystem.Directory
 object LocalDeploy {
 
   object Config extends MxConfig {
-    def default() =
+    lazy val default =
       Config(
         LocalRootDirectory("/"),
         GitRootDirectory(FileSystem.userHome.subdir("server-app-configs").asNioPath.toAbsolutePath.toString),

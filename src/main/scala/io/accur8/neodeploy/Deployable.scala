@@ -184,7 +184,6 @@ object Deployable {
 
   lazy val allDeployables: Seq[Deployable] = userDeployables ++ serverDeployables ++ infraStructureDeployables
 
-
 }
 
 

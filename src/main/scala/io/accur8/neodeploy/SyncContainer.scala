@@ -67,7 +67,7 @@ case class SyncContainer(
       .either
       .flatMap {
         case Left(e) =>
-          loggerF.warn("error loading previous state", e)
+          loggerF.warn("error loading previous state will continue with previous state of empty", e)
             .as(PreviousState(ResolvedState(deployId, SystemState.Empty)))
         case Right(ps) =>
           loggerF.debug(s"loaded previous state -- \n${ps.prettyJson}")
@@ -119,7 +119,8 @@ case class SyncContainer(
 
   }
 
-  def runSystemStateServicesCommit: M[Unit] = zunit
+  def runSystemStateServicesCommit: M[Unit] =
+    zunit
 
   def updateState(newState: NewState): M[Unit] = {
     val isEmpty = newState.isEmpty

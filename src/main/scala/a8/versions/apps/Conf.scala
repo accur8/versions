@@ -94,7 +94,7 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
       )
 
     def loadResolvedRepository(config: Option[Config] = None): ZIO[Any, Throwable, resolvedmodel.ResolvedRepository] = {
-      val resolvedConfig = config.getOrElse(Config.default())
+      val resolvedConfig = config.getOrElse(Config.default)
       Layers
         .resolvedRepositoryZ
         .provide(
@@ -377,7 +377,7 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
 
     override def runZ(main: Main) = {
 
-      val defaultConfig = Config.default()
+      val defaultConfig = Config.default
 
       val config =
         Config(

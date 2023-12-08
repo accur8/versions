@@ -8,7 +8,7 @@ import zio.{Chunk, ExitCode, Task, Trace, ZIO, ZLayer}
 import a8.shared.SharedImports.*
 import a8.common.logging.{Logger, LoggingF}
 import com.typesafe.config.Config
-import io.accur8.neodeploy.model.{AppsInfo, AppsRootDirectory, CaddyDirectory, LocalRootDirectory, SupervisorDirectory}
+import io.accur8.neodeploy.model.{AppsInfo, AppsRootDirectory, CaddyDirectory, GitRootDirectory, LocalRootDirectory, SupervisorDirectory, UserLogin}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedRepository, ResolvedServer, ResolvedUser}
 
 import java.nio.file.attribute.PosixFilePermission
@@ -163,15 +163,14 @@ object SystemStateModel {
     SystemStateLogger
       with HealthchecksDotIo
       with ResolvedRepository
-      with ResolvedServer
-      with ResolvedUser
       with DnsService
       with LocalDeploy.Config
       with CaddyDirectory
       with PathLocator
-      with AppsInfo
+//      with AppsInfo
       with RunTimestamp
       with zio.Scope
+      with UserLogin
   )
 
   type M[A] = zio.ZIO[Environ, Throwable, A]

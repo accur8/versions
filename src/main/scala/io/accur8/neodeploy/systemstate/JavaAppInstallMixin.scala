@@ -57,7 +57,7 @@ trait JavaAppInstallMixin extends SystemStateMixin with LoggingF { self: SystemS
 
   override def runApplyNewState = {
     for {
-      appsInfo <- zservice[AppsInfo]
+      appsInfo <- AppsInfo.effectM
       runTimestamp <- zservice[RunTimestamp]
       _ <- Installer(this, appsInfo, runTimestamp).installAction
     } yield ()

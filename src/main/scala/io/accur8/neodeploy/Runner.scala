@@ -30,7 +30,7 @@ case class Runner(
     main(Array[String]())
 
   override def runT: ZIO[BootstrapEnv, Throwable, Unit] = {
-    val resolvedConfig = config.getOrElse(Config.default())
+    val resolvedConfig = config.getOrElse(Config.default)
     val rawEffect: ZIO[Scope, Throwable, Unit] =
       for {
         resolvedRepository <-

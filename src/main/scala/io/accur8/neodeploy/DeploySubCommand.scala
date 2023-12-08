@@ -2,9 +2,9 @@ package io.accur8.neodeploy
 
 
 import a8.shared.{Exec, StringValue}
-import io.accur8.neodeploy.model.{ApplicationName, DomainName, Install, ServerName, UserLogin, Version}
+import io.accur8.neodeploy.model.{ApplicationName, DomainName, GitRootDirectory, Install, ServerName, UserLogin, Version}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedRepository, ResolvedUser}
-import zio.{ZIO}
+import zio.ZIO
 import a8.shared.SharedImports.*
 import a8.common.logging.LoggingF
 import a8.versions.{ParsedVersion, RepositoryOps, VersionParser}
@@ -13,11 +13,11 @@ import io.accur8.neodeploy.DeploySubCommand.DeployAppEffects
 import io.accur8.neodeploy.DeployUser.{InfraUser, RegularUser}
 import io.accur8.neodeploy.Deployable.{InfraStructureDeployable, ServerDeployable, UserDeployable}
 import io.accur8.neodeploy.Layers.N
+import io.accur8.neodeploy.LocalDeploy.Config
 import io.accur8.neodeploy.systemstate.SystemState.JavaAppInstall
-import io.accur8.neodeploy.systemstate.SystemStateModel.M
+import io.accur8.neodeploy.systemstate.SystemStateModel.{Command, Environ, M}
 import org.rogach.scallop.{ArgType, ScallopOption, ValueConverter}
 import io.accur8.neodeploy.systemstate.SystemStateModel
-import SystemStateModel.Command
 
 object DeploySubCommand {
 
@@ -129,7 +129,13 @@ case class DeploySubCommand(
   }
 
   def runInfraDeploy(args: Iterable[DeployArg]): N[DeployResult] = {
-    ???
+    val deployUser = InfraUser(resolvedRepository)
+    val effect: M[DeployResult] =
+      for {
+        gitRootDirectory <- zservice[Config].map(_.gitRootDirectory)
+        _ <- SyncContainer(gitRootDirectory.subdir(".state/infra"), deployUser, deployArgs.args.toVector).run
+      } yield DeployResult(deployUser)
+    Layers.provide(effect)
   }
 
   def runDeploy(deployUser: RegularUser, args: Iterable[DeployArg]): N[DeployResult] = {

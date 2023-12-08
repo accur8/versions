@@ -7,6 +7,7 @@ import a8.shared.{CompanionGen, FileSystem, ZFileSystem}
 import io.accur8.neodeploy.LocalDeploy.Config
 import io.accur8.neodeploy.model.*
 import io.accur8.neodeploy.resolvedmodel.{ResolvedRepository, ResolvedServer, ResolvedUser}
+import io.accur8.neodeploy.systemstate.SystemStateModel
 import io.accur8.neodeploy.systemstate.SystemStateModel.*
 import zio.{ZIO, ZLayer}
 
@@ -18,11 +19,20 @@ object LocalDeploySubCommand {
 
 case class LocalDeploySubCommand(deployArgs: ResolvedDeployArgs) {
 
-  def runM: M[Unit] =
-    for {
-      config <- zservice[Config]
-      user <- zservice[ResolvedUser]
-      _ <- LocalDeploy(user, deployArgs, config).run
-    } yield ()
+  def runM: M[Unit] = {
+    val effect =
+      for {
+        config <- zservice[Config]
+        user <- zservice[ResolvedUser]
+        _ <- LocalDeploy(user, deployArgs, config).run
+      } yield ()
+
+    effect
+      .provideSome[SystemStateModel.Environ](
+        Layers.resolvedUserL,
+        Layers.resolvedServerL,
+      )
+
+  }
 
 }

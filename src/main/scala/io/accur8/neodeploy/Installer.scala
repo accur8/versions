@@ -159,8 +159,8 @@ case class Installer(installState: SystemState.JavaAppInstall, appsInfo: AppsInf
 
     def createGcRoot = {
       for {
-        user <- zservice[ResolvedUser]
-        gcroot = VFileSystem.link(z"/nix/var/nix/gcroots/per-user/${user.login}/java-app-${applicationDescriptor.name}")
+        user <- zservice[UserLogin]
+        gcroot = VFileSystem.link(z"/nix/var/nix/gcroots/per-user/${user}/java-app-${applicationDescriptor.name}")
         _ <- gcroot.deleteIfExists
         _ <- gcroot.writeTarget(nixInstallWorkDir.subdir("build"))
       } yield ()
