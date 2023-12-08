@@ -107,6 +107,8 @@ case class SyncContainer(
         _ <- interpreter.dryRunLog.map(m => loggerF.info(m)).getOrElse(zunit)
         _ <- loggerF.trace(s"applying new state ${namePair}")
         _ <- interpreter.runApplyNewState
+        dnsService <- zservice[DnsService]
+        _ <- dnsService.commit
         _ <- loggerF.trace(s"applying uninstall if obsolete state ${namePair}")
         _ <- interpreter.runUninstallObsolete
         _ <- loggerF.trace(s"updating state ${namePair}")
