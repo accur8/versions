@@ -17,14 +17,17 @@ object LocalDeploySubCommand {
 
 }
 
-case class LocalDeploySubCommand(deployArgs: ResolvedDeployArgs) {
+case class LocalDeploySubCommand(
+  deployArgs: ResolvedDeployArgs,
+  dryRun: Boolean,
+) {
 
   def runM: M[Unit] = {
     val effect =
       for {
         config <- zservice[Config]
         user <- zservice[ResolvedUser]
-        _ <- LocalDeploy(user, deployArgs, config).run
+        _ <- LocalDeploy(user, deployArgs, config, dryRun).run
       } yield ()
 
     effect

@@ -34,6 +34,7 @@ case class DeploySubCommand(
   resolvedRepository: ResolvedRepository,
   runner: Runner,
   deployArgs: ResolvedDeployArgs,
+  dryRun: Boolean,
 )
   extends LoggingF
 {
@@ -133,7 +134,7 @@ case class DeploySubCommand(
     val effect: M[DeployResult] =
       for {
         gitRootDirectory <- zservice[Config].map(_.gitRootDirectory)
-        _ <- SyncContainer(gitRootDirectory.subdir(".state/infra"), deployUser, deployArgs.args.toVector).run
+        _ <- SyncContainer(gitRootDirectory.subdir(".state/infra"), deployUser, deployArgs.args.toVector, dryRun).run
       } yield DeployResult(deployUser)
     Layers.provide(effect)
   }

@@ -18,7 +18,6 @@ object FileSystemAssist extends LoggingF {
     def addDirectory(pathStr: String, mustExist: Boolean = true): FileSet =
       copy(paths = paths :+ (VFileSystem.dir(pathStr) -> mustExist))
 
-
     def addFile(pathStr: String, mustExist: Boolean = true): FileSet =
       copy(paths = paths :+ (VFileSystem.file(pathStr) -> mustExist))
 

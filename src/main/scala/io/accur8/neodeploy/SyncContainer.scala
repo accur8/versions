@@ -53,6 +53,7 @@ case class SyncContainer(
   stateDirectory: Directory,
   deployUser: DeployUser,
   deploys: Vector[DeployArg],
+  dryRun: Boolean,
 )
   extends LoggingF
 {
@@ -89,15 +90,15 @@ case class SyncContainer(
 
   def run(deployArg: DeployArg, previousState: PreviousState): M[Unit] = {
 
-    val namePair = deployArg.deployId
+    lazy val namePair = deployArg.deployId
 
-    val newStateEffect: M[NewState] =
+    lazy val newStateEffect: M[NewState] =
       deployArg
         .systemState(deployUser)
         .traceLog(s"systemState(${namePair})")
         .map(s => NewState(ResolvedState(namePair, s)))
 
-    val effect: M[Unit] =
+    lazy val effect: M[Unit] =
       for {
         _ <- loggerF.trace(s"starting run(${namePair})")
         newState <- newStateEffect
@@ -105,6 +106,16 @@ case class SyncContainer(
         interpreter <- systemstate.Interpreter(newState, previousState)
         _ <- loggerF.trace(s"interpreter created ${namePair}")
         _ <- interpreter.dryRunLog.map(m => loggerF.info(m)).getOrElse(zunit)
+        _ <-
+          if (dryRun) {
+            loggerF.info(s"dry run only")
+          } else {
+            makeChangesEffect(newState, interpreter)
+          }
+      } yield ()
+
+    def makeChangesEffect(newState: NewState, interpreter: systemstate.Interpreter): M[Unit] =
+      for {
         _ <- loggerF.trace(s"applying new state ${namePair}")
         _ <- interpreter.runApplyNewState
         dnsService <- zservice[DnsService]

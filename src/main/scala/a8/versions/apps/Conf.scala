@@ -104,7 +104,7 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
         )
     }
 
-    def runDeploy(rawDeployArgs: RawDeployArgs) = {
+    def runDeploy(rawDeployArgs: RawDeployArgs, dryRun: Boolean) = {
       NeodeployRunner(
         remoteDebug = debug.toOption.getOrElse(false),
         remoteTrace = trace.toOption.getOrElse(false),
@@ -113,7 +113,7 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
             rawDeployArgs.resolve(resolvedRepo) match {
               case Right(deployArgs) =>
                 val effect =
-                  DeploySubCommand(resolvedRepo, runner, deployArgs)
+                  DeploySubCommand(resolvedRepo, runner, deployArgs, dryRun)
                     .run
                 Layers.provideN(effect, LocalRootDirectory.default)
               case Left(errorMsg) =>
@@ -274,8 +274,10 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
     //    val app: ScallopOption[AppArg] = opt[AppArg](descr = "fully qualified app name", argName = "app[:version]", required = false)
     val appArgs: ScallopOption[RawDeployArgs] = trailArg[RawDeployArgs](descr = "fully qualified app names", required = true)
 
+    val dryRun: ScallopOption[Boolean] = opt[Boolean]("dryRun", descr = "dry run, do not actually do anything just saw what would be done", required = false, default = Some(false))
+
     override def runZ(main: Main) = {
-      runDeploy(appArgs.toOption.get)
+      runDeploy(appArgs.toOption.get, dryRun.toOption.getOrElse(false))
     }
 
   }
@@ -287,6 +289,8 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
     //    val app: ScallopOption[AppArg] = opt[AppArg](descr = "fully qualified app name", argName = "app[:version]", required = false)
     val appArgs: ScallopOption[RawDeployArgs] = trailArg[RawDeployArgs](descr = "fully qualified app names", required = true)
 
+    val dryRun: ScallopOption[Boolean] = opt[Boolean]("dryRun", descr = "dry run, do not actually do anything just saw what would be done", required = false, default = Some(false))
+
     override def runZ(main: Main) = {
       loadResolvedRepository()
         .flatMap { resolvedRepo =>
@@ -295,7 +299,7 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
               ZIO.fail(new RuntimeException(error))
             case Right(deployArgs) =>
               val setupDeployArgs = Setup.resolveSetupArgs(deployArgs)
-              runDeploy(setupDeployArgs)
+              runDeploy(setupDeployArgs, dryRun.toOption.getOrElse(false))
           }
         }
     }
@@ -339,6 +343,8 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
 
     val appArgs: ScallopOption[RawDeployArgs] = trailArg[RawDeployArgs](descr = "fully qualified app names", required = true)
 
+    val dryRun: ScallopOption[Boolean] = opt[Boolean]("dryRun", descr = "dry run, do not actually do anything just saw what would be done", required = false, default = Some(false))
+
     override def runZ(main: Main) = {
 
       NeodeployRunner(
@@ -350,6 +356,7 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
               val runLocalDeploy =
                 io.accur8.neodeploy.LocalDeploySubCommand(
                   deployArgs,
+                  dryRun = dryRun.toOption.getOrElse(false),
                 )
               Layers.provide(
                 runLocalDeploy.runM
@@ -375,6 +382,8 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
 
     val appArgs: ScallopOption[RawDeployArgs] = trailArg[RawDeployArgs](descr = "fully qualified app names", required = true)
 
+    val dryRun: ScallopOption[Boolean] = opt[Boolean]("dryRun", descr = "dry run, do not actually do anything just saw what would be done", required = false, default = Some(false))
+
     override def runZ(main: Main) = {
 
       val defaultConfig = Config.default
@@ -397,6 +406,7 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
               val runLocalDeploy =
                 io.accur8.neodeploy.LocalDeploySubCommand(
                   deployArgs,
+                  dryRun = dryRun.toOption.getOrElse(false),
                 )
               Layers.provide(
                 runLocalDeploy.runM,

@@ -36,7 +36,12 @@ object LocalDeploy {
 
 }
 
-case class LocalDeploy(resolvedUser: ResolvedUser, deployArgs: ResolvedDeployArgs, config: Config) extends LoggingF {
+case class LocalDeploy(
+  resolvedUser: ResolvedUser,
+  deployArgs: ResolvedDeployArgs,
+  config: Config,
+  dryRun: Boolean,
+) extends LoggingF {
 
   lazy val resolvedServer = resolvedUser.server
 
@@ -49,7 +54,7 @@ case class LocalDeploy(resolvedUser: ResolvedUser, deployArgs: ResolvedDeployArg
 
   def appSyncRun: M[Unit] =
     loggerF.debug("appSyncRun") *>
-      SyncContainer(stateDirectory, RegularUser(resolvedUser), deployArgs.args.toVector)
+      SyncContainer(stateDirectory, RegularUser(resolvedUser), deployArgs.args.toVector, dryRun)
         .run
 
   def run: M[Unit] =
