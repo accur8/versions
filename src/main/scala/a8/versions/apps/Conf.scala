@@ -4,7 +4,7 @@ package a8.versions.apps
 import org.rogach.scallop.ScallopConf
 import org.rogach.scallop.*
 import a8.versions.{GenerateJavaLauncherDotNix, PromoteArtifacts, RepositoryOps}
-import RepositoryOps.RepoConfigPrefix
+import RepositoryOps.{RepoConfigPrefix, default}
 import a8.versions.PromoteArtifacts.Dependencies
 import a8.versions.apps.Main.Runner
 import a8.versions.model.*
@@ -19,6 +19,7 @@ import a8.versions.GenerateJavaLauncherDotNix.Parms
 import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.common.logging.Level
 import a8.common.logging.Logger
+import a8.versions.apps.Conf.Konsole
 import io.accur8.neodeploy.LocalDeploy.Config
 import io.accur8.neodeploy.SharedImports.{VFileSystem, traceEffect}
 import io.accur8.neodeploy.systemstate.SystemStateModel.PathLocator
@@ -26,12 +27,27 @@ import org.rogach.scallop.exceptions.ScallopResult
 import io.accur8.neodeploy.Setup
 
 object Conf {
+  trait Konsole {
 
+    def outputHelp(builder: Scallop): Unit = {
+      val help =
+        (builder.vers ++ builder.bann ++ Some(builder.help) ++ builder.foot)
+          .mkString("\n")
+      rawOutout(help)
+    }
+
+    def outputVersion(scallop: Scallop): Unit =
+      rawOutout(scallop.vers.getOrElse("unknown version"))
+    def rawOutout(msg: String): Unit
+  }
 }
 
-case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
+case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
 
   import impl._
+
+  val debug = args0.find(_ == "--debug").nonEmpty
+  val trace = args0.find(_ == "--trace").nonEmpty
 
   banner(
     s"""
@@ -47,14 +63,31 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
        |""".stripMargin
   )
 
-  val debug = opt[Boolean](name = "debug", descr = "show debug level logging, all logging except trace")
-  val trace = opt[Boolean](name = "trace", descr = "show trace level logging, this has the most detail and include debug logging")
+  val debugOpt = opt[Boolean](name = "debug", descr = "show debug level logging, all logging except trace")
+  val traceOpt = opt[Boolean](name = "trace", descr = "show trace level logging, this has the most detail and include debug logging")
+
+  object konsole extends Konsole {
+    override def rawOutout(msg: String): Unit = {
+      if ( debug || trace )
+        logger.info(msg)
+      else
+        println(msg)
+//      (debug.toOption.exists(identity), trace.toOption.exists(identity)) match {
+//        case (true, _) =>
+//          logger.debug(msg)
+//        case (_, true) =>
+//          logger.trace(msg)
+//        case _ =>
+//          println(msg)
+//      }
+    }
+  }
 
   lazy val defaultLogLevel =
-    (debug.toOption, trace.toOption) match {
-      case (_, Some(true)) =>
+    (debug, trace) match {
+      case (_, true) =>
         Level.Trace
-      case (Some(true), _) =>
+      case (true, _) =>
         Level.Debug
       case _ =>
         Level.Info
@@ -106,8 +139,8 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
 
     def runDeploy(rawDeployArgs: RawDeployArgs, dryRun: Boolean) = {
       NeodeployRunner(
-        remoteDebug = debug.toOption.getOrElse(false),
-        remoteTrace = trace.toOption.getOrElse(false),
+        remoteDebug = debug,
+        remoteTrace = trace,
         runnerFn = { (resolvedRepo: resolvedmodel.ResolvedRepository, runner: io.accur8.neodeploy.Runner) =>
           val effect: zio.Task[Unit] =
             rawDeployArgs.resolve(resolvedRepo) match {
@@ -348,8 +381,8 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
     override def runZ(main: Main) = {
 
       NeodeployRunner(
-        remoteDebug = debug.toOption.getOrElse(false),
-        remoteTrace = trace.toOption.getOrElse(false),
+        remoteDebug = debug,
+        remoteTrace = trace,
         runnerFn = { (resolvedRepo: resolvedmodel.ResolvedRepository, runner: io.accur8.neodeploy.Runner) =>
           appArgs.toOption.get.resolve(resolvedRepo) match {
             case Right(deployArgs) =>
@@ -398,8 +431,8 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
 
       NeodeployRunner(
         config = config.some,
-        remoteDebug = debug.toOption.getOrElse(false),
-        remoteTrace = trace.toOption.getOrElse(false),
+        remoteDebug = debug,
+        remoteTrace = trace,
         runnerFn = { (resolvedRepo: resolvedmodel.ResolvedRepository, runner: io.accur8.neodeploy.Runner) =>
           appArgs.toOption.get.resolve(resolvedRepo) match {
             case Right(deployArgs) =>
@@ -441,18 +474,28 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
 
   }
 
+  addSubcommand(buildDotSbt)
   addSubcommand(deploy)
-  addSubcommand(resolve)
-  addSubcommand(install)
   addSubcommand(buildDotSbt)
   addSubcommand(gitignore)
   addSubcommand(javaLauncherDotNix)
-  addSubcommand(localDeploy)
-  addSubcommand(localDeployDev)
   addSubcommand(promote)
-  addSubcommand(version_bump)
-  addSubcommand(validateServerAppConfigs)
+  addSubcommand(promote)
+  addSubcommand(resolve)
+  addSubcommand(setup)
   addSubcommand(setupDatabase)
+  addSubcommand(validateServerAppConfigs)
+
+  errorMessageHandler = { message =>
+//    if (overrideColorOutput.value.getOrElse(System.console() != null)) {
+//      Console.err.println(String.format("[\u001b[31m%s\u001b[0m] Error: %s", printedName, message))
+//    } else {
+//      // no colors on output
+//      Console.err.println(String.format("[%s] Error: %s", printedName, message))
+//    }
+//    Compat.exit(1)
+  }
+
 
   verify()
 
@@ -463,16 +506,18 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) {
       case r: ScallopResult if !throwError.value =>
         r match {
           case Help("") =>
-            builder.printHelp()
+            konsole.outputHelp(builder)
           case Help(subname) =>
-            builder.findSubbuilder(subname).get.printHelp()
+            konsole.outputHelp(builder.findSubbuilder(subname).get)
           case Version =>
-            builder.vers.foreach(println)
+            konsole.outputVersion(builder)
           case ScallopException(message) =>
-            errorMessageHandler(message)
+//            errorMessageHandler(message)
           // following should never match, but just in case
+            toString
           case other: exceptions.ScallopException =>
-            errorMessageHandler(other.getMessage)
+//            errorMessageHandler(other.getMessage)
+            toString
         }
       case e =>
         throw e

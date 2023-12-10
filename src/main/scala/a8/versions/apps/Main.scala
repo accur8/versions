@@ -51,7 +51,7 @@ object Main extends BootstrappedIOApp {
   }
 
 
-  override def provideLayers(effect: ZIO[BootstrapEnv with LoggingBootstrapConfig & LoggerContext, Throwable, Unit]): ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
+  override def provideLayers(effect: ZIO[BootstrapEnv & LoggingBootstrapConfig & LoggerContext, Throwable, Unit]): ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
     zservice[ZIOAppArgs].flatMap { args =>
       val resolvedArgs = ResolvedArgs(args.getArgs)
       val loggingBootstrapConfig =
@@ -96,7 +96,7 @@ object Main extends BootstrappedIOApp {
           th.printStackTrace(System.err)
           exit(ExitCode.failure)
         case Right(_) =>
-          logger.info("successful program completion exiting with exitCode = 0")
+          logger.debug("successful program completion exiting with exitCode = 0")
           exit(ExitCode.success)
       }
   }
@@ -207,18 +207,29 @@ case class Main(args: Seq[String]) {
 
   lazy val conf = Conf(args)
 
+
   def runT: zio.ZIO[BootstrapEnv, Throwable, Unit] = zsuspend {
-    conf.impl.setupVerbosity()
-    val subcommand = conf.subcommand
-    subcommand match {
-      case Some(r: Runner) =>
-        r.runZ(this)
-      case _ =>
-        if (args.nonEmpty) {
-          zfail(new RuntimeException(s"don't know how to handle -- ${args}"))
-        } else {
-          zblock(conf.printHelp())
-        }
+    try {
+      conf.impl.setupVerbosity()
+      val subcommand = conf.subcommand
+      subcommand match {
+        case Some(r: Runner) =>
+          r.runZ(this)
+        case _ =>
+          for {
+            _ <- zblock(conf.printHelp())
+            _ <-
+              if (args.nonEmpty) {
+                zfail(new RuntimeException(s"don't know how to handle -- ${args}"))
+              } else {
+                zunit
+              }
+          } yield ()
+      }
+    } catch {
+      case th: Throwable =>
+        conf.konsole.outputHelp(conf.builder)
+        zunit
     }
   }
 
