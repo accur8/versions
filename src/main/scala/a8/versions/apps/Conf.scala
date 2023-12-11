@@ -59,7 +59,7 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
        |Usage: a8-versions [Subcommand] [arg[...]]
        |
        |  * If you want to see the options for the app launcher (like how to update the app) then use --l-help arg:
-       |      a8-zoo --l-help
+       |      a8-versions --l-help
        |""".stripMargin
   )
 

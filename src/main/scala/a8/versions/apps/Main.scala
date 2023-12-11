@@ -67,19 +67,19 @@ object Main extends BootstrappedIOApp {
         )
       effect
         .provideSome[zio.Scope & zio.ZIOAppArgs](
-            ZLayer.succeed(org.slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]),
-            Bootstrapper.layer,
-            zl_succeed(loggingBootstrapConfig),
-            layers.appName,
-            layers.logsDir,
-            layers.tempDir,
-            layers.dataDir,
-            layers.cacheDir,
-            layers.workDir,
-            layers.bootstrapConfig,
-            loggingLayer,
-            zio.logging.removeDefaultLoggers,
-          )
+          ZLayer.succeed(org.slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]),
+          Bootstrapper.layer,
+          zl_succeed(loggingBootstrapConfig),
+          layers.appName,
+          layers.logsDir,
+          layers.tempDir,
+          layers.dataDir,
+          layers.cacheDir,
+          layers.workDir,
+          layers.bootstrapConfig,
+          loggingLayer,
+          zio.logging.removeDefaultLoggers,
+        )
     }
 
 
