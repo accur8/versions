@@ -523,6 +523,120 @@ object Mxmodel {
   
   
   
+  trait MxUserPassword {
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[UserPassword,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[UserPassword,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[UserPassword,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.user)
+          .addField(_.rawPassword)
+      )
+      .build
+    
+    
+    given scala.CanEqual[UserPassword, UserPassword] = scala.CanEqual.derived
+    
+    
+    
+    lazy val generator: Generator[UserPassword,parameters.type] =  {
+      val constructors = Constructors[UserPassword](2, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val user: CaseClassParm[UserPassword,UserLogin] = CaseClassParm[UserPassword,UserLogin]("user", _.user, (d,v) => d.copy(user = v), None, 0)
+      lazy val rawPassword: CaseClassParm[UserPassword,String] = CaseClassParm[UserPassword,String]("rawPassword", _.rawPassword, (d,v) => d.copy(rawPassword = v), None, 1)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): UserPassword = {
+        UserPassword(
+          user = values(0).asInstanceOf[UserLogin],
+          rawPassword = values(1).asInstanceOf[String],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): UserPassword = {
+        val value =
+          UserPassword(
+            user = values.next().asInstanceOf[UserLogin],
+            rawPassword = values.next().asInstanceOf[String],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(user: UserLogin, rawPassword: String): UserPassword =
+        UserPassword(user, rawPassword)
+    
+    }
+    
+    
+    lazy val typeName = "UserPassword"
+  
+  }
+  
+  
+  
+  
+  trait MxPasswords {
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Passwords,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Passwords,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[Passwords,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.userPasswords)
+      )
+      .build
+    
+    
+    given scala.CanEqual[Passwords, Passwords] = scala.CanEqual.derived
+    
+    
+    
+    lazy val generator: Generator[Passwords,parameters.type] =  {
+      val constructors = Constructors[Passwords](1, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val userPasswords: CaseClassParm[Passwords,Vector[UserPassword]] = CaseClassParm[Passwords,Vector[UserPassword]]("userPasswords", _.userPasswords, (d,v) => d.copy(userPasswords = v), None, 0)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): Passwords = {
+        Passwords(
+          userPasswords = values(0).asInstanceOf[Vector[UserPassword]],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): Passwords = {
+        val value =
+          Passwords(
+            userPasswords = values.next().asInstanceOf[Vector[UserPassword]],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(userPasswords: Vector[UserPassword]): Passwords =
+        Passwords(userPasswords)
+    
+    }
+    
+    
+    lazy val typeName = "Passwords"
+  
+  }
+  
+  
+  
+  
   trait MxDatabaseSetupDescriptor {
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[DatabaseSetupDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[DatabaseSetupDescriptor,parameters.type] = builder
@@ -550,7 +664,7 @@ object Mxmodel {
     object parameters {
       lazy val databaseServer: CaseClassParm[DatabaseSetupDescriptor,DomainName] = CaseClassParm[DatabaseSetupDescriptor,DomainName]("databaseServer", _.databaseServer, (d,v) => d.copy(databaseServer = v), None, 0)
       lazy val databaseName: CaseClassParm[DatabaseSetupDescriptor,DatabaseName] = CaseClassParm[DatabaseSetupDescriptor,DatabaseName]("databaseName", _.databaseName, (d,v) => d.copy(databaseName = v), None, 1)
-      lazy val owner: CaseClassParm[DatabaseSetupDescriptor,DatabaseUserDescriptor] = CaseClassParm[DatabaseSetupDescriptor,DatabaseUserDescriptor]("owner", _.owner, (d,v) => d.copy(owner = v), None, 2)
+      lazy val owner: CaseClassParm[DatabaseSetupDescriptor,UserLogin] = CaseClassParm[DatabaseSetupDescriptor,UserLogin]("owner", _.owner, (d,v) => d.copy(owner = v), None, 2)
       lazy val extraUsers: CaseClassParm[DatabaseSetupDescriptor,Iterable[DatabaseUserDescriptor]] = CaseClassParm[DatabaseSetupDescriptor,Iterable[DatabaseUserDescriptor]]("extraUsers", _.extraUsers, (d,v) => d.copy(extraUsers = v), Some(()=> Iterable.empty), 3)
     }
     
@@ -561,7 +675,7 @@ object Mxmodel {
         DatabaseSetupDescriptor(
           databaseServer = values(0).asInstanceOf[DomainName],
           databaseName = values(1).asInstanceOf[DatabaseName],
-          owner = values(2).asInstanceOf[DatabaseUserDescriptor],
+          owner = values(2).asInstanceOf[UserLogin],
           extraUsers = values(3).asInstanceOf[Iterable[DatabaseUserDescriptor]],
         )
       }
@@ -570,14 +684,14 @@ object Mxmodel {
           DatabaseSetupDescriptor(
             databaseServer = values.next().asInstanceOf[DomainName],
             databaseName = values.next().asInstanceOf[DatabaseName],
-            owner = values.next().asInstanceOf[DatabaseUserDescriptor],
+            owner = values.next().asInstanceOf[UserLogin],
             extraUsers = values.next().asInstanceOf[Iterable[DatabaseUserDescriptor]],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(databaseServer: DomainName, databaseName: DatabaseName, owner: DatabaseUserDescriptor, extraUsers: Iterable[DatabaseUserDescriptor]): DatabaseSetupDescriptor =
+      def typedConstruct(databaseServer: DomainName, databaseName: DatabaseName, owner: UserLogin, extraUsers: Iterable[DatabaseUserDescriptor]): DatabaseSetupDescriptor =
         DatabaseSetupDescriptor(databaseServer, databaseName, owner, extraUsers)
     
     }

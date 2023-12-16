@@ -7,7 +7,7 @@ import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedRepository, Resol
 import a8.shared.SharedImports.*
 import io.accur8.neodeploy.DeployUser.RegularUser
 import io.accur8.neodeploy.plugin.DnsPlugin
-import io.accur8.neodeploy.systemstate.SystemState
+import io.accur8.neodeploy.systemstate.{DatabasePlugin, SystemState}
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
 
 import scala.util.Left
@@ -23,8 +23,7 @@ object Deployable {
         .filter(_.plugins.pgbackrestServerOpt.isDefined)
         .map(RegularUser(_))
 
-
-    override def systemState(deployUser: DeployUser): M[SystemState] =
+    override def systemState(infraDeploy: InfraDeploy, deployUser: DeployUser): M[SystemState] =
       deployUser
         .resolvedUserOnly
         .flatMap(resolvedUser =>
@@ -62,7 +61,7 @@ object Deployable {
         .filter(_.plugins.resolvedRSnapshotServerOpt.isDefined)
         .map(RegularUser(_))
 
-    override def systemState(deployUser: DeployUser): M[SystemState] =
+    override def systemState(infraDeploy: InfraDeploy, deployUser: DeployUser): M[SystemState] =
       deployUser
         .resolvedUserOnly
         .map(_.plugins.resolvedRSnapshotServerOpt)
@@ -106,12 +105,21 @@ object Deployable {
     override def systemState(user: ResolvedUser): M[SystemState] =
       ManagedSshKeysSync.systemState(user)
   }
+
   case object DnsDeployable extends InfraStructureDeployable {
     override val name: String = "dns"
     override def deployUsers(resolvedRepo: ResolvedRepository): Iterable[DeployUser] =
       Iterable(DeployUser.InfraUser(resolvedRepo))
-    override def systemState(deployUser: DeployUser): M[SystemState] =
+    override def systemState(infraDeploy: InfraDeploy, deployUser: DeployUser): M[SystemState] =
       DnsPlugin.systemState(deployUser.resolvedRepo)
+  }
+
+  case object DatabaseDeployable extends InfraStructureDeployable {
+    override val name: String = "database"
+    override def deployUsers(resolvedRepo: ResolvedRepository): Iterable[DeployUser] =
+      Iterable(DeployUser.InfraUser(resolvedRepo))
+    override def systemState(infraDeploy: InfraDeploy, deployUser: DeployUser): M[SystemState] =
+      DatabasePlugin.systemState(infraDeploy)
   }
 
   sealed trait UserDeployable extends Deployable {
@@ -120,7 +128,7 @@ object Deployable {
 
     override def parseNameMatchedDeployArg(parsedDeployArg: ParsedDeployArg, resolvedRepo: ResolvedRepository): Either[String, DeployArg] = {
       parsedDeployArg match {
-        case ParsedDeployArg(name, Some(ul), Some(sn), _) =>
+        case ParsedDeployArg(name, Some(ul), Some(sn), None, _) =>
           val user = UserLogin(ul)
           val server = ServerName(sn)
           val resolvedUserOpt =
@@ -147,7 +155,7 @@ object Deployable {
 
     override def parseNameMatchedDeployArg(parsedDeployArg: ParsedDeployArg, resolvedRepo: ResolvedRepository): Either[String, DeployArg] = {
       parsedDeployArg match {
-        case ParsedDeployArg(name, None, Some(sn), _) =>
+        case ParsedDeployArg(name, None, Some(sn), None, _) =>
           val server = ServerName(sn)
           resolvedRepo.serverOpt(server) match {
             case Some(rs) =>
@@ -164,13 +172,13 @@ object Deployable {
 
   sealed trait InfraStructureDeployable extends Deployable {
 
-    def systemState(deployUser: DeployUser): M[SystemState]
+    def systemState(infraDeploy: InfraDeploy, deployUser: DeployUser): M[SystemState]
 
     def deployUsers(resolvedRepo: ResolvedRepository): Iterable[DeployUser]
 
     override def parseNameMatchedDeployArg(parsedDeployArg: ParsedDeployArg, resolvedRepo: ResolvedRepository): Either[String, DeployArg] = {
       parsedDeployArg match {
-        case ParsedDeployArg(name, None, None, _) =>
+        case ParsedDeployArg(name, None, None, None, _) =>
           Right(InfraDeploy(resolvedRepo, this, parsedDeployArg))
         case pda: ParsedDeployArg =>
           Left(s"Invalid arguments for $name: $pda")
@@ -180,7 +188,7 @@ object Deployable {
 
   lazy val userDeployables = List(AuthorizedKeys, ManagedKeys)
   lazy val serverDeployables = List(PgbackrestClient, Caddy, Supervisor)
-  lazy val infraStructureDeployables = List(PgbackrestServer, RsnapshotServer, DnsDeployable)
+  lazy val infraStructureDeployables = List(PgbackrestServer, RsnapshotServer, DnsDeployable, DatabaseDeployable)
 
   lazy val allDeployables: Seq[Deployable] = userDeployables ++ serverDeployables ++ infraStructureDeployables
 
@@ -200,4 +208,5 @@ sealed trait Deployable {
         parseNameMatchedDeployArg(parsedDeployArg, resolvedRepo)
       }
   }
+
 }

@@ -80,7 +80,7 @@ lazy val versions =
         "io.accur8" %% "a8-sync-api" % syncVersion,
         "org.rogach" %% "scallop"    % "4.1.0",
         "dev.zio" %% "zio-process"   % "0.7.2",
-        "org.typelevel" %% "cats-parse" % "0.3.8",
+        "org.typelevel" %% "cats-parse" % "0.3.9",
 
 //        "dev.zio" %% "zio-nio"     % "2.0.1",
 //        "dev.zio" %% "zio-rocksdb" % "0.4.3",

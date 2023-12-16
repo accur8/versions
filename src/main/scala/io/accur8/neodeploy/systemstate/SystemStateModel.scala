@@ -167,7 +167,6 @@ object SystemStateModel {
       with LocalDeploy.Config
       with CaddyDirectory
       with PathLocator
-//      with AppsInfo
       with RunTimestamp
       with zio.Scope
       with UserLogin

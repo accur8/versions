@@ -136,7 +136,7 @@ object model extends LoggingF {
   case class SupervisorDirectory(value: String) extends DirectoryValue
 
   object CaddyDirectory extends StringValue.Companion[CaddyDirectory] {
-    val layer = zl_succeed(CaddyDirectory("/etc/caddy/apps"))
+    val layer = zl_succeed(CaddyDirectory("/etc/caddy"))
   }
   case class CaddyDirectory(value: String) extends DirectoryValue
 
@@ -375,17 +375,39 @@ object model extends LoggingF {
     qubes: Option[DomainName] = None,
   )
 
+
+  object UserPassword extends MxUserPassword
+  @CompanionGen
+  case class UserPassword(user: UserLogin, rawPassword: String) {
+    def password = Password(rawPassword)
+  }
+
+  object Passwords extends MxPasswords
+  @CompanionGen
+  case class Passwords(userPasswords: Vector[UserPassword]) {
+    lazy val userPasswordsMap = userPasswords.map(up => up.user -> up.rawPassword).toMap
+
+    def apply(user: UserLogin): Password =
+      Password(userPasswordsMap(user))
+
+    def apply(user: DatabaseUserDescriptor): Password =
+      Password(userPasswordsMap(user.name))
+
+    def credentials(user: UserLogin): UserPassword =
+      UserPassword(user, userPasswordsMap(user))
+  }
+
   object DatabaseSetupDescriptor extends MxDatabaseSetupDescriptor {
   }
   @CompanionGen
   case class DatabaseSetupDescriptor(
     databaseServer: DomainName,
     databaseName: DatabaseName,
-    owner: DatabaseUserDescriptor,
+    owner: UserLogin,
     extraUsers: Iterable[DatabaseUserDescriptor] = Iterable.empty,
 //    zooFiles: Iterable[ZooFile] = Iterable.empty,
   ) {
-    def allUsers: Iterable[UserLogin] = (extraUsers ++ Some(owner)).map(_.name)
+    def allUsers: Iterable[UserLogin] = (extraUsers.map(_.name) ++ Some(owner))
   }
 
   object DatabaseUserDescriptor extends MxDatabaseUserDescriptor {

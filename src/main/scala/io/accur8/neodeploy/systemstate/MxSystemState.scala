@@ -11,10 +11,10 @@ package io.accur8.neodeploy.systemstate
 //====
 import a8.shared.ZFileSystem
 import io.accur8.neodeploy.HealthchecksDotIo
-import io.accur8.neodeploy.model.{ApplicationDescriptor, DockerDescriptor, DomainName}
+import io.accur8.neodeploy.model.{ApplicationDescriptor, DatabaseName, DatabaseUserDescriptor, DockerDescriptor, DomainName, Passwords, UserLogin}
 import io.accur8.neodeploy.model.Install.JavaApp
-import io.accur8.neodeploy.systemstate.SystemState._
-import io.accur8.neodeploy.systemstate.SystemStateModel._
+import io.accur8.neodeploy.systemstate.SystemState.*
+import io.accur8.neodeploy.systemstate.SystemStateModel.*
 import io.accur8.neodeploy.VFileSystem
 //====
 
@@ -207,6 +207,77 @@ object MxSystemState {
     
     
     lazy val typeName = "SecretsTextFile"
+  
+  }
+  
+  
+  
+  
+  trait MxDatabaseSetup {
+  
+    protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[DatabaseSetup,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[DatabaseSetup,parameters.type] = builder
+    
+    implicit lazy val jsonCodec: a8.shared.json.JsonTypedCodec[DatabaseSetup,a8.shared.json.ast.JsObj] =
+      jsonCodecBuilder(
+        a8.shared.json.JsonObjectCodecBuilder(generator)
+          .addField(_.databaseServer)
+          .addField(_.databaseName)
+          .addField(_.owner)
+          .addField(_.passwords)
+          .addField(_.extraUsers)
+      )
+      .build
+    
+    
+    given scala.CanEqual[DatabaseSetup, DatabaseSetup] = scala.CanEqual.derived
+    
+    
+    
+    lazy val generator: Generator[DatabaseSetup,parameters.type] =  {
+      val constructors = Constructors[DatabaseSetup](5, unsafe.iterRawConstruct)
+      Generator(constructors, parameters)
+    }
+    
+    object parameters {
+      lazy val databaseServer: CaseClassParm[DatabaseSetup,DomainName] = CaseClassParm[DatabaseSetup,DomainName]("databaseServer", _.databaseServer, (d,v) => d.copy(databaseServer = v), None, 0)
+      lazy val databaseName: CaseClassParm[DatabaseSetup,DatabaseName] = CaseClassParm[DatabaseSetup,DatabaseName]("databaseName", _.databaseName, (d,v) => d.copy(databaseName = v), None, 1)
+      lazy val owner: CaseClassParm[DatabaseSetup,UserLogin] = CaseClassParm[DatabaseSetup,UserLogin]("owner", _.owner, (d,v) => d.copy(owner = v), None, 2)
+      lazy val passwords: CaseClassParm[DatabaseSetup,Passwords] = CaseClassParm[DatabaseSetup,Passwords]("passwords", _.passwords, (d,v) => d.copy(passwords = v), None, 3)
+      lazy val extraUsers: CaseClassParm[DatabaseSetup,Iterable[DatabaseUserDescriptor]] = CaseClassParm[DatabaseSetup,Iterable[DatabaseUserDescriptor]]("extraUsers", _.extraUsers, (d,v) => d.copy(extraUsers = v), Some(()=> Iterable.empty), 4)
+    }
+    
+    
+    object unsafe {
+    
+      def rawConstruct(values: IndexedSeq[Any]): DatabaseSetup = {
+        DatabaseSetup(
+          databaseServer = values(0).asInstanceOf[DomainName],
+          databaseName = values(1).asInstanceOf[DatabaseName],
+          owner = values(2).asInstanceOf[UserLogin],
+          passwords = values(3).asInstanceOf[Passwords],
+          extraUsers = values(4).asInstanceOf[Iterable[DatabaseUserDescriptor]],
+        )
+      }
+      def iterRawConstruct(values: Iterator[Any]): DatabaseSetup = {
+        val value =
+          DatabaseSetup(
+            databaseServer = values.next().asInstanceOf[DomainName],
+            databaseName = values.next().asInstanceOf[DatabaseName],
+            owner = values.next().asInstanceOf[UserLogin],
+            passwords = values.next().asInstanceOf[Passwords],
+            extraUsers = values.next().asInstanceOf[Iterable[DatabaseUserDescriptor]],
+          )
+        if ( values.hasNext )
+           sys.error("")
+        value
+      }
+      def typedConstruct(databaseServer: DomainName, databaseName: DatabaseName, owner: UserLogin, passwords: Passwords, extraUsers: Iterable[DatabaseUserDescriptor]): DatabaseSetup =
+        DatabaseSetup(databaseServer, databaseName, owner, passwords, extraUsers)
+    
+    }
+    
+    
+    lazy val typeName = "DatabaseSetup"
   
   }
   

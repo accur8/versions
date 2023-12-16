@@ -5,20 +5,22 @@ import a8.shared.jdbcf.{Conn, ConnFactory, DatabaseConfig, SchemaName, SqlString
 import io.accur8.neodeploy.model.{DatabaseName, DatabaseUserDescriptor, DatabaseUserRole}
 import SharedImports.*
 import VFileSystem.Directory
+import a8.shared.CompanionGen
 import a8.shared.jdbcf.DatabaseConfig.Password
 import a8.versions.model.ResolvedRepo
-import io.accur8.neodeploy.SetupDatabase.{loggerF as _, *}
-import io.accur8.neodeploy.systemstate.SystemStateModel
-import io.accur8.neodeploy.systemstate.SystemStateModel.PathLocator
+import io.accur8.neodeploy.DatabaseSetupMixin.{loggerF as _, *}
+import io.accur8.neodeploy.LocalDeploy.Config
+import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedRepository}
+import io.accur8.neodeploy.systemstate.{SystemState, SystemStateModel}
+import io.accur8.neodeploy.systemstate.SystemStateModel.{PathLocator, StateKey}
 import model.{loggerF as _, *}
 
 import scala.jdk.CollectionConverters.given
 import java.nio.charset.StandardCharsets
 
-object SetupDatabase extends LoggingF {
+object DatabaseSetupMixin extends LoggingF {
 
-  type Env = PathLocator & zio.Scope
-  type Z[A] = zio.ZIO[Env, Throwable, A]
+  type Z[A] = SystemStateModel.M[A]
 
   implicit class StringOps(val value: String) extends AnyVal {
 
@@ -38,20 +40,22 @@ object SetupDatabase extends LoggingF {
 
   case class OwnerConn(value: Conn, config: DatabaseConfig)
   case class SuperUserConn(value: Conn, config: DatabaseConfig)
-  case class Secrets(value: Map[String,String]) {
-    lazy val databaseUserPasswords: Map[UserLogin, Password] =
-      value
-        .filter(_._1.startsWith(impl.passwordPropertyPrefix))
-        .map { (k,v) =>
-          val user = UserLogin(k.stripPrefix(impl.passwordPropertyPrefix).stripSuffix(impl.passwordPropertySuffix))
-          val password = Password(v)
-          (user, password)
-        }
+  case class GeneratedProperties(value: Map[String,String]) {
+    lazy val databasePasswords: Passwords =
+      Passwords(
+        value
+          .filter(_._1.startsWith(impl.passwordPropertyPrefix))
+          .map { (k,v) =>
+            val user = UserLogin(k.stripPrefix(impl.passwordPropertyPrefix).stripSuffix(impl.passwordPropertySuffix))
+            UserPassword(user, v)
+          }
+          .toVector
+      )
   }
 
   object impl {
 
-    val secretsFilename = "secrets.hocon.priv"
+    val generatedPropertiesFilename = "generated.properties"
 
     val rand = new scala.util.Random(new java.util.Random())
     val allowedPasswordCharacters = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".getBytes
@@ -66,7 +70,7 @@ object SetupDatabase extends LoggingF {
     // database user
     // database password
 
-    val passwordPropertyPrefix = "secrets.database.users."
+    val passwordPropertyPrefix = "database.users."
     val passwordPropertySuffix = ".password"
 
     def nextAlphanumeric(length: Int): String = mkStr(allowedPasswordCharacters, length)
@@ -78,21 +82,21 @@ object SetupDatabase extends LoggingF {
       props.asScala.toMap
     }
 
-    def loadSecrets(directory: Directory): Z[Secrets] = {
-      val secretsFile = directory.file(secretsFilename)
+    def loadGeneratedProperties(directory: Directory): Z[GeneratedProperties] = {
+      val file = directory.file(generatedPropertiesFilename)
       for {
-        contents <- secretsFile.readAsStringOpt
-      } yield Secrets(parseProperties(contents))
+        contents <- file.readAsStringOpt
+      } yield GeneratedProperties(parseProperties(contents))
     }
 
     def randomPassword(): Password = {
       Password(impl.nextAlphanumeric(20))
     }
 
-    def updateSecretsWithPasswords(users: Iterable[UserLogin], inputSecrets: Secrets): Secrets = {
+    def updatePropertiesWithPasswords(users: Iterable[UserLogin], inputProps: GeneratedProperties): GeneratedProperties = {
       val map: Map[String, String] =
         users
-          .foldLeft(inputSecrets.value) { (secretsMap, user) =>
+          .foldLeft(inputProps.value) { (secretsMap, user) =>
             val key: String = passwordPropertyPrefix + user.value + passwordPropertySuffix
             val newMap: Map[String,String] =
               secretsMap.get(key) match {
@@ -104,11 +108,11 @@ object SetupDatabase extends LoggingF {
               }
             newMap
           }
-      Secrets(map)
+      GeneratedProperties(map)
     }
 
-    def writeSecrets(secrets: Secrets, directory: Directory) = {
-      val secretsFile = directory.file(secretsFilename)
+    def writeSecrets(secrets: GeneratedProperties, directory: Directory) = {
+      val file = directory.file(generatedPropertiesFilename)
       val contents =
         secrets
           .value
@@ -116,117 +120,114 @@ object SetupDatabase extends LoggingF {
             s"""${k} = ${v}"""
           }
           .mkString("\n")
-      secretsFile.write(contents)
+      file.write(contents)
+    }
+
+    def loadOrGeneratePasswords(users: Iterable[UserLogin], gitAppDirectory: Directory): Z[Passwords] = {
+      loadGeneratedProperties(gitAppDirectory)
+        .map(updatePropertiesWithPasswords(users, _))
+        .tap(secrets => writeSecrets(secrets, gitAppDirectory))
+        .map(_.databasePasswords)
+    }
+
+    def updateGeneratedPropertiesWithDatabaseConfig(gitAppDirectory: Directory, databaseConfig: DatabaseConfig): Z[GeneratedProperties] = {
+      import impl._
+      loadGeneratedProperties(gitAppDirectory)
+        .map { secrets =>
+          val newMap: Map[String, String] =
+            (secrets.value ++ Map(
+              "database.url" -> databaseConfig.url.toString,
+              "database.user" -> databaseConfig.user,
+              "database.password" -> databaseConfig.password.value,
+            ))
+          GeneratedProperties(newMap)
+        }
+        .tap(secrets => writeSecrets(secrets, gitAppDirectory))
+    }
+
+    def superUserconfigM(serverName: DomainName): M[DatabaseConfig] = {
+      zservice[Config]
+        .map(_.gitRootDirectory)
+        .flatMap { gitRootDirectory =>
+          val file =
+            gitRootDirectory
+              .unresolved
+              .file("database-configs.json.priv")
+          file
+            .readAsString
+            .flatMap(json.readF[Iterable[DatabaseConfig]](_))
+            .flatMap { configs =>
+              configs.find(_.id.value.toString == serverName.value) match {
+                case None =>
+                  zfail(new RuntimeException(s"cannot find database ${serverName} in ${file}"))
+                case Some(db) =>
+                  zsucceed(db)
+              }
+            }
+        }
     }
 
   }
 
-  def loadOrGeneratePasswords(users: Iterable[UserLogin], gitAppDirectory: Directory): Z[Map[UserLogin, Password]] = {
-    import impl._
-    loadSecrets(gitAppDirectory)
-      .map(updateSecretsWithPasswords(users, _))
-      .tap(secrets => writeSecrets(secrets, gitAppDirectory))
-      .map(_.databaseUserPasswords)
-  }
-
-  def setupDatabases(resolvedRepo: resolvedmodel.ResolvedRepository, resolvedDeployArgs: ResolvedDeployArgs): Z[Unit] =
-    resolvedDeployArgs
-      .args
-      .collect {
-        case ad: AppDeploy =>
-          ad.resolvedApp.descriptor.setup.database.map(ad -> _)
-      }
-      .flatten
-      .map { case (ad, databaseSetupDescriptor) =>
-        for {
-          passwords <- loadOrGeneratePasswords(databaseSetupDescriptor.allUsers, ad.resolvedApp.gitDirectory)
-          _ <-
-            SetupDatabase(
-              databaseSetupDescriptor,
-              resolvedRepo.gitRootDirectory,
-              ad.resolvedApp.gitDirectory,
-              passwords,
-            ).run
-        } yield ()
-      }
-      .sequence
-      .as(())
-
-  def updateSecretsWithDatabaseConfig(gitAppDirectory: Directory, databaseConfig: DatabaseConfig): Z[Unit] = {
-    import impl._
-    loadSecrets(gitAppDirectory)
-      .map { secrets =>
-        val newMap: Map[String,String] =
-          (secrets.value ++ Map(
-            "secrets.database.url" -> databaseConfig.url.toString,
-            "secrets.database.user" -> databaseConfig.user,
-            "secrets.database.password" -> databaseConfig.password.value,
-          ))
-        Secrets(newMap)
-      }
-      .tap(secrets => writeSecrets(secrets, gitAppDirectory))
-      .as(())
-  }
-
-}
-
-case class SetupDatabase(
-//  qubesServer: DomainName,
-  databaseSetupDescriptor: DatabaseSetupDescriptor,
-  gitRootDirectory: GitRootDirectory,
-  gitAppDirectory: Directory,
-  passwords: Map[UserLogin,Password],
-)
-  extends LoggingF
-{
-
-  lazy val ownerUser = databaseSetupDescriptor.owner
-  lazy val schemaName: SchemaName = SchemaName("public")
-  lazy val databaseName: DatabaseName = databaseSetupDescriptor.databaseName
-
-  def configM(serverName: DomainName): Z[DatabaseConfig] = {
-    val file =
-      gitRootDirectory
-        .unresolved
-        .file("database-configs.json.priv")
-    file
-      .readAsString
-      .flatMap(json.readF[Iterable[DatabaseConfig]](_))
-      .flatMap { configs =>
-        configs.find(_.id.value.toString == serverName.value) match {
-          case None =>
-            zfail(new RuntimeException(s"cannot find database ${serverName} in ${file}"))
-          case Some(db) =>
-            zsucceed(db)
-        }
-      }
-  }
-
-  def password(userDescriptor: DatabaseUserDescriptor): Password =
-    passwords(userDescriptor.name)
-
-  def connectM(server: DomainName): Z[(Conn,DatabaseConfig)] =
+  def loadOrGenerateProperties(databaseSetup: DatabaseSetupDescriptor, gitAppDirectory: Directory): Z[GeneratedProperties] = {
     for {
-      databaseConfig <- configM(server)
-      conn <- Conn.fromNewConnection(databaseConfig.url, databaseConfig.user, databaseConfig.password.value)
-    } yield (conn, databaseConfig)
+      passwords <-
+        impl.loadOrGeneratePasswords(
+          databaseSetup.allUsers,
+          gitAppDirectory,
+        )
+      config <- databaseConfigM(databaseSetup.databaseServer, databaseSetup.databaseName, passwords.credentials(databaseSetup.owner))
+      generatedProps <- impl.updateGeneratedPropertiesWithDatabaseConfig(gitAppDirectory, config)
+    } yield generatedProps
+  }
 
-  lazy val superUserConnM: Z[SuperUserConn] =
-    connectM(databaseSetupDescriptor.databaseServer)
-      .map(t => SuperUserConn(t._1, t._2))
-
-  lazy val ownerDatabaseConfigM: Z[DatabaseConfig] =
-    configM(databaseSetupDescriptor.databaseServer)
+  def databaseConfigM(serverName: DomainName, databaseName: DatabaseName, credentials: UserPassword): Z[DatabaseConfig] =
+    impl.superUserconfigM(serverName)
       .map { superUserConfig =>
         val uri = superUserConfig.url
         val newJdbcUri = uri.withPath(uri.path.take(uri.path.length - 1) ++ Some(databaseName.value))
         superUserConfig
           .copy(
             url = newJdbcUri,
-            user = ownerUser.name.value,
-            password = password(ownerUser),
+            user = credentials.user.value,
+            password = credentials.password,
           )
       }
+
+}
+
+trait DatabaseSetupMixin extends LoggingF { self: SystemState.DatabaseSetup =>
+
+  lazy val ownerUser = owner
+  lazy val schemaName: SchemaName = SchemaName("public")
+
+  override def dryRunInstall: Vector[String] =
+    Vector(
+      z"setup database ${databaseName} on server ${databaseServer}"
+    )
+
+  def gitRootDirectoryM: M[GitRootDirectory] =
+    zservice[ResolvedRepository]
+      .map(_.gitRootDirectory)
+
+  def password(userDescriptor: DatabaseUserDescriptor): Password =
+    passwords(userDescriptor)
+
+  def password(user: UserLogin): Password =
+    passwords(user)
+
+  def connectM(server: DomainName): Z[(Conn,DatabaseConfig)] =
+    for {
+      databaseConfig <- impl.superUserconfigM(server)
+      conn <- Conn.fromNewConnection(databaseConfig.url, databaseConfig.user, databaseConfig.password.value)
+    } yield (conn, databaseConfig)
+
+  lazy val superUserConnM: Z[SuperUserConn] =
+    connectM(databaseServer)
+      .map(t => SuperUserConn(t._1, t._2))
+
+  lazy val ownerDatabaseConfigM: Z[DatabaseConfig] =
+    databaseConfigM(databaseServer, databaseName, passwords.credentials(owner))
 
   lazy val ownerConnM: Z[OwnerConn] =
     ownerDatabaseConfigM
@@ -240,19 +241,24 @@ case class SetupDatabase(
           .map(conn => OwnerConn(conn, config))
       }
 
-  def run: Z[Unit] = {
+  override def isActionNeeded: M[Boolean] =
+    for {
+      superUserConn <- superUserConnM
+      databaseExists <- databaseExists(superUserConn)
+    } yield !databaseExists
+
+  override def runApplyNewState: M[Unit] = {
     for {
       superUserConn <- superUserConnM
       databaseExists <- databaseExists(superUserConn)
       _ <-
         if ( databaseExists ) {
-          loggerF.info(s"database ${databaseName} on server ${databaseSetupDescriptor.databaseServer} already exists no more setup")
+          loggerF.info(s"database ${databaseName} on server ${databaseServer} already exists no more setup")
         } else {
           for {
             _ <- createDatabase(superUserConn)
             ownerConn <- ownerConnM
-            _ <- SetupDatabase.updateSecretsWithDatabaseConfig(gitAppDirectory, ownerConn.config)
-            _ <- databaseSetupDescriptor.extraUsers.map(createUser(_)(ownerConn, superUserConn)).sequence
+            _ <- extraUsers.map(createUser(_)(ownerConn, superUserConn)).sequence
             //      _ <- databaseSetupDescriptor.zooFiles.map(createTablesAndQubes(_, ownerConn)).sequence
           } yield ()
         }
@@ -305,9 +311,9 @@ case class SetupDatabase(
 
   def createDatabase(implicit superUserConn: SuperUserConn): Z[Unit] = {
     runSuperUserSql(
-      z"DROP USER IF EXISTS ${ownerUser.name}",
-      z"CREATE USER ${ownerUser.name} WITH ENCRYPTED PASSWORD '${password(ownerUser).value}'",
-      z"CREATE DATABASE ${databaseSetupDescriptor.databaseName} OWNER = ${ownerUser.name}",
+      z"DROP USER IF EXISTS ${ownerUser}",
+      z"CREATE USER ${ownerUser} WITH ENCRYPTED PASSWORD '${password(ownerUser).value}'",
+      z"CREATE DATABASE ${databaseName} OWNER = ${ownerUser}",
     )
   }
 
@@ -338,5 +344,11 @@ case class SetupDatabase(
       .sequence
       .as(())
   }
+
+  override def stateKey: Option[io.accur8.neodeploy.systemstate.SystemStateModel.StateKey] =
+    Some(StateKey("database", z"${databaseServer}/${databaseName}"))
+
+  override def runUninstallObsolete(interpreter: io.accur8.neodeploy.systemstate.Interpreter): M[Unit] =
+    zunit
 
 }

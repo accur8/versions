@@ -11,7 +11,7 @@ import a8.versions.model.*
 import io.accur8.neodeploy.model.*
 import a8.shared.SharedImports.*
 import a8.shared.app.BootstrappedIOApp
-import io.accur8.neodeploy.{AppDeploy, DeployArg, DeploySubCommand, Layers, RawDeployArgs, SetupDatabase, ValidateRepo, resolvedmodel, Runner as NeodeployRunner}
+import io.accur8.neodeploy.{AppDeploy, DatabaseSetupMixin, DeployArg, DeploySubCommand, Layers, RawDeployArgs, ResolvedDeployArgs, Setup, ValidateRepo, resolvedmodel, Runner as NeodeployRunner}
 import zio.ZIO
 import a8.shared.ZString.ZStringer
 import a8.shared.{FileSystem, FromString, ZFileSystem}
@@ -22,9 +22,8 @@ import a8.common.logging.Logger
 import a8.versions.apps.Conf.Konsole
 import io.accur8.neodeploy.LocalDeploy.Config
 import io.accur8.neodeploy.SharedImports.{VFileSystem, traceEffect}
-import io.accur8.neodeploy.systemstate.SystemStateModel.PathLocator
+import io.accur8.neodeploy.systemstate.SystemStateModel.{M, PathLocator}
 import org.rogach.scallop.exceptions.ScallopResult
-import io.accur8.neodeploy.Setup
 
 object Conf {
   trait Konsole {
@@ -137,22 +136,12 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
         )
     }
 
-    def runDeploy(rawDeployArgs: RawDeployArgs, dryRun: Boolean) = {
+    def runM(effectFn: (resolvedmodel.ResolvedRepository, NeodeployRunner) => M[Unit]) = {
       NeodeployRunner(
         remoteDebug = debug,
         remoteTrace = trace,
         runnerFn = { (resolvedRepo: resolvedmodel.ResolvedRepository, runner: io.accur8.neodeploy.Runner) =>
-          val effect: zio.Task[Unit] =
-            rawDeployArgs.resolve(resolvedRepo) match {
-              case Right(deployArgs) =>
-                val effect =
-                  DeploySubCommand(resolvedRepo, runner, deployArgs, dryRun)
-                    .run
-                Layers.provideN(effect, LocalRootDirectory.default)
-              case Left(errorMsg) =>
-                ZIO.fail(new RuntimeException(errorMsg))
-            }
-          effect
+          Layers.provide(effectFn(resolvedRepo, runner))
         },
       ).runT
     }
@@ -290,6 +279,8 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
 
   }
 
+
+
   val buildDotSbt = new Subcommand("build_dot_sbt") with Runner {
 
     descr("generates the build.sbt and other sbt plumbing from the modules.conf file")
@@ -305,12 +296,26 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
     descr("deploy an app to it's remote system")
 
     //    val app: ScallopOption[AppArg] = opt[AppArg](descr = "fully qualified app name", argName = "app[:version]", required = false)
-    val appArgs: ScallopOption[RawDeployArgs] = trailArg[RawDeployArgs](descr = "fully qualified app names", required = true)
+    val appArgs: ScallopOption[String] = trailArg[String](descr = "fully qualified app / domain name", required = true)
 
+    val version: ScallopOption[String] = opt[String]("version", descr = "version to deploy version# | latest | current", required = false, default = Some("current"))
     val dryRun: ScallopOption[Boolean] = opt[Boolean]("dryRun", descr = "dry run, do not actually do anything just saw what would be done", required = false, default = Some(false))
 
     override def runZ(main: Main) = {
-      runDeploy(appArgs.toOption.get, dryRun.toOption.getOrElse(false))
+      val resolvedDryRun = dryRun.toOption.getOrElse(false)
+      val resolvedVersion = version.toOption.map(Version(_)).get
+      runM { (resolvedRepo, runner) =>
+        val rawDeployArgs = RawDeployArgs(appArgs.toOption.map(_ + ":app:" + resolvedVersion.value))
+        rawDeployArgs.resolve(resolvedRepo) match {
+          case Left(error) =>
+            ZIO.fail(new RuntimeException(error))
+          case Right(resolvedDeployArgs) =>
+            val effect =
+              DeploySubCommand(resolvedRepo, runner, resolvedDeployArgs, resolvedDryRun)
+                .run
+            Layers.provide(effect)
+        }
+      }
     }
 
   }
@@ -332,29 +337,18 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
               ZIO.fail(new RuntimeException(error))
             case Right(deployArgs) =>
               val setupDeployArgs = Setup.resolveSetupArgs(deployArgs)
-              runDeploy(setupDeployArgs, dryRun.toOption.getOrElse(false))
-          }
-        }
-    }
-  }
-
-  val setupDatabase = new Subcommand("setup-database") with Runner {
-
-    descr("setup database(s) for the supplied apps (does not do zoo files)")
-
-    //    val app: ScallopOption[AppArg] = opt[AppArg](descr = "fully qualified app name", argName = "app[:version]", required = false)
-    val appArgs: ScallopOption[RawDeployArgs] = trailArg[RawDeployArgs](descr = "fully qualified app names", required = true)
-
-    override def runZ(main: Main) = {
-      loadResolvedRepository()
-        .flatMap { resolvedRepo =>
-          appArgs.toOption.get.resolve(resolvedRepo) match {
-            case Left(error) =>
-              ZIO.fail(new RuntimeException(error))
-            case Right(deployArgs) =>
-              val rawEffect = SetupDatabase.setupDatabases(resolvedRepo, deployArgs).scoped
-              val effect = Layers.provideN(rawEffect, LocalRootDirectory.default)
-              effect
+              val resolvedDryRun = dryRun.toOption.getOrElse(false)
+              runM( (resolvedRepo, runner) =>
+                setupDeployArgs.resolve(resolvedRepo) match {
+                  case Right(deployArgs) =>
+                    val effect =
+                      DeploySubCommand(resolvedRepo, runner, deployArgs, resolvedDryRun)
+                        .run
+                    Layers.provideN(effect, LocalRootDirectory.default)
+                  case Left(errorMsg) =>
+                    ZIO.fail(new RuntimeException(errorMsg))
+                }
+              )
           }
         }
     }
@@ -483,7 +477,6 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
   addSubcommand(promote)
   addSubcommand(resolve)
   addSubcommand(setup)
-  addSubcommand(setupDatabase)
   addSubcommand(validateServerAppConfigs)
 
   errorMessageHandler = { message =>
@@ -512,12 +505,9 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
           case Version =>
             konsole.outputVersion(builder)
           case ScallopException(message) =>
-//            errorMessageHandler(message)
-          // following should never match, but just in case
-            toString
+            ()
           case other: exceptions.ScallopException =>
-//            errorMessageHandler(other.getMessage)
-            toString
+            ()
         }
       case e =>
         throw e

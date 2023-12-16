@@ -7,12 +7,14 @@ import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedRepository, Resol
 import org.rogach.scallop.{ArgType, ValueConverter}
 import a8.shared.SharedImports.*
 import a8.shared.StringValue
+import cats.parse.Parser0
 import io.accur8.neodeploy.DeployUser.{InfraUser, RegularUser}
 import io.accur8.neodeploy.systemstate.SystemState
 import io.accur8.neodeploy.systemstate.SystemStateModel.M
 import zio.Task
 
 object RawDeployArgs {
+
   implicit val valueConverter: ValueConverter[RawDeployArgs] =
     new ValueConverter[RawDeployArgs] {
       override def parse(s: List[(String, List[String])]): Either[String, Option[RawDeployArgs]] =
@@ -26,9 +28,15 @@ object RawDeployArgs {
       override val argType: ArgType.V =
         ArgType.LIST
     }
+
+  def apply(originalValues: Iterable[String]): RawDeployArgs =
+    RawDeployArgs(originalValues.toList, originalValues.map(ParsedDeployArg.parse))
+
 }
 
-case class RawDeployArgs(originalValues: List[String], parsedValues: List[ParsedDeployArg]) {
+case class RawDeployArgs(originalValues: List[String], rawParsedValues: Iterable[Either[String,ParsedDeployArg]]) {
+  lazy val errors = rawParsedValues.collect { case Left(error) => error }
+  lazy val parsedValues = rawParsedValues.collect { case Right(parsed) => parsed }
   def resolve(resolvedRepo: ResolvedRepository): Either[String,ResolvedDeployArgs] = {
     val resolvedArgsE = parsedValues.map(DeployArg.resolve(_, resolvedRepo)).toList
     resolvedArgsE.partitionMap(identity) match {
@@ -67,10 +75,8 @@ object DeployArg {
     resolvedArgs match {
       case Nil =>
         parsedValue match {
-          case ParsedDeployArg(name, None, None, _) =>
-            resolveApp(name, None)
-          case ParsedDeployArg(name, None, Some(v), _) =>
-            resolveApp(name, Some(Version(v)))
+          case ParsedDeployArg(name, None, None, version, _) =>
+            resolveApp(name, version.map(Version(_)))
           case _ =>
             Left(s"unable to parse app from ${parsedValue.originalValue}")
         }
@@ -86,27 +92,51 @@ object DeployArg {
 }
 
 object ParsedDeployArg {
-  def parse(value: String): ParsedDeployArg = {
-    (value.indexOf(":"), value.indexOf("@")) match {
-      case (-1, -1) =>
-        ParsedDeployArg(value, None, None, value)
-      case (-1,i) =>
-        val name = value.substring(0, i)
-        val server = value.substring(i + 1)
-        ParsedDeployArg(name, None, Some(server), value)
-      case (i, -1) =>
-        val name = value.substring(0, i)
-        val user = value.substring(i + 1)
-        ParsedDeployArg(name, Some(user), None, value)
-      case (i, j) =>
-        val name = value.substring(0, i)
-        val user = value.substring(i + 1, j)
-        val server = value.substring(j + 1)
-        ParsedDeployArg(name, Some(user), Some(server), value)
+
+  object parser {
+    import cats.parse.Parser
+    import cats.parse.Rfc5234.{alpha, digit}
+
+    lazy val specialChars = Set('-', '_', '.')
+    lazy val special: Parser[Char] = Parser.charWhere(specialChars)
+    lazy val at: Parser[Unit] = Parser.char('@')
+    lazy val colon: Parser[Unit] = Parser.char(':')
+
+    lazy val segment: Parser[String] = (alpha | digit | special).rep.string
+
+    lazy val userPart = segment <* at
+    lazy val serverPart = segment <* colon
+
+    lazy val deployArg: Parser0[ParsedDeployArg] =
+      deployArg1 | deployArg2
+
+    lazy val deployArg2: Parser0[ParsedDeployArg] = {
+      val ppppp: Parser[(String, String)] = ((segment <* colon <* Parser.string("app") <* colon) ~ segment)
+      ppppp
+        .map { case (n, v) =>
+          ParsedDeployArg(n, None, None, Some(v), "")
+        }
+    }
+
+    lazy val deployArg1: Parser0[ParsedDeployArg] =
+      ((userPart.? ~ serverPart).? ~ segment)
+        .map { case (t, n) =>
+          ParsedDeployArg(n, t.flatMap(_._1), t.map(_._2), None, "")
+        }
+
+  }
+
+  def parse(value: String): Either[String, ParsedDeployArg] = {
+    parser.deployArg.parseAll(value) match {
+      case Left(e) =>
+        Left(s"unable to parse ${value} -- ${e}")
+      case Right(parsed) =>
+        Right(parsed.copy(originalValue = value))
     }
   }
+
 }
-case class ParsedDeployArg(name: String, userPart: Option[String], serverPart: Option[String], originalValue: String)
+case class ParsedDeployArg(name: String, userPart: Option[String], serverPart: Option[String], versionPart: Option[String], originalValue: String)
 
 sealed trait DeployArg {
   def deployUsers: Iterable[DeployUser]
@@ -145,7 +175,7 @@ case class ServerDeploy(resolvedServer: ResolvedServer, serverDeployable: Server
 case class InfraDeploy(resolvedRepo: ResolvedRepository, infraDeployable: InfraStructureDeployable, originalArg: ParsedDeployArg) extends DeployArg {
   override lazy val deployId: DeployId = DeployId(z"${infraDeployable.name}")
   override def deployUsers: Iterable[DeployUser] = infraDeployable.deployUsers(resolvedRepo)
-  override def systemState(deployUser: DeployUser): M[SystemState] = infraDeployable.systemState(deployUser)
+  override def systemState(deployUser: DeployUser): M[SystemState] = infraDeployable.systemState(this, deployUser)
 }
 
 case class DeployResult(

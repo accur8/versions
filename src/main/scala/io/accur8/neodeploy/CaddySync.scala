@@ -12,8 +12,12 @@ import zio.{Task, ZIO}
 
 object CaddySync {
 
+  val managedSubDirName = "managed"
+
   def configFile(caddyDir: CaddyDirectory, applicationDescriptor: model.ApplicationDescriptor): File =
-    caddyDir.file(z"${applicationDescriptor.name}.caddy")
+    caddyDir
+      .subdir(managedSubDirName)
+      .file(z"${applicationDescriptor.name}.caddy")
 
   def caddyConfigContents(caddyDir: CaddyDirectory, applicationDescriptor: model.ApplicationDescriptor): Option[SystemState.TextFile] = {
     import applicationDescriptor._
@@ -37,6 +41,14 @@ ${applicationDescriptor.resolvedDomainNames.map(_.value).mkString(", ")} {
 
   }
 
+  def mainConfig(caddyDirectory: CaddyDirectory): SystemState.TextFile =
+    SystemState.TextFile(
+      caddyDirectory.file("Caddyfile"),
+      z"""
+import ${caddyDirectory.value}/${managedSubDirName}/*
+import ${caddyDirectory.value}/custom/*
+      """.trim
+    )
 
   def systemState(server: ResolvedServer): M[SystemState] =
     zservice[CaddyDirectory].map { caddyDir =>
@@ -53,7 +65,7 @@ ${applicationDescriptor.resolvedDomainNames.map(_.value).mkString(", ")} {
       val filesState =
         SystemState.Composite(
           z"caddy files",
-          rawFiles,
+          rawFiles ++ Vector(mainConfig(caddyDir)),
         )
 
       SystemState.Composite(

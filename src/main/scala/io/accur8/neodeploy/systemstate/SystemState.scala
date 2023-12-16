@@ -4,13 +4,14 @@ package io.accur8.neodeploy.systemstate
 import a8.shared.CompanionGen
 import a8.shared.json.ast.JsObj
 import a8.shared.json.{JsonCodec, JsonTypedCodec, UnionCodecBuilder, ast}
-import io.accur8.neodeploy.{HealthchecksDotIo, LazyJsonCodec, VFileSystem}
+import io.accur8.neodeploy.{DatabaseSetupMixin, HealthchecksDotIo, LazyJsonCodec, VFileSystem}
 import io.accur8.neodeploy.model.Install.JavaApp
-import io.accur8.neodeploy.model.{ApplicationDescriptor, DockerDescriptor, DomainName, UserLogin}
+import io.accur8.neodeploy.model.{ApplicationDescriptor, DatabaseName, DatabaseUserDescriptor, DockerDescriptor, DomainName, Passwords, UserLogin}
 import io.accur8.neodeploy.systemstate.MxSystemState.*
 import io.accur8.neodeploy.systemstate.SystemStateModel.*
 import zio.Chunk
 import a8.shared.SharedImports.*
+import a8.shared.jdbcf.DatabaseConfig.Password
 import io.accur8.neodeploy.VFileSystem.PathName
 
 object SystemState {
@@ -65,6 +66,18 @@ object SystemState {
   ) extends NoSubStates with TextFileContentsMixin {
     override def contents: String = secretContents.value
     override def prefix: String = "secret "
+  }
+
+  object DatabaseSetup extends MxDatabaseSetup {
+  }
+  @CompanionGen
+  case class DatabaseSetup(
+    databaseServer: DomainName,
+    databaseName: DatabaseName,
+    owner: UserLogin,
+    passwords: Passwords,
+    extraUsers: Iterable[DatabaseUserDescriptor] = Iterable.empty,
+  ) extends NoSubStates with DatabaseSetupMixin {
   }
 
   object JavaAppInstall extends MxJavaAppInstall
@@ -186,6 +199,7 @@ object SystemState {
         .addType[TextFile]("textfile")
         .addType[TriggeredState]("triggeredstate")
         .addType[DnsRecord]("dnsrecord")
+        .addType[DatabaseSetup]("database")
         .build
     )
 

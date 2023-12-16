@@ -1,17 +1,23 @@
 
 
-* list applications
-* list syncs
 
-* deploy allows version from command line
+* config.json.tmpl support
 
-* allow dns to be dns@domain where
-    * dns@accur8.io update all domains in accur8.net
-    * dns@orbit.accur8.io update orbit.accur8.io domain
-    * dns update all domains
+* caddy file as multiple files
 
-* allow deploys to push through the ParsedDeployArg to be more targeted with changes
+* commands
+    * psql
+    * show-db-config
+    * zoo-create
+    * zoo-update
+    * list applications
+    * list syncs
+
+
+
+== DONE ==
 
 * support dry run everywhere
 
+* deploy allows version from command line
 
