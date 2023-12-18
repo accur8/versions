@@ -14,8 +14,8 @@ import PredefAssist.*
 import a8.shared.json.JsonReader.ReadResult
 import com.typesafe.config.ConfigFactory
 import io.accur8.neodeploy.Mxresolvedmodel.MxLoadedApplicationDescriptor
-import io.accur8.neodeploy.plugin.{PgbackrestServerPlugin, RepositoryPlugins}
-import io.accur8.neodeploy.resolvedmodel.ResolvedApp.LoadedApplicationDescriptor
+import io.accur8.neodeploy.plugin.{PgbackrestServerPlugin}
+import io.accur8.neodeploy.resolvedmodel.ResolvedApp.{LoadedApplicationDescriptor, loadDescriptorFromDisk}
 import io.accur8.neodeploy.resolvedmodel.ResolvedUser
 import io.accur8.neodeploy.systemstate.SystemStateModel.{Command, Environ, M}
 import zio.cache.Lookup
@@ -25,12 +25,14 @@ object resolvedmodel extends LoggingF {
   import a8.Scala3Hacks.*
 
   object ResolvedUser {
+
     val live: ZIO[UserLogin with ResolvedRepository with LocalDeploy.Config, Throwable, ResolvedUser] =
       for {
         rs <- ResolvedServer.live
         ul <- zservice[UserLogin]
         ru <- rs.fetchUserZ(ul)
       } yield ru
+
   }
   case class ResolvedUser(
     descriptor: UserDescriptor,
@@ -310,6 +312,13 @@ object resolvedmodel extends LoggingF {
     if ( loadedApplicationDescriptor.appConfigDir.name.toLowerCase != loadedApplicationDescriptor.descriptor.name.value.toLowerCase ) {
       sys.error(z"mismatch between application folder name ${loadedApplicationDescriptor.appConfigDir} and configured application name ${loadedApplicationDescriptor.descriptor.name}")
     }
+    def qname: String =
+      loadedApplicationDescriptor
+        .descriptor
+        .resolvedDomainNames
+        .headOption
+        .map(_.value)
+        .getOrElse(z"${user.qname}:${name}")
     def isNamed(appName: DomainName): Boolean =
       loadedApplicationDescriptor.descriptor.resolvedDomainNames.contains(appName)
     val descriptor: ApplicationDescriptor = loadedApplicationDescriptor.descriptor
@@ -390,6 +399,11 @@ object resolvedmodel extends LoggingF {
       loadedApplicationDescriptors
         .groupBy(lad => lad.serverName -> lad.userLogin)
 
+    lazy val applicationByDomainName: Map[DomainName, ResolvedApp] =
+      applications
+        .flatMap(a => a.descriptor.resolvedDomainNames.map(_ -> a))
+        .toMap
+
     def fetchLoadedApplicationDescriptors(serverName: ServerName, login: UserLogin): Vector[LoadedApplicationDescriptor] =
       applicationDescriptorsByUserLogin
         .getOrElse(serverName -> login, Vector.empty)
@@ -408,13 +422,16 @@ object resolvedmodel extends LoggingF {
         .managedDomains
         .find(_.topLevelDomains.contains(tld))
     }
-    lazy val repositoryPlugins = RepositoryPlugins(this)
 
     def virtualHosts: Vector[VirtualHost] = servers.flatMap(_.virtualHosts)
 
     def applications: Vector[ResolvedApp] =
       users
         .flatMap(_.resolvedApps)
+
+    def userOpt(userLogin: UserLogin, serverName: ServerName): Option[ResolvedUser] =
+      serverOpt(serverName)
+        .flatMap(_.fetchUserOpt(userLogin))
 
     def fetchUser(qname: QualifiedUserName): ResolvedUser =
       users

@@ -46,7 +46,7 @@ case class PgbackrestServerPlugin(
           rc
       }
 
-  override def systemState(input: ResolvedUser): M[SystemState] =
+  def systemState(input: ResolvedUser): M[SystemState] =
     PgbackrestConfig.systemState(input)
       .map { configState =>
         input

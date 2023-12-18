@@ -2,27 +2,29 @@ package io.accur8.neodeploy
 
 
 import SharedImports.{*, given}
+import io.accur8.neodeploy.Deployable.AppDeployable
 import io.accur8.neodeploy.model.SupervisorDescriptor
+import io.accur8.neodeploy.resolvedmodel.ResolvedRepository
 
 object Setup {
 
-  def resolveSetupArgs(deployArgs: ResolvedDeployArgs): RawDeployArgs = {
-
-    val resolvedArgs: List[String] =
-      deployArgs
-        .args
-        .collect { case da: AppDeploy => da }
-        .flatMap { appDeploy =>
-          resolveRawSetupArgs(appDeploy)
+  def resolveSetupArgs(deployables: ResolvedDeployables, resolvedRepository: ResolvedRepository): ResolvedDeployables = {
+    val values =
+      deployables
+        .asIterable
+        .flatMap {
+          case ad: AppDeployable =>
+            resolveRawSetupArgs(ad)
+          case d =>
+            Iterable(d.originalArg)
         }
-        .toList
-        .distinct
+        .map(DeployArgParser.parse(_, resolvedRepository))
 
-    RawDeployArgs(resolvedArgs, resolvedArgs.map(ParsedDeployArg.parse))
+    ResolvedDeployables(values)
 
   }
 
-  private def resolveRawSetupArgs(appDeploy: AppDeploy): Iterable[String] = {
+  private def resolveRawSetupArgs(appDeploy: AppDeployable): Iterable[String] = {
     val descriptor: model.ApplicationDescriptor = appDeploy.resolvedApp.descriptor
 
     val caddy: Iterable[String] =
@@ -40,7 +42,7 @@ object Setup {
 
           val caddy =
             Iterable(
-              z"caddy@${appDeploy.resolvedApp.server.name}",
+              z"${appDeploy.resolvedApp.server.name}:caddy",
             )
 
           dns ++ caddy
@@ -50,7 +52,7 @@ object Setup {
     val supervisor: Option[String] =
       descriptor.launcher match {
         case sd: SupervisorDescriptor =>
-          Some(z"supervisor@${appDeploy.resolvedApp.server.name}")
+          Some(z"${appDeploy.resolvedApp.server.name}:supervisor")
         case _ =>
           None
       }
@@ -58,7 +60,7 @@ object Setup {
     val database: Option[String] =
       descriptor.setup.database match {
         case Some(dbs) =>
-          Some(z"database@${descriptor.resolvedDomainNames.head}")
+          Some(z"${descriptor.resolvedDomainNames.head}:database")
         case None =>
           None
       }

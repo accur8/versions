@@ -52,7 +52,7 @@ object SyncContainer extends LoggingF {
 case class SyncContainer(
   stateDirectory: Directory,
   deployUser: DeployUser,
-  deploys: Vector[DeployArg],
+  deployables: Iterable[Deployable],
   dryRun: Boolean,
 )
   extends LoggingF
@@ -77,8 +77,8 @@ case class SyncContainer(
 
 
   def run: M[Unit] =
-    loggerF.debug(s"running = ${deploys.map(_.deployId).mkString(" ")}") *>
-      deploys
+    loggerF.debug(s"running = ${deployables.map(_.deployId).mkString(" ")}") *>
+      deployables
         .map { deployArg =>
           for {
             previousState <- loadState(deployArg.deployId)
@@ -88,13 +88,13 @@ case class SyncContainer(
         .sequence
         .as(())
 
-  def run(deployArg: DeployArg, previousState: PreviousState): M[Unit] = {
+  def run(deployable: Deployable, previousState: PreviousState): M[Unit] = {
 
-    lazy val namePair = deployArg.deployId
+    lazy val namePair = deployable.deployId
 
     lazy val newStateEffect: M[NewState] =
-      deployArg
-        .systemState(deployUser)
+      deployable
+        .systemState
         .traceLog(s"systemState(${namePair})")
         .map(s => NewState(ResolvedState(namePair, s)))
 

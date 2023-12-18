@@ -46,7 +46,7 @@ case class PgbackrestClientPlugin(
 
   lazy val server: ResolvedServer = user.server
 
-  override def systemState(input: ResolvedUser): M[SystemState] =
+  def systemState(input: ResolvedUser): M[SystemState] =
     PgbackrestConfig.systemState(input)
 
 }

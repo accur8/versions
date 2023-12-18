@@ -18,6 +18,7 @@ import io.accur8.neodeploy.model._
 import io.accur8.neodeploy.model.Install.{JavaApp, Manual}
 import systemstate.SystemStateModel.Command
 import a8.shared.jdbcf.DatabaseConfig.Password
+import a8.versions.model.BranchName
 //====
 
 import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
@@ -36,6 +37,7 @@ object Mxmodel {
           .addField(_.organization)
           .addField(_.artifact)
           .addField(_.version)
+          .addField(_.defaultBranch)
           .addField(_.webappExplode)
           .addField(_.jvmArgs)
           .addField(_.appArgs)
@@ -51,7 +53,7 @@ object Mxmodel {
     
     
     lazy val generator: Generator[JavaApp,parameters.type] =  {
-      val constructors = Constructors[JavaApp](9, unsafe.iterRawConstruct)
+      val constructors = Constructors[JavaApp](10, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -59,12 +61,13 @@ object Mxmodel {
       lazy val organization: CaseClassParm[JavaApp,Organization] = CaseClassParm[JavaApp,Organization]("organization", _.organization, (d,v) => d.copy(organization = v), None, 0)
       lazy val artifact: CaseClassParm[JavaApp,Artifact] = CaseClassParm[JavaApp,Artifact]("artifact", _.artifact, (d,v) => d.copy(artifact = v), None, 1)
       lazy val version: CaseClassParm[JavaApp,Version] = CaseClassParm[JavaApp,Version]("version", _.version, (d,v) => d.copy(version = v), None, 2)
-      lazy val webappExplode: CaseClassParm[JavaApp,Boolean] = CaseClassParm[JavaApp,Boolean]("webappExplode", _.webappExplode, (d,v) => d.copy(webappExplode = v), Some(()=> true), 3)
-      lazy val jvmArgs: CaseClassParm[JavaApp,Iterable[String]] = CaseClassParm[JavaApp,Iterable[String]]("jvmArgs", _.jvmArgs, (d,v) => d.copy(jvmArgs = v), Some(()=> None), 4)
-      lazy val appArgs: CaseClassParm[JavaApp,Iterable[String]] = CaseClassParm[JavaApp,Iterable[String]]("appArgs", _.appArgs, (d,v) => d.copy(appArgs = v), Some(()=> Iterable.empty), 5)
-      lazy val mainClass: CaseClassParm[JavaApp,String] = CaseClassParm[JavaApp,String]("mainClass", _.mainClass, (d,v) => d.copy(mainClass = v), None, 6)
-      lazy val javaVersion: CaseClassParm[JavaApp,JavaVersion] = CaseClassParm[JavaApp,JavaVersion]("javaVersion", _.javaVersion, (d,v) => d.copy(javaVersion = v), Some(()=> JavaVersion(11)), 7)
-      lazy val repository: CaseClassParm[JavaApp,Option[RepoConfigPrefix]] = CaseClassParm[JavaApp,Option[RepoConfigPrefix]]("repository", _.repository, (d,v) => d.copy(repository = v), Some(()=> None), 8)
+      lazy val defaultBranch: CaseClassParm[JavaApp,Option[BranchName]] = CaseClassParm[JavaApp,Option[BranchName]]("defaultBranch", _.defaultBranch, (d,v) => d.copy(defaultBranch = v), Some(()=> None), 3)
+      lazy val webappExplode: CaseClassParm[JavaApp,Boolean] = CaseClassParm[JavaApp,Boolean]("webappExplode", _.webappExplode, (d,v) => d.copy(webappExplode = v), Some(()=> true), 4)
+      lazy val jvmArgs: CaseClassParm[JavaApp,Iterable[String]] = CaseClassParm[JavaApp,Iterable[String]]("jvmArgs", _.jvmArgs, (d,v) => d.copy(jvmArgs = v), Some(()=> None), 5)
+      lazy val appArgs: CaseClassParm[JavaApp,Iterable[String]] = CaseClassParm[JavaApp,Iterable[String]]("appArgs", _.appArgs, (d,v) => d.copy(appArgs = v), Some(()=> Iterable.empty), 6)
+      lazy val mainClass: CaseClassParm[JavaApp,String] = CaseClassParm[JavaApp,String]("mainClass", _.mainClass, (d,v) => d.copy(mainClass = v), None, 7)
+      lazy val javaVersion: CaseClassParm[JavaApp,JavaVersion] = CaseClassParm[JavaApp,JavaVersion]("javaVersion", _.javaVersion, (d,v) => d.copy(javaVersion = v), Some(()=> JavaVersion(11)), 8)
+      lazy val repository: CaseClassParm[JavaApp,Option[RepoConfigPrefix]] = CaseClassParm[JavaApp,Option[RepoConfigPrefix]]("repository", _.repository, (d,v) => d.copy(repository = v), Some(()=> None), 9)
     }
     
     
@@ -75,12 +78,13 @@ object Mxmodel {
           organization = values(0).asInstanceOf[Organization],
           artifact = values(1).asInstanceOf[Artifact],
           version = values(2).asInstanceOf[Version],
-          webappExplode = values(3).asInstanceOf[Boolean],
-          jvmArgs = values(4).asInstanceOf[Iterable[String]],
-          appArgs = values(5).asInstanceOf[Iterable[String]],
-          mainClass = values(6).asInstanceOf[String],
-          javaVersion = values(7).asInstanceOf[JavaVersion],
-          repository = values(8).asInstanceOf[Option[RepoConfigPrefix]],
+          defaultBranch = values(3).asInstanceOf[Option[BranchName]],
+          webappExplode = values(4).asInstanceOf[Boolean],
+          jvmArgs = values(5).asInstanceOf[Iterable[String]],
+          appArgs = values(6).asInstanceOf[Iterable[String]],
+          mainClass = values(7).asInstanceOf[String],
+          javaVersion = values(8).asInstanceOf[JavaVersion],
+          repository = values(9).asInstanceOf[Option[RepoConfigPrefix]],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): JavaApp = {
@@ -89,6 +93,7 @@ object Mxmodel {
             organization = values.next().asInstanceOf[Organization],
             artifact = values.next().asInstanceOf[Artifact],
             version = values.next().asInstanceOf[Version],
+            defaultBranch = values.next().asInstanceOf[Option[BranchName]],
             webappExplode = values.next().asInstanceOf[Boolean],
             jvmArgs = values.next().asInstanceOf[Iterable[String]],
             appArgs = values.next().asInstanceOf[Iterable[String]],
@@ -100,8 +105,8 @@ object Mxmodel {
            sys.error("")
         value
       }
-      def typedConstruct(organization: Organization, artifact: Artifact, version: Version, webappExplode: Boolean, jvmArgs: Iterable[String], appArgs: Iterable[String], mainClass: String, javaVersion: JavaVersion, repository: Option[RepoConfigPrefix]): JavaApp =
-        JavaApp(organization, artifact, version, webappExplode, jvmArgs, appArgs, mainClass, javaVersion, repository)
+      def typedConstruct(organization: Organization, artifact: Artifact, version: Version, defaultBranch: Option[BranchName], webappExplode: Boolean, jvmArgs: Iterable[String], appArgs: Iterable[String], mainClass: String, javaVersion: JavaVersion, repository: Option[RepoConfigPrefix]): JavaApp =
+        JavaApp(organization, artifact, version, defaultBranch, webappExplode, jvmArgs, appArgs, mainClass, javaVersion, repository)
     
     }
     

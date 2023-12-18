@@ -11,7 +11,5 @@ trait Plugin[A] {
 
   def descriptorJson: JsVal
 
-  def systemState(input: A): M[SystemState]
-
 }
 

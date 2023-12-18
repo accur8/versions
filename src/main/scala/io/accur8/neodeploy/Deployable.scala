@@ -2,9 +2,10 @@ package io.accur8.neodeploy
 
 
 import io.accur8.neodeploy.DeploySubCommand.*
-import io.accur8.neodeploy.model.{CaddyDirectory, ServerName, UserLogin}
+import io.accur8.neodeploy.model.{CaddyDirectory, DomainName, ServerName, UserLogin, Version, VersionBranch}
 import io.accur8.neodeploy.resolvedmodel.{ResolvedApp, ResolvedRepository, ResolvedServer, ResolvedUser}
 import a8.shared.SharedImports.*
+import a8.versions.model.BranchName
 import io.accur8.neodeploy.DeployUser.RegularUser
 import io.accur8.neodeploy.plugin.DnsPlugin
 import io.accur8.neodeploy.systemstate.{DatabasePlugin, SystemState}
@@ -15,7 +16,13 @@ import scala.util.Left
 object Deployable {
 
   case object PgbackrestServer extends InfraStructureDeployable {
-    override val name: String = "pgbackrest-server"
+
+    override def localDeployArgs: Iterable[String] = "pgbackrest-server" :: Nil
+
+    override def originalArg: String = "pgbackrest-server"
+
+    override def deployId: DeployId = DeployId("pgbackrest-server")
+
     override def deployUsers(resolvedRepo: ResolvedRepository): Iterable[DeployUser] =
       resolvedRepo
         .servers
@@ -23,9 +30,9 @@ object Deployable {
         .filter(_.plugins.pgbackrestServerOpt.isDefined)
         .map(RegularUser(_))
 
-    override def systemState(infraDeploy: InfraDeploy, deployUser: DeployUser): M[SystemState] =
-      deployUser
-        .resolvedUserOnly
+    override def systemState: M[SystemState] =
+      ResolvedUser
+        .live
         .flatMap(resolvedUser =>
           resolvedUser
             .plugins
@@ -36,34 +43,50 @@ object Deployable {
 
   }
 
-  case object PgbackrestClient extends ServerDeployable {
-    override val name: String = "pgbackrest-client"
+  case class PgbackrestClient(serverName: ServerName) extends ServerDeployable {
+
+    override def localDeployArgs: Iterable[String] = "pgbackrest-client" :: Nil
+
+    override def originalArg: String = "pgbackrest-client"
+
+    override def deployId: DeployId = DeployId("pgbackrest-client")
+
     override def deployUsers(resolvedServer: ResolvedServer): Iterable[DeployUser] =
       resolvedServer
-        .fetchUserOpt(UserLogin("postgres"))
+        .resolvedUsers
+        .filter(_.plugins.pgbackrestClientOpt.isDefined)
         .map(RegularUser(_))
 
-    override def systemState(resolvedUser: ResolvedUser): M[SystemState] =
-      resolvedUser
-        .plugins
-        .pgbackrestClientOpt
-        .map(_.systemState(resolvedUser))
-        .getOrElse(zfail(new RuntimeException("expected a pgbackrest client plugin")))
+    override def systemState: M[SystemState] =
+      ResolvedUser
+        .live
+        .flatMap(resolvedUser =>
+          resolvedUser
+            .plugins
+            .pgbackrestClientOpt
+            .map(_.systemState(resolvedUser))
+            .getOrElse(zfail(new RuntimeException("expected a pgbackrest client plugin")))
+        )
 
   }
 
   case object RsnapshotServer extends InfraStructureDeployable {
-    override val name: String = "rsnapshot-server"
+
+    override def localDeployArgs: Iterable[String] = "rsnapshot-server" :: Nil
+
+    override def originalArg: String = "rsnapshot-server"
+
+    override def deployId: DeployId = DeployId("rsnapshot-server")
+
     override def deployUsers(resolvedRepo: ResolvedRepository): Iterable[DeployUser] =
       resolvedRepo
-        .servers
-        .flatMap(_.resolvedUsers)
+        .users
         .filter(_.plugins.resolvedRSnapshotServerOpt.isDefined)
         .map(RegularUser(_))
 
-    override def systemState(infraDeploy: InfraDeploy, deployUser: DeployUser): M[SystemState] =
-      deployUser
-        .resolvedUserOnly
+    override def systemState: M[SystemState] =
+      ResolvedUser
+        .live
         .map(_.plugins.resolvedRSnapshotServerOpt)
         .flatMap {
           case Some(rsnapshotServer) =>
@@ -73,140 +96,179 @@ object Deployable {
         }
   }
 
-  case object Caddy extends ServerDeployable {
-    override val name: String = "caddy"
+  case class Caddy(serverName: ServerName) extends ServerDeployable {
+
     override def deployUsers(resolvedServer: ResolvedServer): Iterable[DeployUser] =
       resolvedServer
-        .fetchUserOpt(UserLogin("root"))
+        .resolvedUsers
+        .filter(_.login == UserLogin("root"))
         .map(RegularUser(_))
 
-    override def systemState(resolvedUser: ResolvedUser): M[SystemState] =
-      CaddySync.systemState(resolvedUser.server)
+    override def deployId: DeployId = DeployId("caddy")
+
+    override def localDeployArgs: Iterable[String] = "caddy" :: Nil
+
+    override def originalArg: String = "caddy"
+
+    override def systemState: M[SystemState] =
+      ResolvedServer
+        .live
+        .flatMap(rs =>
+          CaddySync.systemState(rs)
+        )
 
   }
 
-  case object Supervisor extends ServerDeployable {
-    override val name: String = "supervisor"
-    override def deployUsers(resolvedServer: ResolvedServer): Iterable[DeployUser] =
-      resolvedServer
-        .fetchUserOpt(UserLogin("root"))
-        .map(RegularUser(_))
+//  case class Supervisor(serverName: ServerName) extends ServerDeployable {
+////    override val name: String = "supervisor"
+////    override def deployUsers(resolvedServer: ResolvedServer): Iterable[DeployUser] =
+////      resolvedServer
+////        .fetchUserOpt(UserLogin("root"))
+////        .map(RegularUser(_))
+//
+//    override def systemState: M[SystemState] =
+//      ???
+//  }
 
-    override def systemState(resolvedUser: ResolvedUser): M[SystemState] =
-      ???
+  case class AuthorizedKeys(userLogin: UserLogin, serverName: ServerName) extends UserDeployable {
+
+    override def deployId: DeployId = DeployId("authorizedkeys")
+
+    override def systemState: M[SystemState] =
+      ResolvedUser
+        .live
+        .flatMap(ru =>
+          AuthorizedKeys2Sync.systemState(ru)
+        )
+
   }
-  case object AuthorizedKeys extends UserDeployable {
-    override val name: String = "AuthorizedKeys"
-    override def systemState(user: ResolvedUser): M[SystemState] =
-      AuthorizedKeys2Sync.systemState(user)
-  }
-  case object ManagedKeys extends UserDeployable {
-    override val name: String = "ManagedKeys"
-    override def systemState(user: ResolvedUser): M[SystemState] =
-      ManagedSshKeysSync.systemState(user)
+
+  case class ManagedKeys(userLogin: UserLogin, serverName: ServerName) extends UserDeployable {
+    override def deployId: DeployId = DeployId("managedkeys")
+    override def systemState: M[SystemState] =
+      ResolvedUser
+        .live
+        .flatMap(ru =>
+          ManagedSshKeysSync.systemState(ru)
+        )
   }
 
   case object DnsDeployable extends InfraStructureDeployable {
-    override val name: String = "dns"
+
+    override def deployId: DeployId = DeployId("dns")
+
+    override def originalArg: String = "dns"
+
     override def deployUsers(resolvedRepo: ResolvedRepository): Iterable[DeployUser] =
-      Iterable(DeployUser.InfraUser(resolvedRepo))
-    override def systemState(infraDeploy: InfraDeploy, deployUser: DeployUser): M[SystemState] =
-      DnsPlugin.systemState(deployUser.resolvedRepo)
+      Iterable(DeployUser.InfraUser)
+
+    override def systemState: M[SystemState] =
+      DnsPlugin.systemState
+
   }
 
-  case object DatabaseDeployable extends InfraStructureDeployable {
-    override val name: String = "database"
+  case class DatabaseDeployable(domainName: DomainName) extends InfraStructureDeployable {
+
+    override def deployId: DeployId = DeployId("database")
+
+    override def originalArg: String = z"${domainName}:database"
+
     override def deployUsers(resolvedRepo: ResolvedRepository): Iterable[DeployUser] =
-      Iterable(DeployUser.InfraUser(resolvedRepo))
-    override def systemState(infraDeploy: InfraDeploy, deployUser: DeployUser): M[SystemState] =
-      DatabasePlugin.systemState(infraDeploy)
+      Iterable(DeployUser.InfraUser)
+
+    override def systemState: M[SystemState] =
+      zservice[ResolvedRepository]
+        .map(_.applicationByDomainName.get(domainName))
+        .flatMap {
+          case Some(app) =>
+            DatabasePlugin.systemState(app)
+          case None =>
+            zfail(new RuntimeException(s"Application $domainName not found"))
+        }
   }
 
   sealed trait UserDeployable extends Deployable {
 
-    def systemState(user: ResolvedUser): M[SystemState]
+    val userLogin: UserLogin
+    val serverName: ServerName
 
-    override def parseNameMatchedDeployArg(parsedDeployArg: ParsedDeployArg, resolvedRepo: ResolvedRepository): Either[String, DeployArg] = {
-      parsedDeployArg match {
-        case ParsedDeployArg(name, Some(ul), Some(sn), None, _) =>
-          val user = UserLogin(ul)
-          val server = ServerName(sn)
-          val resolvedUserOpt =
-            resolvedRepo
-              .serverOpt(server)
-              .flatMap(_.fetchUserOpt(user))
-          resolvedUserOpt match {
-            case None =>
-              Left(s"User $user not found on server $server")
-            case Some(ru) =>
-              Right(UserDeploy(ru, this, parsedDeployArg))
-          }
-        case pda: ParsedDeployArg =>
-          Left(s"Invalid arguments for $name: $pda")
-      }
-    }
+    override def originalArg: String = z"${userLogin}@${serverName}:${deployId}"
+
+    override def deployUsers(resolvedRepo: ResolvedRepository): Iterable[DeployUser] =
+      resolvedRepo
+        .userOpt(userLogin, serverName)
+        .map(RegularUser(_))
+
   }
 
   sealed trait ServerDeployable extends Deployable {
 
-    def systemState(resolvedUser: ResolvedUser): M[SystemState]
+    val serverName: ServerName
+
+    override def deployUsers(resolvedRepo: ResolvedRepository): Iterable[DeployUser] =
+      resolvedRepo
+        .serverOpt(serverName)
+        .toSeq
+        .flatMap(deployUsers)
 
     def deployUsers(resolvedServer: ResolvedServer): Iterable[DeployUser]
 
-    override def parseNameMatchedDeployArg(parsedDeployArg: ParsedDeployArg, resolvedRepo: ResolvedRepository): Either[String, DeployArg] = {
-      parsedDeployArg match {
-        case ParsedDeployArg(name, None, Some(sn), None, _) =>
-          val server = ServerName(sn)
-          resolvedRepo.serverOpt(server) match {
-            case Some(rs) =>
-              Right(ServerDeploy(rs, this, parsedDeployArg))
-            case None =>
-              Left(s"Server $server not found")
-          }
-        case pda: ParsedDeployArg =>
-          Left(s"Invalid arguments for $name: $pda")
-      }
-    }
   }
 
 
   sealed trait InfraStructureDeployable extends Deployable {
-
-    def systemState(infraDeploy: InfraDeploy, deployUser: DeployUser): M[SystemState]
-
-    def deployUsers(resolvedRepo: ResolvedRepository): Iterable[DeployUser]
-
-    override def parseNameMatchedDeployArg(parsedDeployArg: ParsedDeployArg, resolvedRepo: ResolvedRepository): Either[String, DeployArg] = {
-      parsedDeployArg match {
-        case ParsedDeployArg(name, None, None, None, _) =>
-          Right(InfraDeploy(resolvedRepo, this, parsedDeployArg))
-        case pda: ParsedDeployArg =>
-          Left(s"Invalid arguments for $name: $pda")
-      }
-    }
+    def systemState: M[SystemState]
   }
 
-  lazy val userDeployables = List(AuthorizedKeys, ManagedKeys)
-  lazy val serverDeployables = List(PgbackrestClient, Caddy, Supervisor)
-  lazy val infraStructureDeployables = List(PgbackrestServer, RsnapshotServer, DnsDeployable, DatabaseDeployable)
+  case class AppDeployable(domainName: DomainName, resolvedAppOpt: Option[ResolvedApp], versionBranch: VersionBranch) extends Deployable {
 
-  lazy val allDeployables: Seq[Deployable] = userDeployables ++ serverDeployables ++ infraStructureDeployables
+    def versionOpt: Option[Version] =
+      versionBranch match {
+        case VersionBranch.Empty =>
+          None
+        case VersionBranch.VersionBranchImpl(version, branch) =>
+          Some(version)
+      }
+
+    def branchNameOpt: Option[BranchName] =
+      versionBranch match {
+        case VersionBranch.Empty =>
+          None
+        case VersionBranch.VersionBranchImpl(version, branch) =>
+          branch
+      }
+
+    override def errorMessages: List[String] =
+      resolvedAppOpt match {
+        case None =>
+          List(s"Application $domainName not found")
+        case Some(resolvedApp) =>
+          Nil
+      }
+
+    def resolvedApp = resolvedAppOpt.get
+    override def deployId: DeployId = DeployId(z"install-${resolvedApp.name}")
+    override def deployUsers(resolvedRepo: ResolvedRepository): Iterable[DeployUser] =
+      Iterable(RegularUser(resolvedApp.user))
+    override def originalArg: String = z"${domainName}${versionBranch.asCommandLineArg}:install"
+    override def localDeployArgs: Iterable[String] = resolvedApp.name.value :: Nil
+    override def systemState: M[SystemState] = ???
+  }
+
+//  lazy val userDeployables = List(AuthorizeAutdKeys, ManagedKeys)
+//  lazy val serverDeployables = List(PgbackrestClient, Caddy, Supervisor)
+//  lazy val infraStructureDeployables = List(PgbackrestServer, RsnapshotServer, DnsDeployable, DatabaseDeployable)
+//
+//  lazy val allDeployables: Seq[Deployable] = userDeployables ++ serverDeployables ++ infraStructureDeployables
 
 }
 
 
 sealed trait Deployable {
-
-  val name: String
-  lazy val nameLc = name.toLowerCase
-
-  def parseNameMatchedDeployArg(parsedDeployArg: ParsedDeployArg, resolvedRepo: ResolvedRepository): Either[String, DeployArg]
-
-  def resolveDeployArg(parsedDeployArg: ParsedDeployArg, resolvedRepo: ResolvedRepository): Option[Either[String, DeployArg]] = {
-    (parsedDeployArg.name =:= name)
-      .toOption {
-        parseNameMatchedDeployArg(parsedDeployArg, resolvedRepo)
-      }
-  }
-
+  def errorMessages: List[String] = Nil
+  def deployId: DeployId
+  def deployUsers(resolvedRepo: ResolvedRepository): Iterable[DeployUser]
+  def localDeployArgs: Iterable[String] = deployId.value :: Nil
+  def systemState: M[SystemState]
+  def originalArg: String
 }

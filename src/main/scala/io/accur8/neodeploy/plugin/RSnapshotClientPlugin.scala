@@ -62,7 +62,7 @@ case class RSnapshotClientPlugin(
       .sequence
       .map(_.flatten)
 
-  override def systemState(input: ResolvedUser): M[SystemState] =
+  def systemState(input: ResolvedUser): M[SystemState] =
     zsucceed(SystemState.Empty)
 }
 

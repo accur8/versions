@@ -11,7 +11,7 @@ import a8.versions.{ParsedVersion, RepositoryOps, VersionParser}
 import a8.versions.model.{RepoPrefix, ResolutionRequest}
 import io.accur8.neodeploy.DeploySubCommand.DeployAppEffects
 import io.accur8.neodeploy.DeployUser.{InfraUser, RegularUser}
-import io.accur8.neodeploy.Deployable.{InfraStructureDeployable, ServerDeployable, UserDeployable}
+import io.accur8.neodeploy.Deployable.{AppDeployable, InfraStructureDeployable, ServerDeployable, UserDeployable}
 import io.accur8.neodeploy.Layers.N
 import io.accur8.neodeploy.LocalDeploy.Config
 import io.accur8.neodeploy.systemstate.SystemState.JavaAppInstall
@@ -22,7 +22,7 @@ import io.accur8.neodeploy.systemstate.SystemStateModel
 object DeploySubCommand {
 
   case class DeployAppEffects(
-    appDeploy: AppDeploy,
+    appDeploy: AppDeployable,
     version: Version,
     successEffect: N[Unit],
     errorEffect: N[Unit],
@@ -33,23 +33,23 @@ object DeploySubCommand {
 case class DeploySubCommand(
   resolvedRepository: ResolvedRepository,
   runner: Runner,
-  deployArgs: ResolvedDeployArgs,
+  deployables: ResolvedDeployables,
   dryRun: Boolean,
 )
   extends LoggingF
 {
 
-  lazy val deployArgsByUser: Map[DeployUser, Iterable[DeployArg]] =
-    deployArgs
-      .args
-      .flatMap(da => da.deployUsers.map(_ -> da))
-      .groupBy(_._1)
+  lazy val deployablesByUser: Map[DeployUser, Iterable[Deployable]] =
+    deployables
+      .asIterable
+      .flatMap(d => d.deployUsers(resolvedRepository).map(_ -> d))
+      .groupBy(t => t._1)
       .map(t => t._1 -> t._2.map(_._2))
 
   def run: N[Unit] = {
     for {
       deployResults <-
-        deployArgsByUser
+        deployablesByUser
           .map(e => runDeploy(e._1, e._2))
           .sequence
       _ <- gitCommit(deployResults)
@@ -57,9 +57,9 @@ case class DeploySubCommand(
     } yield ()
   }
 
-  def resolveVersion(appDeploy: AppDeploy): N[Version] = {
+  def resolveVersion(appDeploy: AppDeployable): N[Version] = {
     import appDeploy.resolvedApp
-    appDeploy.version.map(_.value).getOrElse("current").toLowerCase.trim match {
+    appDeploy.versionOpt.map(_.value).getOrElse("current").toLowerCase.trim match {
       case v: ("latest" | "current") =>
         (resolvedApp.loadedApplicationDescriptor.descriptor.install, v) match {
           case (ja: Install.JavaApp, "current") =>
@@ -73,7 +73,7 @@ case class DeploySubCommand(
                   organization = ja.organization,
                   artifact = ja.artifact,
                   version = Version("latest"),
-                  branch = parsedVersion.buildInfo.get.branch.some,
+                  branch = appDeploy.branchNameOpt.orElse(parsedVersion.buildInfo.get.branch.some),
                 )
               val resolutionResponse = RepositoryOps.runResolve(resolutionRequest)
               resolutionResponse.version
@@ -82,7 +82,7 @@ case class DeploySubCommand(
             zfail(new RuntimeException(s"${v} is only valid on java apps not ${resolvedApp.loadedApplicationDescriptor.descriptor.install}"))
         }
       case _ =>
-        zsucceed(appDeploy.version.get)
+        zsucceed(appDeploy.versionOpt.get)
     }
   }
 
@@ -96,7 +96,7 @@ case class DeploySubCommand(
         } else {
           ""
         }
-      Command("git", "commit", "-am", z"deploy ${deployArgs.asCommandLineArgs.mkString(" ")}${versionInfo}")
+      Command("git", "commit", "-am", z"deploy ${deployables.asCommandLineArgs.mkString(" ")}${versionInfo}")
         .inDirectory(resolvedRepository.gitRootDirectory.unresolved)
         .execInline(): @scala.annotation.nowarn
     }
@@ -108,11 +108,11 @@ case class DeploySubCommand(
         .execInline(): @scala.annotation.nowarn
     )
 
-  def prepareDeployArgs(args: Iterable[DeployArg], deployAppEffects: Iterable[DeployAppEffects]): Iterable[String] = {
+  def prepareDeployArgs(args: Iterable[Deployable], deployAppEffects: Iterable[DeployAppEffects]): Iterable[String] = {
     val nonAppArgs =
       args.flatMap {
-        case a: AppDeploy => None
-        case a => Some(a.originalArg.originalValue)
+        case a: AppDeployable => None
+        case a => Some(a.originalArg)
       }
     val appArgs =
       deployAppEffects
@@ -120,37 +120,37 @@ case class DeploySubCommand(
     nonAppArgs ++ appArgs
   }
 
-  def runDeploy(deployUser: DeployUser, args: Iterable[DeployArg]): N[DeployResult] = {
+  def runDeploy(deployUser: DeployUser, args: Iterable[Deployable]): N[DeployResult] = {
     deployUser match {
-      case InfraUser(_) =>
+      case InfraUser =>
         runInfraDeploy(args)
       case ru: RegularUser =>
         runDeploy(ru, args)
     }
   }
 
-  def runInfraDeploy(args: Iterable[DeployArg]): N[DeployResult] = {
-    val deployUser = InfraUser(resolvedRepository)
+  def runInfraDeploy(args: Iterable[Deployable]): N[DeployResult] = {
+    val deployUser = InfraUser
     val effect: M[DeployResult] =
       for {
         gitRootDirectory <- zservice[Config].map(_.gitRootDirectory)
-        _ <- SyncContainer(gitRootDirectory.subdir(".state/infra"), deployUser, deployArgs.args.toVector, dryRun).run
+        _ <- SyncContainer(gitRootDirectory.subdir(".state/infra"), deployUser, args, dryRun).run
       } yield DeployResult(deployUser)
     Layers.provide(effect)
   }
 
-  def runDeploy(deployUser: RegularUser, args: Iterable[DeployArg]): N[DeployResult] = {
+  def runDeploy(deployUser: RegularUser, args: Iterable[Deployable]): N[DeployResult] = {
 
     val resolvedUser = deployUser.user
 
     val deployAppEffects: N[Iterable[DeployAppEffects]] =
       args
-        .collect { case a: AppDeploy => a }
+        .collect { case a: AppDeployable => a }
         .map(deployAppEffectsT)
         .sequence
 
     args
-      .collect { case a: AppDeploy => a }
+      .collect { case a: AppDeployable => a }
       .map(deployAppEffectsT)
       .sequence
       .flatMap { deployAppEffects =>
@@ -179,7 +179,7 @@ case class DeploySubCommand(
 
   }
 
-  def deployAppEffectsT(appDeploy: AppDeploy): N[DeployAppEffects] = {
+  def deployAppEffectsT(appDeploy: AppDeployable): N[DeployAppEffects] = {
 
     val app = appDeploy.resolvedApp
 

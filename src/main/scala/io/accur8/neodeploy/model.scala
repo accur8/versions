@@ -26,6 +26,8 @@ import io.accur8.neodeploy.systemstate.SystemState.RunCommandState
 import io.accur8.neodeploy.systemstate.{SystemState, SystemdLauncherMixin}
 import systemstate.SystemStateModel.Command
 import a8.shared.jdbcf.DatabaseConfig.Password
+import a8.versions.model.BranchName
+import org.rogach.scallop.{Scallop, ScallopOption}
 
 object model extends LoggingF {
 
@@ -34,6 +36,32 @@ object model extends LoggingF {
 
   object Version extends StringValue.Companion[Version]
   case class Version(value: String) extends StringValue
+
+  object VersionBranch {
+
+    given CanEqual[VersionBranch, VersionBranch] = CanEqual.derived
+
+    case object Empty extends VersionBranch
+
+    def fromAppArgs(versionArg: ScallopOption[String], branchArg: ScallopOption[String]): VersionBranch =
+      versionArg.toOption match {
+        case Some(v) =>
+          VersionBranchImpl(
+            Version(v),
+            branchArg.toOption.map(BranchName(_))
+          )
+        case None =>
+          Empty
+      }
+
+    case class VersionBranchImpl(version: Version, branch: Option[BranchName]) extends VersionBranch {
+      override def asCommandLineArg: String =
+        z":${version}${branch.map(b => z":${b}").getOrElse("")}"
+    }
+  }
+  sealed trait VersionBranch {
+    def asCommandLineArg: String = ""
+  }
 
   object JavaVersion extends LongValue.Companion[JavaVersion]
   case class JavaVersion(value: Long) extends LongValue
@@ -253,6 +281,8 @@ object model extends LoggingF {
       organization: Organization,
       artifact: Artifact,
       version: Version,
+        /** branch is only for initial install / version resolution */
+      defaultBranch: Option[BranchName] = None,
       webappExplode: Boolean = true,
       jvmArgs: Iterable[String] = None,
       appArgs: Iterable[String] = Iterable.empty,

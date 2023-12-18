@@ -41,7 +41,7 @@ case class RSnapshotServerPlugin(
   // add proper scripts for ssh validations and invocation
   // add proper sudo implementation so we can sudo
 
-  override def systemState(user: ResolvedUser): M[SystemState] =
+  def systemState(user: ResolvedUser): M[SystemState] =
     zsucceed(rawSystemState(user))
 
   def rawSystemState(user: ResolvedUser): SystemState =

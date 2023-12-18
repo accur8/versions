@@ -38,7 +38,7 @@ object LocalDeploy {
 
 case class LocalDeploy(
   resolvedUser: ResolvedUser,
-  deployArgs: ResolvedDeployArgs,
+  deployArgs: ResolvedDeployables,
   config: Config,
   dryRun: Boolean,
 ) extends LoggingF {
@@ -54,7 +54,7 @@ case class LocalDeploy(
 
   def appSyncRun: M[Unit] =
     loggerF.debug("appSyncRun") *>
-      SyncContainer(stateDirectory, RegularUser(resolvedUser), deployArgs.args.toVector, dryRun)
+      SyncContainer(stateDirectory, RegularUser(resolvedUser), deployArgs.asIterable, dryRun)
         .run
 
   def run: M[Unit] =

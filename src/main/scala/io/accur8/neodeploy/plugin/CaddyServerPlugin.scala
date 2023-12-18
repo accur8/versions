@@ -1,17 +1,15 @@
 package io.accur8.neodeploy.plugin
 
-import a8.shared.SharedImports._
+import a8.shared.SharedImports.*
 import a8.shared.json.ast.{JsNothing, JsVal}
 import io.accur8.neodeploy.model.{DomainName, ListenPort}
-import io.accur8.neodeploy.resolvedmodel.ResolvedUser
+import io.accur8.neodeploy.resolvedmodel.{ResolvedServer, ResolvedUser}
 import io.accur8.neodeploy.systemstate.SystemState
 import io.accur8.neodeploy.systemstate.SystemStateModel.{M, UnixPerms}
 import io.accur8.neodeploy.{Overrides, UserPlugin}
 import io.accur8.neodeploy.VFileSystem
 
-case object CaddyServerPlugin extends UserPlugin {
-
-  override def name: String = "caddy"
+case object CaddyServerPlugin {
 
   def configSnippet(listenPort: ListenPort, domains: Iterable[DomainName]): String =
     z"""
@@ -21,14 +19,11 @@ ${domains.map(_.value).mkString(", ")} {
 }
       """.trim
 
-  override def descriptorJson: JsVal = JsNothing
-
-  override def systemState(input: ResolvedUser): M[SystemState] =
+  def systemState(resolvedServer: ResolvedServer): M[SystemState] =
     zsucceed {
       val file = VFileSystem.file("/etc/caddy/Caddyfile")
       val apps =
-        input
-          .server
+        resolvedServer
           .resolvedUsers
           .flatMap(_.resolvedApps)
       println(s"${apps.map(_.name).mkString(" ")}")

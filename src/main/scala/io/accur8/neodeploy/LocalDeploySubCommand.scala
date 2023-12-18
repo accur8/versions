@@ -18,8 +18,8 @@ object LocalDeploySubCommand {
 }
 
 case class LocalDeploySubCommand(
-  deployArgs: ResolvedDeployArgs,
-  dryRun: Boolean,
+                                  deployArgs: ResolvedDeployables,
+                                  dryRun: Boolean,
 ) {
 
   def runM: M[Unit] = {

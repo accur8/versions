@@ -11,8 +11,8 @@ import a8.versions.model.*
 import io.accur8.neodeploy.model.*
 import a8.shared.SharedImports.*
 import a8.shared.app.BootstrappedIOApp
-import io.accur8.neodeploy.{AppDeploy, DatabaseSetupMixin, DeployArg, DeploySubCommand, Layers, RawDeployArgs, ResolvedDeployArgs, Setup, ValidateRepo, resolvedmodel, Runner as NeodeployRunner}
-import zio.ZIO
+import io.accur8.neodeploy.{DatabaseSetupMixin, DeployArgParser, DeploySubCommand, Layers, ResolvedDeployables, Setup, ValidateRepo, resolvedmodel, Runner as NeodeployRunner}
+import zio.{Task, ZIO}
 import a8.shared.ZString.ZStringer
 import a8.shared.{FileSystem, FromString, ZFileSystem}
 import a8.versions.GenerateJavaLauncherDotNix.Parms
@@ -20,8 +20,10 @@ import a8.shared.app.BootstrappedIOApp.BootstrapEnv
 import a8.common.logging.Level
 import a8.common.logging.Logger
 import a8.versions.apps.Conf.Konsole
+import io.accur8.neodeploy.Deployable.AppDeployable
 import io.accur8.neodeploy.LocalDeploy.Config
 import io.accur8.neodeploy.SharedImports.{VFileSystem, traceEffect}
+import io.accur8.neodeploy.resolvedmodel.ResolvedRepository
 import io.accur8.neodeploy.systemstate.SystemStateModel.{M, PathLocator}
 import org.rogach.scallop.exceptions.ScallopResult
 
@@ -42,6 +44,54 @@ object Conf {
 }
 
 case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
+
+  object RawDeployArgs {
+    given ValueConverter[RawDeployArgs] =
+      new ValueConverter[RawDeployArgs] {
+        override def parse(values: List[(String, List[String])]): Either[String, Option[RawDeployArgs]] =
+          values.find(_._1 == "") match {
+            case None =>
+              Left("no arguments supplied")
+            case Some(args) =>
+              Right(Some(RawDeployArgs(args._2)))
+          }
+
+        override val argType: ArgType.V = ArgType.LIST
+
+      }
+
+    def resolveRemoteDeployZ(rawDeployArgs: RawDeployArgs, resolvedRepository: ResolvedRepository): Task[ResolvedDeployables] = {
+      rawDeployArgs
+        .resolveZ(resolvedRepository)
+    }
+
+    def resolveRemoteDeployZ(option: ScallopOption[RawDeployArgs], resolvedRepository: ResolvedRepository): Task[ResolvedDeployables] = {
+      option()
+        .resolveZ(resolvedRepository)
+    }
+
+    def resolveLocalDeployZ(option: ScallopOption[RawDeployArgs], resolvedRepository: ResolvedRepository): Task[ResolvedDeployables] = {
+      option()
+        .resolveZ(resolvedRepository)
+    }
+
+  }
+  case class RawDeployArgs(rawArgs: Iterable[String]) {
+
+    def resolve(resolvedRepository: ResolvedRepository): ResolvedDeployables =
+      DeployArgParser.parse(rawArgs, resolvedRepository)
+
+    def resolveZ(resolvedRepository: ResolvedRepository): Task[ResolvedDeployables] = {
+      val deployables = DeployArgParser.parse(rawArgs, resolvedRepository)
+      deployables.errorMessages match {
+        case Some(errors) =>
+          zfail(new RuntimeException(errors.mkString("\n")))
+        case _ =>
+          zsucceed(deployables)
+      }
+    }
+
+  }
 
   import impl._
 
@@ -299,22 +349,21 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
     val appArgs: ScallopOption[String] = trailArg[String](descr = "fully qualified app / domain name", required = true)
 
     val version: ScallopOption[String] = opt[String]("version", descr = "version to deploy version# | latest | current", required = false, default = Some("current"))
+    val branch: ScallopOption[String] = opt[String]("branch", descr = "branch to use when resolving latest - if omitted will use most recent branch deployed and if that hasn't happened will use defaultBranch from the app config", required = false, default = None)
     val dryRun: ScallopOption[Boolean] = opt[Boolean]("dryRun", descr = "dry run, do not actually do anything just saw what would be done", required = false, default = Some(false))
 
     override def runZ(main: Main) = {
       val resolvedDryRun = dryRun.toOption.getOrElse(false)
-      val resolvedVersion = version.toOption.map(Version(_)).get
+      val versionBranch = VersionBranch.fromAppArgs(version, branch)
       runM { (resolvedRepo, runner) =>
-        val rawDeployArgs = RawDeployArgs(appArgs.toOption.map(_ + ":app:" + resolvedVersion.value))
-        rawDeployArgs.resolve(resolvedRepo) match {
-          case Left(error) =>
-            ZIO.fail(new RuntimeException(error))
-          case Right(resolvedDeployArgs) =>
+        val rawDeployArg = appArgs() + versionBranch.asCommandLineArg + ":install"
+        RawDeployArgs.resolveRemoteDeployZ(RawDeployArgs(Iterable(rawDeployArg)), resolvedRepo)
+          .flatMap { deployables =>
             val effect =
-              DeploySubCommand(resolvedRepo, runner, resolvedDeployArgs, resolvedDryRun)
+              DeploySubCommand(resolvedRepo, runner, deployables, resolvedDryRun)
                 .run
             Layers.provide(effect)
-        }
+          }
       }
     }
 
@@ -332,21 +381,19 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
     override def runZ(main: Main) = {
       loadResolvedRepository()
         .flatMap { resolvedRepo =>
-          appArgs.toOption.get.resolve(resolvedRepo) match {
-            case Left(error) =>
-              ZIO.fail(new RuntimeException(error))
-            case Right(deployArgs) =>
-              val setupDeployArgs = Setup.resolveSetupArgs(deployArgs)
+          RawDeployArgs.resolveRemoteDeployZ(appArgs, resolvedRepo)
+            .flatMap { deployables =>
+              val setupDeployArgs = Setup.resolveSetupArgs(deployables, resolvedRepo)
               val resolvedDryRun = dryRun.toOption.getOrElse(false)
               runM( (resolvedRepo, runner) =>
-                setupDeployArgs.resolve(resolvedRepo) match {
-                  case Right(deployArgs) =>
+                deployables.errorMessages match {
+                  case Some(errors) =>
+                    ZIO.fail(new RuntimeException(errors.mkString("\n")))
+                  case _ =>
                     val effect =
-                      DeploySubCommand(resolvedRepo, runner, deployArgs, resolvedDryRun)
+                      DeploySubCommand(resolvedRepo, runner, setupDeployArgs, resolvedDryRun)
                         .run
                     Layers.provideN(effect, LocalRootDirectory.default)
-                  case Left(errorMsg) =>
-                    ZIO.fail(new RuntimeException(errorMsg))
                 }
               )
           }
@@ -373,24 +420,21 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
     val dryRun: ScallopOption[Boolean] = opt[Boolean]("dryRun", descr = "dry run, do not actually do anything just saw what would be done", required = false, default = Some(false))
 
     override def runZ(main: Main) = {
-
       NeodeployRunner(
         remoteDebug = debug,
         remoteTrace = trace,
         runnerFn = { (resolvedRepo: resolvedmodel.ResolvedRepository, runner: io.accur8.neodeploy.Runner) =>
-          appArgs.toOption.get.resolve(resolvedRepo) match {
-            case Right(deployArgs) =>
+          RawDeployArgs.resolveLocalDeployZ(appArgs, resolvedRepo)
+            .flatMap { deployables =>
               val runLocalDeploy =
-                io.accur8.neodeploy.LocalDeploySubCommand(
-                  deployArgs,
-                  dryRun = dryRun.toOption.getOrElse(false),
-                )
+                    io.accur8.neodeploy.LocalDeploySubCommand(
+                      deployables,
+                      dryRun = dryRun.toOption.getOrElse(false),
+                    )
               Layers.provide(
                 runLocalDeploy.runM
               )
-            case Left(errorMsg) =>
-              ZIO.fail(new RuntimeException(errorMsg))
-          }
+            }
         },
       ).runT
 
@@ -428,20 +472,18 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
         remoteDebug = debug,
         remoteTrace = trace,
         runnerFn = { (resolvedRepo: resolvedmodel.ResolvedRepository, runner: io.accur8.neodeploy.Runner) =>
-          appArgs.toOption.get.resolve(resolvedRepo) match {
-            case Right(deployArgs) =>
+          RawDeployArgs.resolveLocalDeployZ(appArgs, resolvedRepo)
+            .flatMap { deployables =>
               val runLocalDeploy =
                 io.accur8.neodeploy.LocalDeploySubCommand(
-                  deployArgs,
+                  deployables,
                   dryRun = dryRun.toOption.getOrElse(false),
                 )
               Layers.provide(
                 runLocalDeploy.runM,
                 config.some,
               )
-            case Left(errorMsg) =>
-              ZIO.fail(new RuntimeException(errorMsg))
-          }
+            }
         },
       ).runT
 

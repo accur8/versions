@@ -23,7 +23,6 @@ object UserPlugin extends Logging {
       RSnapshotClientPlugin,
       PgbackrestClientPlugin,
       PgbackrestServerPlugin,
-      SingletonFactory(CaddyServerPlugin),
     )
 
   case class UserPlugins(user: ResolvedUser) extends PluginManager[ResolvedUser, UserPlugin](user, user.descriptor.plugins, factories) {
