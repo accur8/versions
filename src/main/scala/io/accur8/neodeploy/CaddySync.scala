@@ -21,13 +21,13 @@ object CaddySync {
 
   def caddyConfigContents(caddyDir: CaddyDirectory, applicationDescriptor: model.ApplicationDescriptor): Option[SystemState.TextFile] = {
     import applicationDescriptor._
-    def result0 =
+    def result0: Option[String] =
       for {
-        listenPort <- applicationDescriptor.listenPort.toSeq
-        _ <- applicationDescriptor.resolvedDomainNames.nonEmpty.toOption(())
+        listenPort <- applicationDescriptor.listenPort
+        domains <- applicationDescriptor.resolvedDomainNames.toNonEmpty
       } yield
         z"""
-${applicationDescriptor.resolvedDomainNames.map(_.value).mkString(", ")} {
+${domains.map(_.value).mkString(", ")} {
   encode gzip
   reverse_proxy localhost:${listenPort}
 }
@@ -36,7 +36,7 @@ ${applicationDescriptor.resolvedDomainNames.map(_.value).mkString(", ")} {
     applicationDescriptor
       .caddyConfig
       .orElse(
-        result0.mkString("\n\n").some
+        result0
       ).map(SystemState.TextFile(configFile(caddyDir, applicationDescriptor), _))
 
   }
@@ -45,8 +45,8 @@ ${applicationDescriptor.resolvedDomainNames.map(_.value).mkString(", ")} {
     SystemState.TextFile(
       caddyDirectory.file("Caddyfile"),
       z"""
-import ${caddyDirectory.value}/${managedSubDirName}/*
-import ${caddyDirectory.value}/custom/*
+import ${caddyDirectory.value}/${managedSubDirName}/*.caddy
+import ${caddyDirectory.value}/custom/*.caddy
       """.trim
     )
 
@@ -68,17 +68,26 @@ import ${caddyDirectory.value}/custom/*
           rawFiles ++ Vector(mainConfig(caddyDir)),
         )
 
+      val createCustomDir =
+        SystemState.TextFile(
+          caddyDir.subdir("custom").file(".placeholder"),
+          "a place holder file to get the custom directory created",
+        )
+
       SystemState.Composite(
         z"caddy setup",
-        Vector(SystemState.TriggeredState(
-          triggerState = filesState,
-          postTriggerState =
-            SystemState.RunCommandState(
-              stateKey = StateKey("caddy", "caddy").some,
-              installCommands = Vector(reloadCaddyCommand),
-              uninstallCommands = Vector(reloadCaddyCommand),
-            )
-        ))
+        Vector(
+          SystemState.TriggeredState(
+            triggerState = filesState,
+            postTriggerState =
+              SystemState.RunCommandState(
+                stateKey = StateKey("caddy", "caddy").some,
+                installCommands = Vector(reloadCaddyCommand),
+                uninstallCommands = Vector(reloadCaddyCommand),
+              )
+          ),
+          createCustomDir,
+        )
       )
 
     }

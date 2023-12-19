@@ -86,38 +86,42 @@ case class DeploySubCommand(
     }
   }
 
-  def gitCommit(deployResults: Iterable[DeployResult]): N[Unit] =
-    zblock {
-      val appVersions = deployResults.flatMap(_.appVersions)
-      val versionInfo =
-        if ( appVersions.nonEmpty ) {
-          appVersions
-            .map(t => s"${t._1.value} -> ${t._2.value}").mkString("\n","\n","").indent("        ")
-        } else {
-          ""
-        }
-      Command("git", "commit", "-am", z"deploy ${deployables.asCommandLineArgs.mkString(" ")}${versionInfo}")
-        .inDirectory(resolvedRepository.gitRootDirectory.unresolved)
-        .execInline(): @scala.annotation.nowarn
-    }
+  def gitCommit(deployResults: Iterable[DeployResult]): N[Unit] = {
+    val appVersions = deployResults.flatMap(_.appVersions)
+    val versionInfo =
+      if ( appVersions.nonEmpty ) {
+        appVersions
+          .map(t => s"${t._1.value} -> ${t._2.value}").mkString("\n","\n","").indent("        ")
+      } else {
+        ""
+      }
+    Command("git", "commit", "-am", z"deploy ${deployables.asCommandLineArgs.mkString(" ")}${versionInfo}")
+      .copy(failOnNonZeroExitCode = false)
+      .inDirectory(resolvedRepository.gitRootDirectory.unresolved)
+      .execInline
+      .as(())
+  }
 
   def gitPush: N[Unit] =
-    zblock(
-      Command("git", "push")
-        .inDirectory(resolvedRepository.gitRootDirectory.unresolved)
-        .execInline(): @scala.annotation.nowarn
-    )
+    Command("git", "push")
+      .copy(failOnNonZeroExitCode = false)
+      .inDirectory(resolvedRepository.gitRootDirectory.unresolved)
+      .execInline
+      .as(())
 
   def prepareDeployArgs(args: Iterable[Deployable], deployAppEffects: Iterable[DeployAppEffects]): Iterable[String] = {
-    val nonAppArgs =
-      args.flatMap {
-        case a: AppDeployable => None
-        case a => Some(a.originalArg)
-      }
-    val appArgs =
-      deployAppEffects
-        .map(dae => s"${dae.appDeploy.resolvedApp.name.value}:${dae.version.value}")
-    nonAppArgs ++ appArgs
+//    val nonAppArgs =
+//      args.flatMap(_.localDeployArgs)
+//        case a: AppDeployable =>
+//          None
+//        case a =>
+//          a.localDeployArgs
+//      }
+//    val appArgs =
+//      deployAppEffects
+//        .map(dae => s"${dae.appDeploy.resolvedApp.name.value}:${dae.version.value}:install")
+//    nonAppArgs ++ appArgs
+    args.map(_.originalArg)
   }
 
   def runDeploy(deployUser: DeployUser, args: Iterable[Deployable]): N[DeployResult] = {

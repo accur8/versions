@@ -257,6 +257,7 @@ object MxSystemStateModel {
         a8.shared.json.JsonObjectCodecBuilder(generator)
           .addField(_.args)
           .addField(_.workingDirectory)
+          .addField(_.failOnNonZeroExitCode)
       )
       .build
     
@@ -266,13 +267,14 @@ object MxSystemStateModel {
     
     
     lazy val generator: Generator[Command,parameters.type] =  {
-      val constructors = Constructors[Command](2, unsafe.iterRawConstruct)
+      val constructors = Constructors[Command](3, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
     object parameters {
       lazy val args: CaseClassParm[Command,Iterable[String]] = CaseClassParm[Command,Iterable[String]]("args", _.args, (d,v) => d.copy(args = v), None, 0)
       lazy val workingDirectory: CaseClassParm[Command,Option[VFileSystem.Directory]] = CaseClassParm[Command,Option[VFileSystem.Directory]]("workingDirectory", _.workingDirectory, (d,v) => d.copy(workingDirectory = v), Some(()=> None), 1)
+      lazy val failOnNonZeroExitCode: CaseClassParm[Command,Boolean] = CaseClassParm[Command,Boolean]("failOnNonZeroExitCode", _.failOnNonZeroExitCode, (d,v) => d.copy(failOnNonZeroExitCode = v), Some(()=> true), 2)
     }
     
     
@@ -282,6 +284,7 @@ object MxSystemStateModel {
         Command(
           args = values(0).asInstanceOf[Iterable[String]],
           workingDirectory = values(1).asInstanceOf[Option[VFileSystem.Directory]],
+          failOnNonZeroExitCode = values(2).asInstanceOf[Boolean],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): Command = {
@@ -289,13 +292,14 @@ object MxSystemStateModel {
           Command(
             args = values.next().asInstanceOf[Iterable[String]],
             workingDirectory = values.next().asInstanceOf[Option[VFileSystem.Directory]],
+            failOnNonZeroExitCode = values.next().asInstanceOf[Boolean],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(args: Iterable[String], workingDirectory: Option[VFileSystem.Directory]): Command =
-        Command(args, workingDirectory)
+      def typedConstruct(args: Iterable[String], workingDirectory: Option[VFileSystem.Directory], failOnNonZeroExitCode: Boolean): Command =
+        Command(args, workingDirectory, failOnNonZeroExitCode)
     
     }
     

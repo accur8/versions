@@ -77,7 +77,7 @@ case class SyncContainer(
 
 
   def run: M[Unit] =
-    loggerF.debug(s"running = ${deployables.map(_.deployId).mkString(" ")}") *>
+    loggerF.debug(s"syncing ${deployUser} -- ${deployables.map(_.deployId).mkString(" ")}") *>
       deployables
         .map { deployArg =>
           for {

@@ -2,8 +2,14 @@
 
 
 * config.json.tmpl support
+    * provide a way for config.json to use the database user and passwords
 
-* caddy file as multiple files
+* systemd as it's own system state
+    * fixes the warnings in logs
+
+* local_deploy uses short form of deploy args
+
+* caddy reads the managed directory
 
 * commands
     * psql
@@ -13,7 +19,7 @@
     * list applications
     * list syncs
 
-
+* how to work zoo files into the database creation
 
 == DONE ==
 
@@ -21,3 +27,4 @@
 
 * deploy allows version from command line
 
+* caddy file as multiple files

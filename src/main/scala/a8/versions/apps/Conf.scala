@@ -384,6 +384,7 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
           RawDeployArgs.resolveRemoteDeployZ(appArgs, resolvedRepo)
             .flatMap { deployables =>
               val setupDeployArgs = Setup.resolveSetupArgs(deployables, resolvedRepo)
+              logger.info(s"resolved setup args -- ${setupDeployArgs.asIterable.map(_.originalArg).mkString(" ")}")
               val resolvedDryRun = dryRun.toOption.getOrElse(false)
               runM( (resolvedRepo, runner) =>
                 deployables.errorMessages match {
@@ -515,6 +516,8 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
   addSubcommand(buildDotSbt)
   addSubcommand(gitignore)
   addSubcommand(javaLauncherDotNix)
+  addSubcommand(localDeploy)
+  addSubcommand(localDeployDev)
   addSubcommand(promote)
   addSubcommand(promote)
   addSubcommand(resolve)

@@ -80,7 +80,9 @@ object DeployArgParser {
         .parseAll(value)
         .leftMap(e => s"unable to parse ${value} -- ${e}")
 
-    value.splitList(":").reverse.headOption.map(_.toLowerCase) match {
+    val splitValues = value.splitList(":")
+
+    splitValues.reverse.headOption.map(_.toLowerCase) match {
       case Some("dns") =>
         Right(DnsDeployable)
       case Some("rsnapshot-server") =>
@@ -92,13 +94,17 @@ object DeployArgParser {
           .map(PgbackrestClient(_))
       case Some("caddy") =>
         serverParse
-          .map(Deployable.Caddy(_))
+          .map(Deployable.CaddyDeployable(_))
       case Some("database") =>
         domainParse
           .map(DatabaseDeployable(_))
       case Some("install") =>
         installParse
           .map(t => AppDeployable(t._1, resolvedRepository.applicationByDomainName.get(t._1), t._2))
+      case Some(v) if splitValues.length == 1 =>
+        val domainName = DomainName(v)
+        installParse
+          .map(t => AppDeployable(domainName, resolvedRepository.applicationByDomainName.get(domainName), VersionBranch.Empty))
       case v =>
         Left(s"unable to parse ${value} - don't know how to handle ${v}")
     }

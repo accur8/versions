@@ -117,7 +117,7 @@ object SystemStateModel {
 
   }
   @CompanionGen
-  case class Command(args: Iterable[String], workingDirectory: Option[VFileSystem.Directory] = None) extends CommandMixin {
+  case class Command(args: Iterable[String], workingDirectory: Option[VFileSystem.Directory] = None, failOnNonZeroExitCode: Boolean = true) extends CommandMixin {
 
   }
 
@@ -184,8 +184,10 @@ object SystemStateModel {
             val zRootDirectory = a8.shared.ZFileSystem.dir(rootDirectory.value)
             override def file(path: PathName): ZFileSystem.File =
               zRootDirectory.file(path.path)
-            override def dir(path: PathName): ZFileSystem.Directory =
+            override def dir(path: PathName): ZFileSystem.Directory = {
               zRootDirectory.subdir(path.path)
+            }
+
             override def link(path: PathName): ZFileSystem.Symlink =
               zRootDirectory.symlink(path.path)
           }

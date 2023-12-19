@@ -298,7 +298,7 @@ object model extends LoggingF {
         val appDir = appsRoot.subdir(applicationDescriptor.name.value)
         val bin = appDir.subdir("bin").file(applicationDescriptor.name.value)
         Command(
-          bin.path,
+          bin.absPath,
         ).inDirectory(appDir)
       }
 
@@ -343,6 +343,7 @@ object model extends LoggingF {
     onCalendar: Option[OnCalendarValue] = None,
     persistent: Option[Boolean] = None,
     `type`: String = "simple",
+    enableService: Boolean = true,
   ) extends LauncherDescriptor
 
   object DockerDescriptor extends MxDockerDescriptor {

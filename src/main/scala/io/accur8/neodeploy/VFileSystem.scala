@@ -27,13 +27,14 @@ object VFileSystem {
   sealed trait PathName {
     val parts: Iterable[String]
     def name: String
+    def absPath: String = "/" + path
     def path: String
-    def parent: PathName = parentOpt.getOrError(s"${path} has no parent")
+    def parent: PathName = parentOpt.getOrError(s"${absPath} has no parent")
     def parentOpt: Option[PathName]
     def subPath(subPath: PathName): PathName
     def subPath(subPathStr: String): PathName
     def relativeTo(root: PathName): PathName
-    override def toString: String = path
+    override def toString: String = absPath
   }
 
   trait Path {
@@ -42,8 +43,9 @@ object VFileSystem {
     def zpath: N[ZFileSystem.Path]
     def name: String = pathName.name
     def path: String = pathName.path
+    def absPath: String = pathName.absPath
     def exists: N[Boolean]
-     override def toString = path
+    override def toString = absPath
   }
 
   object File extends AbstractStringValueCompanion[File] {
@@ -140,9 +142,10 @@ object VFileSystem {
             case f: File =>
               f.copyTo(targetDir.file(f.name))
             case d: Directory =>
-              d.copyTo(targetDir.subdir(d.name))
+              d.copyTo(targetDir)
             case l: Symlink =>
-              l.writeTarget(targetDir.subdir(l.name))
+              ???
+//              l.writeTarget(targetDir.subdir(l.name))
           }.sequence
       } yield ()
 //      zfile.zip(targetFile.zfile).flatMap(t => t._1.copyTo(t._2))

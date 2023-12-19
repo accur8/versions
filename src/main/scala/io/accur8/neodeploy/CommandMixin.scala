@@ -22,7 +22,6 @@ trait CommandMixin extends LoggingF { self: systemstate.SystemStateModel.Command
     zio.process.Command(args.head, args.tail.toSeq :_*)
 
   def exec(
-    failOnNonZeroExitCode: Boolean = true,
     logLinesEffect: Chunk[String]=>UIO[Unit] = _ => zunit
   )(implicit trace: Trace): N[Command.Result] = {
     def impl(wd: ZFileSystem.Directory) = {
@@ -54,8 +53,13 @@ trait CommandMixin extends LoggingF { self: systemstate.SystemStateModel.Command
               val output = lines.map("    " + _).mkString("\n")
               loggerF.warn(s"command failed with exit code ${exitCode.code} -- ${args.mkString(" ")} -- \n${output}") *>
                 ZIO.fail(CommandException(NonZeroErrorCode(exitCode), this))
-            } else
+            } else if (exitCode.code > 0) {
+              val output = lines.map("    " + _).mkString("\n")
+              loggerF.debug(s"command had non-zero exit code ${exitCode.code} -- ${args.mkString(" ")} -- \n${output}") *>
+                zsucceed(Command.Result(exitCode, lines))
+            } else {
               zsucceed(Command.Result(exitCode, lines))
+            }
         }
     }
 
@@ -70,8 +74,8 @@ trait CommandMixin extends LoggingF { self: systemstate.SystemStateModel.Command
   def inDirectory(workingDirectory: VFileSystem.Directory): Command =
     copy(workingDirectory = Some(workingDirectory))
 
-  def execInline(failOnNonZeroExitCode: Boolean = true): N[Int] =
-    exec(failOnNonZeroExitCode = failOnNonZeroExitCode)
+  def execInline: N[Int] =
+    exec()
       .map(_.exitCode.code)
 
   def execCaptureOutput(implicit trace: Trace): N[Command.Result] =

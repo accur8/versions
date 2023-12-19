@@ -29,8 +29,13 @@ class DeployArgsParserSpec extends AnyFunSpec {
             case Right(v) =>
               Right(v)
           }
-        assertResult(expected)(actual)
+        assertResult(expected)(actual) : @annotation.nowarn
       }
+
+      test(
+        "qubes-dbsetup.accur8.io",
+        Right(DomainName("qubes-dbsetup.accur8.io") -> VersionBranch.Empty),
+      )
 
       test(
         "orbit.accur8.io",

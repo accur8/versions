@@ -256,6 +256,7 @@ object Mxmodel {
           .addField(_.onCalendar)
           .addField(_.persistent)
           .addField(_.`type`)
+          .addField(_.enableService)
       )
       .build
     
@@ -265,7 +266,7 @@ object Mxmodel {
     
     
     lazy val generator: Generator[SystemdDescriptor,parameters.type] =  {
-      val constructors = Constructors[SystemdDescriptor](5, unsafe.iterRawConstruct)
+      val constructors = Constructors[SystemdDescriptor](6, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -275,6 +276,7 @@ object Mxmodel {
       lazy val onCalendar: CaseClassParm[SystemdDescriptor,Option[OnCalendarValue]] = CaseClassParm[SystemdDescriptor,Option[OnCalendarValue]]("onCalendar", _.onCalendar, (d,v) => d.copy(onCalendar = v), Some(()=> None), 2)
       lazy val persistent: CaseClassParm[SystemdDescriptor,Option[Boolean]] = CaseClassParm[SystemdDescriptor,Option[Boolean]]("persistent", _.persistent, (d,v) => d.copy(persistent = v), Some(()=> None), 3)
       lazy val `type`: CaseClassParm[SystemdDescriptor,String] = CaseClassParm[SystemdDescriptor,String]("type", _.`type`, (d,v) => d.copy(`type` = v), Some(()=> "simple"), 4)
+      lazy val enableService: CaseClassParm[SystemdDescriptor,Boolean] = CaseClassParm[SystemdDescriptor,Boolean]("enableService", _.enableService, (d,v) => d.copy(enableService = v), Some(()=> true), 5)
     }
     
     
@@ -287,6 +289,7 @@ object Mxmodel {
           onCalendar = values(2).asInstanceOf[Option[OnCalendarValue]],
           persistent = values(3).asInstanceOf[Option[Boolean]],
           `type` = values(4).asInstanceOf[String],
+          enableService = values(5).asInstanceOf[Boolean],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): SystemdDescriptor = {
@@ -297,13 +300,14 @@ object Mxmodel {
             onCalendar = values.next().asInstanceOf[Option[OnCalendarValue]],
             persistent = values.next().asInstanceOf[Option[Boolean]],
             `type` = values.next().asInstanceOf[String],
+            enableService = values.next().asInstanceOf[Boolean],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(unitName: Option[String], environment: Vector[String], onCalendar: Option[OnCalendarValue], persistent: Option[Boolean], `type`: String): SystemdDescriptor =
-        SystemdDescriptor(unitName, environment, onCalendar, persistent, `type`)
+      def typedConstruct(unitName: Option[String], environment: Vector[String], onCalendar: Option[OnCalendarValue], persistent: Option[Boolean], `type`: String, enableService: Boolean): SystemdDescriptor =
+        SystemdDescriptor(unitName, environment, onCalendar, persistent, `type`, enableService)
     
     }
     

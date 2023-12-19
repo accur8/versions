@@ -96,7 +96,7 @@ object Deployable {
         }
   }
 
-  case class Caddy(serverName: ServerName) extends ServerDeployable {
+  case class CaddyDeployable(serverName: ServerName) extends ServerDeployable {
 
     override def deployUsers(resolvedServer: ResolvedServer): Iterable[DeployUser] =
       resolvedServer
@@ -106,9 +106,9 @@ object Deployable {
 
     override def deployId: DeployId = DeployId("caddy")
 
-    override def localDeployArgs: Iterable[String] = "caddy" :: Nil
+    override def localDeployArgs: Iterable[String] = z"caddy" :: Nil
 
-    override def originalArg: String = "caddy"
+    override def originalArg: String = z"${serverName}:caddy"
 
     override def systemState: M[SystemState] =
       ResolvedServer
@@ -169,7 +169,7 @@ object Deployable {
 
   case class DatabaseDeployable(domainName: DomainName) extends InfraStructureDeployable {
 
-    override def deployId: DeployId = DeployId("database")
+    override def deployId: DeployId = DeployId(z"database-${domainName}")
 
     override def originalArg: String = z"${domainName}:database"
 
@@ -246,13 +246,19 @@ object Deployable {
           Nil
       }
 
-    def resolvedApp = resolvedAppOpt.get
+    def resolvedApp = resolvedAppOpt.getOrError(z"cannot find app for ${domainName}")
     override def deployId: DeployId = DeployId(z"install-${resolvedApp.name}")
     override def deployUsers(resolvedRepo: ResolvedRepository): Iterable[DeployUser] =
       Iterable(RegularUser(resolvedApp.user))
     override def originalArg: String = z"${domainName}${versionBranch.asCommandLineArg}:install"
-    override def localDeployArgs: Iterable[String] = resolvedApp.name.value :: Nil
-    override def systemState: M[SystemState] = ???
+    override def localDeployArgs: Iterable[String] = domainName.value :: Nil
+    override def systemState: M[SystemState] =
+      ResolvedUser
+        .live
+        .flatMap(ru =>
+          ApplicationInstallSync(ru.appsRootDirectory)
+            .systemState(resolvedApp)
+        )
   }
 
 //  lazy val userDeployables = List(AuthorizeAutdKeys, ManagedKeys)

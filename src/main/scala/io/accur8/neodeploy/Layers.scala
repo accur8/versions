@@ -90,7 +90,8 @@ object Layers extends LoggingF {
         ResolvedRepository.loadFromDisk(config.gitRootDirectory)
       )
 
-  def userLoginL: ZLayer[Config, Throwable, UserLogin] = configL.project(_.userLogin)
+  def userLoginL: ZLayer[Config, Throwable, UserLogin] =
+    ZLayer.service[Config].project(_.userLogin)
 
   def resolvedServerL =
     ZLayer.fromZIO(

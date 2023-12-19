@@ -39,6 +39,7 @@ trait SystemdLauncherMixin { self: SystemdLauncher =>
             persistent = sd.persistent,
           )
         },
+      enableService = sd.enableService,
     )
   }
 
@@ -50,6 +51,7 @@ trait SystemdLauncherMixin { self: SystemdLauncher =>
         io.accur8.neodeploy.Overrides
           .userSystemCtlCommand
           .appendArgs(action, unitName)
+          .copy(failOnNonZeroExitCode = false)
           .some
     }
 

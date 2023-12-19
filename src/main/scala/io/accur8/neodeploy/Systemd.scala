@@ -51,6 +51,7 @@ object Systemd {
     user: ResolvedUser,
     unitFile: UnitFile,
     timerFileOpt: Option[TimerFile] = None,
+    enableService: Boolean = true,
   ): SystemState = {
 
     val directory = user.home.subdir(z".config/systemd/user")
@@ -63,7 +64,7 @@ object Systemd {
          |
          |[Service]
          |Type=${unitFile.Type}
-         |WorkingDirectory=${unitFile.workingDirectory}
+         |WorkingDirectory=${unitFile.workingDirectory.absPath}
          |StandardOutput=journal
          |ExecStart=${unitFile.execStart}
          |
@@ -129,6 +130,14 @@ object Systemd {
           Vector(stopTimerCommand, disableTimerCommand)
         )
 
+    val enableServiceCommand =
+      Overrides.userSystemCtlCommand
+        .appendArgs("enable", z"${unitName}.service")
+
+    val enableServiceCommands =
+      Vector(enableServiceCommand)
+        .filter(_ => enableService)
+
     val enableUserLingerCommand =
       Overrides.userLoginCtlCommand
         .appendArgs("enable-linger")
@@ -136,7 +145,7 @@ object Systemd {
     val manageSystemdUnitState: SystemState =
       RunCommandState(
         StateKey("enable/disable systemd", unitName).some,
-        installCommands = Vector(daemonReloadCommand) ++ enableTimerCommands ++ Vector(enableUserLingerCommand),
+        installCommands = Vector(daemonReloadCommand) ++ enableTimerCommands ++ enableServiceCommands ++ Vector(enableUserLingerCommand),
         uninstallCommands = uninstallTimerCommands,
       )
 

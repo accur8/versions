@@ -71,7 +71,7 @@ case class PushRemoteDeploy(
         z"${remoteServer}/${resolvedUser.login}"
       }
 
-    val setupStagingDataEffect =  
+    val setupStagingDataEffect =
       FileSystemAssist.FileSet(resolvedRepository.gitRootDirectory.unresolved)
         .addFile("config.hocon")
         .addDirectory("public-keys")
