@@ -360,7 +360,7 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
         RawDeployArgs.resolveRemoteDeployZ(RawDeployArgs(Iterable(rawDeployArg)), resolvedRepo)
           .flatMap { deployables =>
             val effect =
-              DeploySubCommand(resolvedRepo, runner, deployables, resolvedDryRun)
+              DeploySubCommand("deploy", resolvedRepo, runner, deployables, resolvedDryRun)
                 .run
             Layers.provide(effect)
           }
@@ -392,7 +392,7 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
                     ZIO.fail(new RuntimeException(errors.mkString("\n")))
                   case _ =>
                     val effect =
-                      DeploySubCommand(resolvedRepo, runner, setupDeployArgs, resolvedDryRun)
+                      DeploySubCommand("setup", resolvedRepo, runner, setupDeployArgs, resolvedDryRun)
                         .run
                     Layers.provideN(effect, LocalRootDirectory.default)
                 }

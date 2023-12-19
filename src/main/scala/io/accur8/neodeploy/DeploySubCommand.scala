@@ -31,6 +31,7 @@ object DeploySubCommand {
 }
 
 case class DeploySubCommand(
+  subCommand: String,
   resolvedRepository: ResolvedRepository,
   runner: Runner,
   deployables: ResolvedDeployables,
@@ -95,7 +96,7 @@ case class DeploySubCommand(
       } else {
         ""
       }
-    Command("git", "commit", "-am", z"deploy ${deployables.asCommandLineArgs.mkString(" ")}${versionInfo}")
+    Command("git", "commit", "-am", z"${subCommand} ${deployables.asCommandLineArgs.mkString(" ")}${versionInfo}")
       .copy(failOnNonZeroExitCode = false)
       .inDirectory(resolvedRepository.gitRootDirectory.unresolved)
       .execInline
