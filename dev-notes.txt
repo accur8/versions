@@ -6,10 +6,12 @@
 
 * systemd as it's own system state
     * fixes the warnings in logs
+    * just can better handle adding / removing services
 
 * local_deploy uses short form of deploy args
 
 * caddy reads the managed directory
+    * perhaps a ManagedDirectory system state
 
 * commands
     * psql
@@ -18,6 +20,8 @@
     * zoo-update
     * list applications
     * list syncs
+
+* combine generated.properties and version.properties
 
 * how to work zoo files into the database creation
 
