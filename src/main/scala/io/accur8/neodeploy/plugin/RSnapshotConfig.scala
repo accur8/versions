@@ -34,7 +34,7 @@ config_version	1.2
 
 # All snapshots will be stored under this root directory.
 #
-snapshot_root	${serverConfig.descriptor.snapshotRootDir.subdir(client.server.name.value)}
+snapshot_root	${serverConfig.descriptor.snapshotRootDir.subdir(client.server.name.value).absPath}
 
 # If no_create_root is enabled, rsnapshot will not automatically create the
 # snapshot_root directory. This is particularly useful if you are backing

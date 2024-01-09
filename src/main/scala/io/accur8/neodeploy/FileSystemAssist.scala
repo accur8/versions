@@ -56,7 +56,7 @@ object FileSystemAssist extends LoggingF {
             val targetFile = target.file(f.relativeTo(root))
             for {
               _ <- targetFile.parent.resolve
-              _ <- loggerF.debug(z"copying file ${sourceFile} --> ${targetFile}")
+              _ <- loggerF.debug(z"copying file ${sourceFile.absPath} --> ${targetFile.absPath}")
               _ <- sourceFile.copyTo(targetFile)
             } yield ()
           case (d: VFileSystem.Directory, mustExist) =>
@@ -65,7 +65,7 @@ object FileSystemAssist extends LoggingF {
             val targetDir = target.subdir(relativeSourceDir).parentOpt.get
             for {
               _ <- targetDir.resolve
-              _ <- loggerF.debug(z"copying directory ${sourceDir} --> ${targetDir}")
+              _ <- loggerF.debug(z"copying directory ${sourceDir.absPath} --> ${targetDir.absPath}")
               _ <- sourceDir.copyTo(targetDir)
             } yield ()
         }

@@ -55,7 +55,7 @@ case class ValidateRepo(resolvedRepository: ResolvedRepository) extends LoggingF
               val makeDirectoriesEffect = user.repoDir.makeDirectories
               val sshKeygenEffect =
                 Command(
-                  "ssh-keygen", "-t", "ed25519", "-a", "100", "-f", z"$tempFile", "-q", "-N", "", "-C", user.qname
+                  "ssh-keygen", "-t", "ed25519", "-a", "100", "-f", z"${tempFile.absPath}", "-q", "-N", "", "-C", user.qname
                 )
                   .inDirectory(user.repoDir)
                   .execLogOutput

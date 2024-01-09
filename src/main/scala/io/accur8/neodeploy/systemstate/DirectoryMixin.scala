@@ -11,7 +11,7 @@ trait DirectoryMixin extends SystemStateMixin { self: SystemState.Directory =>
   def dirZ = path.zdir
 
   override def stateKey: Option[StateKey] = StateKey("directory", path.path).some
-  override def dryRunInstall: Vector[String] = Vector(z"directory ${path} with ${perms}")
+  override def dryRunInstall: Vector[String] = Vector(z"directory ${path.absPath} with ${perms}")
 
   override def isActionNeeded = {
     SystemStateImpl.permissionsActionNeeded(path, perms)

@@ -143,14 +143,14 @@ case class SyncContainer(
         exists <- stateFile.exists
         _ <-
           if (exists) {
-            loggerF.debug(z"deleting state ${stateFile}") *>
+            loggerF.debug(z"deleting state ${stateFile.absPath}") *>
               stateFile.delete
           } else {
             zunit
           }
       } yield ()
     } else {
-      loggerF.debug(z"updating state ${stateFile}") *>
+      loggerF.debug(z"updating state ${stateFile.absPath}") *>
         stateFile.write(newState.prettyJson)
     }
   }

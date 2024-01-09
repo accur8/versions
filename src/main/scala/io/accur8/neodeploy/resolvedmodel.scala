@@ -310,7 +310,7 @@ object resolvedmodel extends LoggingF {
     user: ResolvedUser,
   ) {
     if ( loadedApplicationDescriptor.appConfigDir.name.toLowerCase != loadedApplicationDescriptor.descriptor.name.value.toLowerCase ) {
-      sys.error(z"mismatch between application folder name ${loadedApplicationDescriptor.appConfigDir} and configured application name ${loadedApplicationDescriptor.descriptor.name}")
+      sys.error(z"mismatch between application folder name ${loadedApplicationDescriptor.appConfigDir.absPath} and configured application name ${loadedApplicationDescriptor.descriptor.name}")
     }
     def qname: String =
       loadedApplicationDescriptor
@@ -364,7 +364,7 @@ object resolvedmodel extends LoggingF {
                       appConfDirs
                         .map { appConfDir =>
                           ResolvedApp.loadDescriptorFromDisk(user.login, server.name, appConfDir, user.resolvedAppsRootDirectory)
-                            .trace(z"loadDescriptorFromDisk(${user.login}, ${server.name}, ${appConfDir})")
+                            .trace(z"loadDescriptorFromDisk(${user.login}, ${server.name}, ${appConfDir.absPath})")
                         }
                         .toVector
                         .sequencePar

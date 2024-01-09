@@ -48,7 +48,7 @@ trait SupervisorLauncherMixin { self: SupervisorLauncher =>
 
 command = ${command.args.mkString(" ")}
 
-directory = ${workingDir}
+directory = ${workingDir.absPath}
 
 autostart       = ${resolvedAutoStart}
 autorestart     = ${resolvedAutoRestart}

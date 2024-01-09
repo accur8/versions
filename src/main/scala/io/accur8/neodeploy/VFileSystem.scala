@@ -1,10 +1,11 @@
 package io.accur8.neodeploy
 
 
-import a8.shared.{AbstractStringValueCompanion, ZFileSystem}
+import a8.shared.{AbstractStringValueCompanion, ZFileSystem, ZString}
 import io.accur8.neodeploy.model.LocalRootDirectory
 import SharedImports.*
 import a8.shared.ZFileSystem.{Directory, dir}
+import a8.shared.ZString.ZStringer
 import io.accur8.neodeploy.systemstate.SystemStateModel.PathLocator
 import zio.ZIO
 
@@ -48,7 +49,7 @@ object VFileSystem {
     override def toString = absPath
   }
 
-  object File extends AbstractStringValueCompanion[File] {
+  object File extends CustomStringValueCompanion[File] {
     override def valueToString(file: File): String = file.path
     override def valueFromString(path: String): File = new impl.FileImpl(PathName(path))
   }
@@ -86,9 +87,11 @@ object VFileSystem {
           }
         }
 
+    def toZFile(implicit pathLocator: PathLocator): ZFileSystem.File
+
   }
 
-  object Directory extends AbstractStringValueCompanion[Directory] {
+  object Directory extends CustomStringValueCompanion[Directory] {
     override def valueToString(d: Directory): String = d.path
     override def valueFromString(path: String): Directory = new impl.DirectoryImpl(PathName(path))
   }
@@ -105,6 +108,8 @@ object VFileSystem {
     lazy val zdir = zservice[PathLocator].map(_.dir(pathName))
     override def exists: N[Boolean] = zdir.flatMap(_.exists)
     def existsAsDirectory: N[Boolean] = zdir.flatMap(_.existsAsDirectory)
+
+    def toZDir(implicit pathLocator: PathLocator): ZFileSystem.Directory
 
     def entries: N[Iterable[Path]] =
       zdir
@@ -178,9 +183,11 @@ object VFileSystem {
 
     class FileImpl(val pathName: PathName) extends File {
       override def zpath: N[ZFileSystem.Path] = zfile
+      override def toZFile(implicit pathLocator: PathLocator): ZFileSystem.File = pathLocator.file(pathName)
     }
     class DirectoryImpl(val pathName: PathName) extends Directory {
       override def zpath: N[ZFileSystem.Path] = zdir
+      override def toZDir(implicit pathLocator: PathLocator): ZFileSystem.Directory = pathLocator.dir(pathName)
     }
 
     class SymlinkImpl(val pathName: PathName) extends Symlink {

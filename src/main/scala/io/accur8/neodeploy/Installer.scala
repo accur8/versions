@@ -76,7 +76,7 @@ case class Installer(installState: SystemState.JavaAppInstall, appsInfo: AppsInf
 
     }
 
-  def runJavaLauncherInstallDotNix(repo: JavaApp): M[Unit] = {
+  def runJavaLauncherInstallDotNix(repo: JavaApp): M[Unit] = zservice[PathLocator].flatMap { implicit pathLocator =>
 
     val nixInstallWorkDir = installDir.subdir(s"nix-build")
 
@@ -100,7 +100,7 @@ case class Installer(installState: SystemState.JavaAppInstall, appsInfo: AppsInf
     }
 
     val jvmArgs =
-      (repo.jvmArgs ++ List(z"-Dlog.dir=${logsDirInInstall}", z"-Djava.io.tmpdir=${tempDirInInstall}", z"-Dapp.name=${applicationDescriptor.name}"))
+      (repo.jvmArgs ++ List(z"-Dlog.dir=${logsDirInInstall.absPath}", z"-Djava.io.tmpdir=${tempDirInInstall.absPath}", z"-Dapp.name=${applicationDescriptor.name}"))
         .toList
 
     val request =
