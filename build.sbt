@@ -15,7 +15,7 @@
 //      
 
 val appVersion = a8.sbt_a8.versionStamp(file("."))
-val syncVersion = "1.0.0-20231210_1522_master"
+val syncVersion = "1.0.0-20240120_1020_master"
 val scalaLibVersion = "3.3.0"
 val zeroWasteVersion = "0.2.12"
 
