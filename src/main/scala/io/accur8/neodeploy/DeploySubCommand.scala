@@ -24,8 +24,8 @@ object DeploySubCommand {
   case class DeployAppEffects(
     appDeploy: AppDeployable,
     version: Version,
-    successEffect: N[Unit],
-    errorEffect: N[Unit],
+    setVersionEffect: N[Unit],
+    revertEffect: N[Unit],
   )
 
 }
@@ -158,6 +158,11 @@ case class DeploySubCommand(
       .collect { case a: AppDeployable => a }
       .map(deployAppEffectsT)
       .sequence
+      .tap( deployAppEffects =>
+        deployAppEffects
+          .map(_.setVersionEffect)
+          .sequence
+      )
       .flatMap { deployAppEffects =>
 
         val happyPathEffect: N[DeployResult] =
@@ -176,7 +181,7 @@ case class DeploySubCommand(
         happyPathEffect
           .onError(_ =>
             deployAppEffects
-              .map(_.errorEffect)
+              .map(_.revertEffect)
               .sequence
               .logVoid
           )
