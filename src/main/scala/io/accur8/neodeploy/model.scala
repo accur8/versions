@@ -556,7 +556,9 @@ object model extends LoggingF {
     users: Vector[UserDescriptor],
     a8VersionsExec: Option[String] = None,
     supervisorctlExec: Option[String] = None,
-  )
+  ) {
+    lazy val names = Option(name) ++ aliases
+  }
 
   object AuthorizedKey extends StringValue.Companion[AuthorizedKey]
   case class AuthorizedKey(value: String) extends StringValue

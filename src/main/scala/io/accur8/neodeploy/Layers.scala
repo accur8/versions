@@ -100,8 +100,8 @@ object Layers extends LoggingF {
         resolvedRepository <- zservice[ResolvedRepository]
         resolvedServer <-
           resolvedRepository
-            .servers
-            .find(s => s.name == config.serverName || s.descriptor.aliases.contains(config.serverName))
+            .serversByName
+            .get(config.serverName)
             .map(zsucceed)
             .getOrElse(zfail(new RuntimeException(s"server ${config.serverName} not found")))
       } yield resolvedServer

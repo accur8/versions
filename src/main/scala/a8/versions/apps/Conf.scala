@@ -346,18 +346,18 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
     descr("deploy an app to it's remote system")
 
     //    val app: ScallopOption[AppArg] = opt[AppArg](descr = "fully qualified app name", argName = "app[:version]", required = false)
-    val appArgs: ScallopOption[String] = trailArg[String](descr = "fully qualified app / domain name", required = true)
+    val appArgs: ScallopOption[RawDeployArgs] = trailArg[RawDeployArgs](descr = "fully qualified app / domain name", required = true)
 
-    val version: ScallopOption[String] = opt[String]("version", descr = "version to deploy version# | latest | current", required = false, default = Some("current"))
+//    val version: ScallopOption[String] = opt[String]("version", descr = "version to deploy version# | latest | current", required = false, default = Some("current"))
     val branch: ScallopOption[String] = opt[String]("branch", descr = "branch to use when resolving latest - if omitted will use most recent branch deployed and if that hasn't happened will use defaultBranch from the app config", required = false, default = None)
     val dryRun: ScallopOption[Boolean] = opt[Boolean]("dryRun", descr = "dry run, do not actually do anything just saw what would be done", required = false, default = Some(false))
 
     override def runZ(main: Main) = {
       val resolvedDryRun = dryRun.toOption.getOrElse(false)
-      val versionBranch = VersionBranch.fromAppArgs(version, branch)
+//      val versionBranch = VersionBranch.fromAppArgs(version, branch)
       runM { (resolvedRepo, runner) =>
-        val rawDeployArg = appArgs() + versionBranch.asCommandLineArg + ":install"
-        RawDeployArgs.resolveRemoteDeployZ(RawDeployArgs(Iterable(rawDeployArg)), resolvedRepo)
+//        val rawDeployArg = appArgs() + versionBranch.asCommandLineArg + ":install"
+        RawDeployArgs.resolveRemoteDeployZ(appArgs, resolvedRepo)
           .flatMap { deployables =>
             val effect =
               DeploySubCommand("deploy", resolvedRepo, runner, deployables, resolvedDryRun)

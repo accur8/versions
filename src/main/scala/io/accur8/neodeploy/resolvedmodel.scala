@@ -138,7 +138,13 @@ object resolvedmodel extends LoggingF {
       for {
         config <- zservice[LocalDeploy.Config]
         resolvedRepository <- zservice[ResolvedRepository]
-      } yield resolvedRepository.server(config.serverName)
+        rs <-
+          resolvedRepository
+            .serversByName
+            .get(config.serverName)
+            .map(zsucceed)
+            .getOrElse(zfail(new RuntimeException(s"cannot find server ${config.serverName}")))
+      } yield rs
   }
 
   case class ResolvedServer(
@@ -533,6 +539,16 @@ object resolvedmodel extends LoggingF {
 
     lazy val users =
       servers.flatMap(_.resolvedUsers)
+
+    lazy val serversByName: Map[ServerName, ResolvedServer] =
+      servers
+        .flatMap(server =>
+          server
+            .descriptor
+            .names
+            .map(_ -> server)
+        )
+        .toMap
 
     lazy val servers: Vector[ResolvedServer] =
       descriptor

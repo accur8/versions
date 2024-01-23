@@ -103,8 +103,10 @@ object DeployArgParser {
           .map(t => AppDeployable(t._1, resolvedRepository.applicationByDomainName.get(t._1), t._2))
       case Some(v) if splitValues.length == 1 =>
         val domainName = DomainName(v)
-        installParse
-          .map(t => AppDeployable(domainName, resolvedRepository.applicationByDomainName.get(domainName), VersionBranch.Empty))
+        Right(AppDeployable(domainName, resolvedRepository.applicationByDomainName.get(domainName), VersionBranch.Empty))
+      case Some(v) if splitValues.length == 2 =>
+        val domainName = DomainName(v)
+        Right(AppDeployable(domainName, resolvedRepository.applicationByDomainName.get(domainName), VersionBranchImpl(Version(splitValues(1)), None)))
       case v =>
         Left(s"unable to parse ${value} - don't know how to handle ${v}")
     }
