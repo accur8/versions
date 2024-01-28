@@ -104,8 +104,8 @@ object DeployArgParser {
       case Some(v) if splitValues.length == 1 =>
         val domainName = DomainName(v)
         Right(AppDeployable(domainName, resolvedRepository.applicationByDomainName.get(domainName), VersionBranch.Empty))
-      case Some(v) if splitValues.length == 2 =>
-        val domainName = DomainName(v)
+      case Some(_) if splitValues.length == 2 =>
+        val domainName = DomainName(splitValues(0))
         Right(AppDeployable(domainName, resolvedRepository.applicationByDomainName.get(domainName), VersionBranchImpl(Version(splitValues(1)), None)))
       case v =>
         Left(s"unable to parse ${value} - don't know how to handle ${v}")
