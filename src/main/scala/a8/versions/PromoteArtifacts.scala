@@ -90,6 +90,7 @@ case class PromoteArtifacts(
       _ <- loggerF.info("""
 promotion completed successfully log into https://s01.oss.sonatype.org to manually release the promoted items to staging
 credentials are in the place you would expect them to be
+To release you must close the staging repo and then release it via the sonatype web ui
         """)
     } yield ()
   }

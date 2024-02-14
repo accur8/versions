@@ -232,7 +232,7 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
 
     descr("promote an artifact from accur8's private locus repo into the public maven repo")
 
-    override def runZ(main: Main) = zblock {
+    override def runZ(main: Main) = zsuspend {
 
       val resolvedDependency =
         dependencies
@@ -255,13 +255,8 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
           resolvedDependency,
         )
 
-      object PromoteArtifactsMain extends BootstrappedIOApp {
-        override def runT: ZIO[BootstrappedIOApp.BootstrapEnv, Throwable, Unit] =
-          promoteArtifacts.runT
-      }
+      promoteArtifacts.runT
 
-      import coursier._
-      PromoteArtifactsMain.main(Array())
     }
 
   }
