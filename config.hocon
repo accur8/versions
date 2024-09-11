@@ -1,0 +1,85 @@
+
+orbittaskmanager.snippets = {
+  jira_proviniti = {
+    jiraConfig = {
+      serverRootUrl = "https://proviniti.atlassian.net"
+      user = "glen.marchesani@proviniti.com"
+      password = G9SlgzRDbrk7JtLVcwNVC6FF
+    }
+    boardMappings = [
+      {
+        jiraBoardId = 57
+        mappings = [
+          {
+            epicKey = "RLC-4"
+            orbitProjectUid = uy3EN4GKuGcgYc2RkqzULolsHpoo11S0
+            description = "outlook plugin"
+          }
+          {
+            epicKey = "RLC-49"
+            orbitProjectUid = EfDm8jyROC81kHFgFA522moCsANSqxX2
+            description = "ServceNow"
+          }
+          {
+            epicKey = "RLC-5"
+            orbitProjectUid = Lhdxow5wxyJrLDcLFVpelS8WLdycL7iI
+            description = "teams sync engine"
+          }
+          {
+            epicKey = "RLC-6"
+            orbitProjectUid = Pc8ruERJE1bArxz9knsqdH0Z6Ym5zKWP
+            description = "Salesforce"
+          }
+        ]
+      }
+    ]
+  }
+  jira_ahs = {
+    jiraConfig = {
+      serverRootUrl = "https://support.ahsrcm.com"
+      user = "glen"
+      password = 3respkZywZnwkuUnippGRbZC
+    }
+    boardMappings = [
+      {
+        jiraBoardId = 17
+        mappings = [
+          {
+            description = "sync all tickets to the main project"
+            orbitProjectUid = ZTQB673hq3V8PCufZoP7
+          }
+        ]
+      }
+    ]
+  }
+  jira_goodville = {
+    jiraConfig = {
+      serverRootUrl = "https://goodvillegroup.atlassian.net"
+      user = "glen@accur8software.com"
+      password = MYWpPjZWrUCNzGRE1EiJ6056
+    }
+    jqlMappings = [
+      {
+        jql: """labels=accur8 and project!=Salesforce""",
+        orbitProjectUid: kcsc0JHNpoebnRsvF0iQD7QMOn48t49V
+      }
+      {
+        jql: """labels=accur8 and project=Salesforce""",
+        orbitProjectUid: zdYPogdKvTVxOiYN9m6kXAmogHoc9JV2
+      }
+    ]
+  }
+}
+
+orbittaskmanagermain.app = {
+  readOnly = false
+  jiraSyncs = [
+    ${orbittaskmanager.snippets.jira_goodville}
+    ${orbittaskmanager.snippets.jira_ahs}
+  ]
+  qubes = {
+    uri = "https://orbit.accur8.io"
+    authToken = "Gh9rA095yEp5LdqSP7T0Jyc1gmax6WIgjIEZKEiP2tz3Xj19nBOL7rczXNhynyEfPogDf2TEDEbPRHDK"
+    maximumSimultaneousHttpConnections = 5
+  }
+}
