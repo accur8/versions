@@ -31,6 +31,9 @@ import VFileSystem.{Directory, Symlink}
 
 object GenerateJavaLauncherDotNix extends LoggingF {
 
+  lazy val isNixos = new java.io.File("/etc/NIXOS").exists()
+
+
   /**
    * correlates to JvmCliLaunchConfig in the a8.launcher.Main.hx
    */
@@ -100,6 +103,8 @@ case class GenerateJavaLauncherDotNix(
 )
   extends LoggingF
 {
+
+  import GenerateJavaLauncherDotNix.isNixos
 
   logger.info(s"using args ${parms.args}")
 
@@ -245,7 +250,12 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
             .remoteRepositoryAuthentication
             .flatMap(auth => auth.passwordOpt.map(p => url.userInfo(auth.user,p)))
             .getOrElse(url)
-        val results = (s"/nix/var/nix/profiles/default/bin/nix-prefetch-url --print-path ${urlWithAuth}" !!)
+
+        val exec =
+          if ( isNixos ) "nix-prefetch-url"
+          else "/nix/var/nix/profiles/default/bin/nix-prefetch-url"
+
+        val results = (s"${exec} --print-path ${urlWithAuth}" !!)
         val lines =
           results
             .linesIterator
@@ -262,13 +272,17 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
 
 
   def runNixBuild(workDir: Directory): N[Symlink] = {
+    val exec =
+      if (isNixos) "nix-build"
+      else "/nix/var/nix/profiles/default/bin/nix-build"
+
     val symlinkName = "build"
     workDir
       .zdir
       .flatMap(workdDirZ =>
         ZIO.attemptBlocking(
           Exec(
-            Seq("/nix/var/nix/profiles/default/bin/nix-build", "--out-link", symlinkName, "-E", "with import <nixpkgs> {}; (callPackage ./launcher {})"),
+            Seq(exec, "--out-link", symlinkName, "-E", "with import <nixpkgs> {}; (callPackage ./launcher {})"),
             Some(a8.shared.FileSystem.dir(workdDirZ.absolutePath)),
           ).execCaptureOutput()
         ).as(workDir.symlink(symlinkName))
