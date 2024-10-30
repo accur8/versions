@@ -158,16 +158,12 @@ case class Installer(installState: SystemState.JavaAppInstall, appsInfo: AppsInf
     //      }
 
     def createGcRoot = {
-      if ( GenerateJavaLauncherDotNix.isNixos ) {
-        loggerF.warn("unable to create gcroot on nixos")
-      } else {
-        for {
-          user <- zservice[UserLogin]
-          gcroot = VFileSystem.link(z"/nix/var/nix/gcroots/per-user/${user}/java-app-${applicationDescriptor.name}")
-          _ <- gcroot.deleteIfExists
-          _ <- gcroot.writeTarget(nixInstallWorkDir.subdir("build"))
-        } yield ()
-      }
+      for {
+        user <- zservice[UserLogin]
+        gcroot = VFileSystem.link(z"/nix/var/nix/gcroots/per-user/${user}/java-app-${applicationDescriptor.name}")
+        _ <- gcroot.deleteIfExists
+        _ <- gcroot.writeTarget(nixInstallWorkDir.subdir("build"))
+      } yield ()
     }
 
     for {
