@@ -1209,6 +1209,7 @@ object Mxmodel {
           .addField(_.aliases)
           .addField(_.publicDomainName)
           .addField(_.vpnDomainName)
+          .addField(_.reverseProxyName)
           .addField(_.users)
           .addField(_.a8VersionsExec)
           .addField(_.supervisorctlExec)
@@ -1221,7 +1222,7 @@ object Mxmodel {
     
     
     lazy val generator: Generator[ServerDescriptor,parameters.type] =  {
-      val constructors = Constructors[ServerDescriptor](7, unsafe.iterRawConstruct)
+      val constructors = Constructors[ServerDescriptor](8, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -1230,9 +1231,10 @@ object Mxmodel {
       lazy val aliases: CaseClassParm[ServerDescriptor,Iterable[ServerName]] = CaseClassParm[ServerDescriptor,Iterable[ServerName]]("aliases", _.aliases, (d,v) => d.copy(aliases = v), Some(()=> Iterable.empty), 1)
       lazy val publicDomainName: CaseClassParm[ServerDescriptor,Option[DomainName]] = CaseClassParm[ServerDescriptor,Option[DomainName]]("publicDomainName", _.publicDomainName, (d,v) => d.copy(publicDomainName = v), Some(()=> None), 2)
       lazy val vpnDomainName: CaseClassParm[ServerDescriptor,DomainName] = CaseClassParm[ServerDescriptor,DomainName]("vpnDomainName", _.vpnDomainName, (d,v) => d.copy(vpnDomainName = v), None, 3)
-      lazy val users: CaseClassParm[ServerDescriptor,Vector[UserDescriptor]] = CaseClassParm[ServerDescriptor,Vector[UserDescriptor]]("users", _.users, (d,v) => d.copy(users = v), None, 4)
-      lazy val a8VersionsExec: CaseClassParm[ServerDescriptor,Option[String]] = CaseClassParm[ServerDescriptor,Option[String]]("a8VersionsExec", _.a8VersionsExec, (d,v) => d.copy(a8VersionsExec = v), Some(()=> None), 5)
-      lazy val supervisorctlExec: CaseClassParm[ServerDescriptor,Option[String]] = CaseClassParm[ServerDescriptor,Option[String]]("supervisorctlExec", _.supervisorctlExec, (d,v) => d.copy(supervisorctlExec = v), Some(()=> None), 6)
+      lazy val reverseProxyName: CaseClassParm[ServerDescriptor,Option[DomainName]] = CaseClassParm[ServerDescriptor,Option[DomainName]]("reverseProxyName", _.reverseProxyName, (d,v) => d.copy(reverseProxyName = v), Some(()=> None), 4)
+      lazy val users: CaseClassParm[ServerDescriptor,Vector[UserDescriptor]] = CaseClassParm[ServerDescriptor,Vector[UserDescriptor]]("users", _.users, (d,v) => d.copy(users = v), None, 5)
+      lazy val a8VersionsExec: CaseClassParm[ServerDescriptor,Option[String]] = CaseClassParm[ServerDescriptor,Option[String]]("a8VersionsExec", _.a8VersionsExec, (d,v) => d.copy(a8VersionsExec = v), Some(()=> None), 6)
+      lazy val supervisorctlExec: CaseClassParm[ServerDescriptor,Option[String]] = CaseClassParm[ServerDescriptor,Option[String]]("supervisorctlExec", _.supervisorctlExec, (d,v) => d.copy(supervisorctlExec = v), Some(()=> None), 7)
     }
     
     
@@ -1244,9 +1246,10 @@ object Mxmodel {
           aliases = values(1).asInstanceOf[Iterable[ServerName]],
           publicDomainName = values(2).asInstanceOf[Option[DomainName]],
           vpnDomainName = values(3).asInstanceOf[DomainName],
-          users = values(4).asInstanceOf[Vector[UserDescriptor]],
-          a8VersionsExec = values(5).asInstanceOf[Option[String]],
-          supervisorctlExec = values(6).asInstanceOf[Option[String]],
+          reverseProxyName = values(4).asInstanceOf[Option[DomainName]],
+          users = values(5).asInstanceOf[Vector[UserDescriptor]],
+          a8VersionsExec = values(6).asInstanceOf[Option[String]],
+          supervisorctlExec = values(7).asInstanceOf[Option[String]],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): ServerDescriptor = {
@@ -1256,6 +1259,7 @@ object Mxmodel {
             aliases = values.next().asInstanceOf[Iterable[ServerName]],
             publicDomainName = values.next().asInstanceOf[Option[DomainName]],
             vpnDomainName = values.next().asInstanceOf[DomainName],
+            reverseProxyName = values.next().asInstanceOf[Option[DomainName]],
             users = values.next().asInstanceOf[Vector[UserDescriptor]],
             a8VersionsExec = values.next().asInstanceOf[Option[String]],
             supervisorctlExec = values.next().asInstanceOf[Option[String]],
@@ -1264,8 +1268,8 @@ object Mxmodel {
            sys.error("")
         value
       }
-      def typedConstruct(name: ServerName, aliases: Iterable[ServerName], publicDomainName: Option[DomainName], vpnDomainName: DomainName, users: Vector[UserDescriptor], a8VersionsExec: Option[String], supervisorctlExec: Option[String]): ServerDescriptor =
-        ServerDescriptor(name, aliases, publicDomainName, vpnDomainName, users, a8VersionsExec, supervisorctlExec)
+      def typedConstruct(name: ServerName, aliases: Iterable[ServerName], publicDomainName: Option[DomainName], vpnDomainName: DomainName, reverseProxyName: Option[DomainName], users: Vector[UserDescriptor], a8VersionsExec: Option[String], supervisorctlExec: Option[String]): ServerDescriptor =
+        ServerDescriptor(name, aliases, publicDomainName, vpnDomainName, reverseProxyName, users, a8VersionsExec, supervisorctlExec)
     
     }
     

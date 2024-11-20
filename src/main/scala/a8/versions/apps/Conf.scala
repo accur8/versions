@@ -3,7 +3,7 @@ package a8.versions.apps
 
 import org.rogach.scallop.ScallopConf
 import org.rogach.scallop.*
-import a8.versions.{GenerateJavaLauncherDotNix, PromoteArtifacts, RepositoryOps}
+import a8.versions.{GenerateJavaLauncherDotNix, NixGeneratorSubCommand, PromoteArtifacts, RepositoryOps}
 import RepositoryOps.{RepoConfigPrefix, default}
 import a8.versions.PromoteArtifacts.Dependencies
 import a8.versions.apps.Main.Runner
@@ -364,6 +364,26 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
 
   }
 
+  val nixgen = new Subcommand("nixgen") with Runner {
+
+    descr("generate nix includes")
+
+    override def runZ(main: Main) = {
+      runM { (resolvedRepo, runner) =>
+        NixGeneratorSubCommand(resolvedRepo).runM
+//        RawDeployArgs.resolveRemoteDeployZ(appArgs, resolvedRepo)
+//          .flatMap { deployables =>
+//            val effect =
+//              DeploySubCommand("deploy", resolvedRepo, runner, deployables, resolvedDryRun)
+//                .run
+//            Layers.provide(effect)
+//          }
+      }
+    }
+
+  }
+
+
   val setup = new Subcommand("setup") with Runner {
 
     descr("setup app(s) - caddy supervisor systemd dns(linode amazon-route53)")
@@ -518,6 +538,7 @@ case class Conf(args0: Seq[String]) extends ScallopConf(args0) with Logging {
   addSubcommand(resolve)
   addSubcommand(setup)
   addSubcommand(validateServerAppConfigs)
+  addSubcommand(nixgen)
 
   errorMessageHandler = { message =>
 //    if (overrideColorOutput.value.getOrElse(System.console() != null)) {

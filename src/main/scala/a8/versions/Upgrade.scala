@@ -21,7 +21,7 @@ object Upgrade {
     branch: BranchName,
   ) extends Upgrade {
 
-    def remoteVersions(repositoryOps: RepositoryOps) =
+    def remoteVersions(repositoryOps: RepositoryOps): IndexedSeq[ParsedVersion] =
       repositoryOps
         .remoteVersions(module)
         .filter(_.buildInfo.exists(_.branch == branch))

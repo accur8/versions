@@ -553,6 +553,7 @@ object model extends LoggingF {
 //    caddyDirectory: CaddyDirectory,
     publicDomainName: Option[DomainName] = None,
     vpnDomainName: DomainName,
+    reverseProxyName: Option[DomainName] = None,
     users: Vector[UserDescriptor],
     a8VersionsExec: Option[String] = None,
     supervisorctlExec: Option[String] = None,
