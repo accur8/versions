@@ -127,13 +127,13 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
     """.trim + "\n"
 
   def fetchLine(artifact: ArtifactResponse, nixHash: NixHash): String = {
-    val attributes =
+    val attributes: Vector[(String,String)] =
       Vector(
-        "url" -> artifact.url,
+        "url" -> artifact.url.toString,
         "sha256" -> nixHash.value,
-        "organization" -> artifact.organization,
-        "module" -> artifact.module,
-        "version" -> artifact.version,
+        "organization" -> artifact.organization.value,
+        "module" -> artifact.module.value,
+        "version" -> artifact.version.value,
         "m2RepoPath" -> artifact.m2RepoPath,
         "filename" -> artifact.filename,
       )
@@ -233,7 +233,7 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
             val results = (s"nix-hash --to-base32 ${sha256HexStr} --type sha256" !!)
             NixHash(results.trim)
           } else {
-            sys.error("next")
+            sys.error(s"error downloading ${url} -- ${response.statusCode() -- \n${response.body()}")
           }
         }
 
@@ -441,8 +441,8 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
   jvmArgs = ${quote(parms.jvmArgs)};
   args =  ${quote(parms.args)};
   repo = ${quote(parms.repo.value)};
-  organization = ${quote(parms.organization)};
-  artifact = ${quote(parms.artifact)};
+  organization = ${quote(parms.organization.value)};
+  artifact = ${quote(parms.artifact.value)};
   version = ${quote(parms.version.map(_.value))};
   branch = ${quote(parms.branch.map(_.value))};
   webappExplode = ${parms.webappExplode.getOrElse("null")};
