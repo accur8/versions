@@ -59,6 +59,7 @@ lazy val versions =
   Common
     .jvmProject("a8-versions", file("."), "versions")
     .settings(
+      Common.generateFullDependencies := true,
       libraryDependencies ++= Seq(
 
         zeroWastePlugin,

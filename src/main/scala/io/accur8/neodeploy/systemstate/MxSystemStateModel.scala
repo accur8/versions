@@ -20,7 +20,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxSystemStateModel {
   
-  trait MxStateKey {
+  trait MxStateKey { self: StateKey.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[StateKey,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[StateKey,parameters.type] = builder
     
@@ -79,7 +79,7 @@ object MxSystemStateModel {
   
   
   
-  trait MxPreviousState {
+  trait MxPreviousState { self: PreviousState.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[PreviousState,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[PreviousState,parameters.type] = builder
     
@@ -134,7 +134,7 @@ object MxSystemStateModel {
   
   
   
-  trait MxResolvedState {
+  trait MxResolvedState { self: ResolvedState.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ResolvedState,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ResolvedState,parameters.type] = builder
     
@@ -193,7 +193,7 @@ object MxSystemStateModel {
   
   
   
-  trait MxNewState {
+  trait MxNewState { self: NewState.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[NewState,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[NewState,parameters.type] = builder
     
@@ -248,7 +248,7 @@ object MxSystemStateModel {
   
   
   
-  trait MxCommand {
+  trait MxCommand { self: Command.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Command,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Command,parameters.type] = builder
     

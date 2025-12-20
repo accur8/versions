@@ -13,7 +13,6 @@ import VFileSystem._
 import a8.shared.json.ast.{JsDoc, JsObj, JsVal}
 import a8.versions.RepositoryOps.RepoConfigPrefix
 import sttp.model.Uri
-import io.accur8.neodeploy.model.DockerDescriptor.UninstallAction
 import io.accur8.neodeploy.model._
 import io.accur8.neodeploy.model.Install.{JavaApp, Manual}
 import systemstate.SystemStateModel.Command
@@ -27,7 +26,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object Mxmodel {
   
-  trait MxJavaApp {
+  trait MxJavaApp { self: JavaApp.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[JavaApp,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[JavaApp,parameters.type] = builder
     
@@ -118,7 +117,7 @@ object Mxmodel {
   
   
   
-  trait MxManual {
+  trait MxManual { self: Manual.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Manual,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Manual,parameters.type] = builder
     
@@ -177,7 +176,7 @@ object Mxmodel {
   
   
   
-  trait MxSupervisorDescriptor {
+  trait MxSupervisorDescriptor { self: SupervisorDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[SupervisorDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[SupervisorDescriptor,parameters.type] = builder
     
@@ -244,7 +243,7 @@ object Mxmodel {
   
   
   
-  trait MxSystemdDescriptor {
+  trait MxSystemdDescriptor { self: SystemdDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[SystemdDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[SystemdDescriptor,parameters.type] = builder
     
@@ -319,7 +318,7 @@ object Mxmodel {
   
   
   
-  trait MxDockerDescriptor {
+  trait MxDockerDescriptor { self: DockerDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[DockerDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[DockerDescriptor,parameters.type] = builder
     
@@ -345,7 +344,7 @@ object Mxmodel {
     object parameters {
       lazy val name: CaseClassParm[DockerDescriptor,String] = CaseClassParm[DockerDescriptor,String]("name", _.name, (d,v) => d.copy(name = v), None, 0)
       lazy val args: CaseClassParm[DockerDescriptor,Vector[String]] = CaseClassParm[DockerDescriptor,Vector[String]]("args", _.args, (d,v) => d.copy(args = v), None, 1)
-      lazy val uninstallAction: CaseClassParm[DockerDescriptor,UninstallAction] = CaseClassParm[DockerDescriptor,UninstallAction]("uninstallAction", _.uninstallAction, (d,v) => d.copy(uninstallAction = v), Some(()=> UninstallAction.Stop), 2)
+      lazy val uninstallAction: CaseClassParm[DockerDescriptor,DockerDescriptor.UninstallAction] = CaseClassParm[DockerDescriptor,DockerDescriptor.UninstallAction]("uninstallAction", _.uninstallAction, (d,v) => d.copy(uninstallAction = v), Some(()=> DockerDescriptor.UninstallAction.Stop), 2)
     }
     
     
@@ -355,7 +354,7 @@ object Mxmodel {
         DockerDescriptor(
           name = values(0).asInstanceOf[String],
           args = values(1).asInstanceOf[Vector[String]],
-          uninstallAction = values(2).asInstanceOf[UninstallAction],
+          uninstallAction = values(2).asInstanceOf[DockerDescriptor.UninstallAction],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): DockerDescriptor = {
@@ -363,13 +362,13 @@ object Mxmodel {
           DockerDescriptor(
             name = values.next().asInstanceOf[String],
             args = values.next().asInstanceOf[Vector[String]],
-            uninstallAction = values.next().asInstanceOf[UninstallAction],
+            uninstallAction = values.next().asInstanceOf[DockerDescriptor.UninstallAction],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(name: String, args: Vector[String], uninstallAction: UninstallAction): DockerDescriptor =
+      def typedConstruct(name: String, args: Vector[String], uninstallAction: DockerDescriptor.UninstallAction): DockerDescriptor =
         DockerDescriptor(name, args, uninstallAction)
     
     }
@@ -382,7 +381,7 @@ object Mxmodel {
   
   
   
-  trait MxApplicationDescriptor {
+  trait MxApplicationDescriptor { self: ApplicationDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ApplicationDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ApplicationDescriptor,parameters.type] = builder
     
@@ -473,7 +472,7 @@ object Mxmodel {
   
   
   
-  trait MxApplicationSetupDescriptor {
+  trait MxApplicationSetupDescriptor { self: ApplicationSetupDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ApplicationSetupDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ApplicationSetupDescriptor,parameters.type] = builder
     
@@ -532,7 +531,7 @@ object Mxmodel {
   
   
   
-  trait MxUserPassword {
+  trait MxUserPassword { self: UserPassword.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[UserPassword,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[UserPassword,parameters.type] = builder
     
@@ -591,7 +590,7 @@ object Mxmodel {
   
   
   
-  trait MxPasswords {
+  trait MxPasswords { self: Passwords.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Passwords,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Passwords,parameters.type] = builder
     
@@ -646,7 +645,7 @@ object Mxmodel {
   
   
   
-  trait MxDatabaseSetupDescriptor {
+  trait MxDatabaseSetupDescriptor { self: DatabaseSetupDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[DatabaseSetupDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[DatabaseSetupDescriptor,parameters.type] = builder
     
@@ -713,7 +712,7 @@ object Mxmodel {
   
   
   
-  trait MxDatabaseUserDescriptor {
+  trait MxDatabaseUserDescriptor { self: DatabaseUserDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[DatabaseUserDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[DatabaseUserDescriptor,parameters.type] = builder
     
@@ -772,7 +771,7 @@ object Mxmodel {
   
   
   
-  trait MxZooFile {
+  trait MxZooFile { self: ZooFile.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ZooFile,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ZooFile,parameters.type] = builder
     
@@ -839,7 +838,7 @@ object Mxmodel {
   
   
   
-  trait MxUserDescriptor {
+  trait MxUserDescriptor { self: UserDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[UserDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[UserDescriptor,parameters.type] = builder
     
@@ -922,7 +921,7 @@ object Mxmodel {
   
   
   
-  trait MxRSnapshotClientDescriptor {
+  trait MxRSnapshotClientDescriptor { self: RSnapshotClientDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[RSnapshotClientDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[RSnapshotClientDescriptor,parameters.type] = builder
     
@@ -993,7 +992,7 @@ object Mxmodel {
   
   
   
-  trait MxRSnapshotServerDescriptor {
+  trait MxRSnapshotServerDescriptor { self: RSnapshotServerDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[RSnapshotServerDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[RSnapshotServerDescriptor,parameters.type] = builder
     
@@ -1064,7 +1063,7 @@ object Mxmodel {
   
   
   
-  trait MxPgbackrestClientDescriptor {
+  trait MxPgbackrestClientDescriptor { self: PgbackrestClientDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[PgbackrestClientDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[PgbackrestClientDescriptor,parameters.type] = builder
     
@@ -1135,7 +1134,7 @@ object Mxmodel {
   
   
   
-  trait MxPgbackrestServerDescriptor {
+  trait MxPgbackrestServerDescriptor { self: PgbackrestServerDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[PgbackrestServerDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[PgbackrestServerDescriptor,parameters.type] = builder
     
@@ -1198,7 +1197,7 @@ object Mxmodel {
   
   
   
-  trait MxServerDescriptor {
+  trait MxServerDescriptor { self: ServerDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ServerDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ServerDescriptor,parameters.type] = builder
     
@@ -1281,7 +1280,7 @@ object Mxmodel {
   
   
   
-  trait MxAwsCredentials {
+  trait MxAwsCredentials { self: AwsCredentials.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[AwsCredentials,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[AwsCredentials,parameters.type] = builder
     
@@ -1340,7 +1339,7 @@ object Mxmodel {
   
   
   
-  trait MxManagedDomain {
+  trait MxManagedDomain { self: ManagedDomain.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ManagedDomain,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ManagedDomain,parameters.type] = builder
     
@@ -1399,7 +1398,7 @@ object Mxmodel {
   
   
   
-  trait MxRepositoryDescriptor {
+  trait MxRepositoryDescriptor { self: RepositoryDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[RepositoryDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[RepositoryDescriptor,parameters.type] = builder
     
@@ -1470,7 +1469,7 @@ object Mxmodel {
   
   
   
-  trait MxPersonnel {
+  trait MxPersonnel { self: Personnel.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Personnel,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Personnel,parameters.type] = builder
     

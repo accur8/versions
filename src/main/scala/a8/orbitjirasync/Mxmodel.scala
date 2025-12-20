@@ -21,7 +21,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object Mxmodel {
   
-  trait MxTask {
+  trait MxTask { self: Task.type =>
   
     implicit lazy val qubesMapper: a8.sync.qubes.QubesKeyedMapper[Task,String] =
       a8.sync.qubes.QubesMapperBuilder(generator)
@@ -109,7 +109,7 @@ object Mxmodel {
   
   
   
-  trait MxConfig {
+  trait MxConfig { self: Config.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Config,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Config,parameters.type] = builder
     
@@ -172,7 +172,7 @@ object Mxmodel {
   
   
   
-  trait MxJiraSync {
+  trait MxJiraSync { self: JiraSync.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[JiraSync,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[JiraSync,parameters.type] = builder
     
@@ -235,7 +235,7 @@ object Mxmodel {
   
   
   
-  trait MxJiraConfig {
+  trait MxJiraConfig { self: JiraConfig.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[JiraConfig,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[JiraConfig,parameters.type] = builder
     
@@ -298,7 +298,7 @@ object Mxmodel {
   
   
   
-  trait MxEpicToProjectMapping {
+  trait MxEpicToProjectMapping { self: EpicToProjectMapping.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[EpicToProjectMapping,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[EpicToProjectMapping,parameters.type] = builder
     
@@ -361,7 +361,7 @@ object Mxmodel {
   
   
   
-  trait MxJiraBoardMapping {
+  trait MxJiraBoardMapping { self: JiraBoardMapping.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[JiraBoardMapping,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[JiraBoardMapping,parameters.type] = builder
     
@@ -420,7 +420,7 @@ object Mxmodel {
   
   
   
-  trait MxJqlToProjectMapping {
+  trait MxJqlToProjectMapping { self: JqlToProjectMapping.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[JqlToProjectMapping,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[JqlToProjectMapping,parameters.type] = builder
     

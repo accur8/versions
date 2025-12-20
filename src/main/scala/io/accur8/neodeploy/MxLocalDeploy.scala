@@ -21,7 +21,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxLocalDeploy {
   
-  trait MxConfig {
+  trait MxConfig { self: Config.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Config,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Config,parameters.type] = builder
     

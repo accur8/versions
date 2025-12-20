@@ -20,7 +20,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxHealthchecksDotIo {
   
-  trait MxCheckReadOnly {
+  trait MxCheckReadOnly { self: CheckReadOnly.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[CheckReadOnly,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[CheckReadOnly,parameters.type] = builder
     
@@ -175,7 +175,7 @@ object MxHealthchecksDotIo {
   
   
   
-  trait MxCheckUpsertRequest {
+  trait MxCheckUpsertRequest { self: CheckUpsertRequest.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[CheckUpsertRequest,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[CheckUpsertRequest,parameters.type] = builder
     

@@ -18,7 +18,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxSystemd {
   
-  trait MxUnitFile {
+  trait MxUnitFile { self: UnitFile.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[UnitFile,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[UnitFile,parameters.type] = builder
     

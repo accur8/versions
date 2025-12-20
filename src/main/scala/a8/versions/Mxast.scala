@@ -20,7 +20,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object Mxast {
   
-  trait MxRepo {
+  trait MxRepo { self: Repo.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Repo,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Repo,parameters.type] = builder
     
@@ -91,7 +91,7 @@ object Mxast {
   
   
   
-  trait MxModule {
+  trait MxModule { self: Module.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Module,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Module,parameters.type] = builder
     
@@ -178,7 +178,7 @@ object Mxast {
   
   
   
-  trait MxDependency {
+  trait MxDependency { self: Dependency.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Dependency,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Dependency,parameters.type] = builder
     

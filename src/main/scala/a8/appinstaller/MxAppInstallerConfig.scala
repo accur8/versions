@@ -22,7 +22,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxAppInstallerConfig {
   
-  trait MxAppInstallerConfig {
+  trait MxAppInstallerConfig { self: AppInstallerConfig.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[AppInstallerConfig,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[AppInstallerConfig,parameters.type] = builder
     

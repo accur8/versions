@@ -24,7 +24,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object MxSystemState {
   
-  trait MxSymlink {
+  trait MxSymlink { self: Symlink.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Symlink,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Symlink,parameters.type] = builder
     
@@ -87,7 +87,7 @@ object MxSystemState {
   
   
   
-  trait MxTextFile {
+  trait MxTextFile { self: TextFile.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[TextFile,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[TextFile,parameters.type] = builder
     
@@ -150,7 +150,7 @@ object MxSystemState {
   
   
   
-  trait MxSecretsTextFile {
+  trait MxSecretsTextFile { self: SecretsTextFile.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[SecretsTextFile,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[SecretsTextFile,parameters.type] = builder
     
@@ -213,7 +213,7 @@ object MxSystemState {
   
   
   
-  trait MxDatabaseSetup {
+  trait MxDatabaseSetup { self: DatabaseSetup.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[DatabaseSetup,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[DatabaseSetup,parameters.type] = builder
     
@@ -284,7 +284,7 @@ object MxSystemState {
   
   
   
-  trait MxJavaAppInstall {
+  trait MxJavaAppInstall { self: JavaAppInstall.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[JavaAppInstall,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[JavaAppInstall,parameters.type] = builder
     
@@ -359,7 +359,7 @@ object MxSystemState {
   
   
   
-  trait MxDirectory {
+  trait MxDirectory { self: Directory.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[Directory,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[Directory,parameters.type] = builder
     
@@ -418,7 +418,7 @@ object MxSystemState {
   
   
   
-  trait MxComposite {
+  trait MxComposite { self: Composite.type =>
   
     given scala.CanEqual[Composite, Composite] = scala.CanEqual.derived
     
@@ -466,7 +466,7 @@ object MxSystemState {
   
   
   
-  trait MxDnsRecord {
+  trait MxDnsRecord { self: DnsRecord.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[DnsRecord,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[DnsRecord,parameters.type] = builder
     
@@ -533,7 +533,7 @@ object MxSystemState {
   
   
   
-  trait MxHealthCheck {
+  trait MxHealthCheck { self: HealthCheck.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[HealthCheck,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[HealthCheck,parameters.type] = builder
     
@@ -588,7 +588,7 @@ object MxSystemState {
   
   
   
-  trait MxRunCommandState {
+  trait MxRunCommandState { self: RunCommandState.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[RunCommandState,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[RunCommandState,parameters.type] = builder
     
@@ -651,7 +651,7 @@ object MxSystemState {
   
   
   
-  trait MxDockerState {
+  trait MxDockerState { self: DockerState.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[DockerState,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[DockerState,parameters.type] = builder
     
@@ -706,7 +706,7 @@ object MxSystemState {
   
   
   
-  trait MxTriggeredState {
+  trait MxTriggeredState { self: TriggeredState.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[TriggeredState,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[TriggeredState,parameters.type] = builder
     

@@ -21,7 +21,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object Mxmodel {
   
-  trait MxArtifactResponse {
+  trait MxArtifactResponse { self: ArtifactResponse.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ArtifactResponse,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ArtifactResponse,parameters.type] = builder
     
@@ -96,7 +96,7 @@ object Mxmodel {
   
   
   
-  trait MxResolutionResponse {
+  trait MxResolutionResponse { self: ResolutionResponse.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ResolutionResponse,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ResolutionResponse,parameters.type] = builder
     
@@ -163,7 +163,7 @@ object Mxmodel {
   
   
   
-  trait MxResolutionRequest {
+  trait MxResolutionRequest { self: ResolutionRequest.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[ResolutionRequest,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[ResolutionRequest,parameters.type] = builder
     

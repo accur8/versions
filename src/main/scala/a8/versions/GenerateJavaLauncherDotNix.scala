@@ -233,7 +233,7 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
             val results = (s"nix-hash --to-base32 ${sha256HexStr} --type sha256" !!)
             NixHash(results.trim)
           } else {
-            sys.error(s"error downloading ${url} -- ${response.statusCode() -- \n${response.body()}")
+            sys.error(s"error downloading ${url} -- ${response.statusCode()}\n${response.body()}")
           }
         }
 

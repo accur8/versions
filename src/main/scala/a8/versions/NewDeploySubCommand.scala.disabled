@@ -66,8 +66,7 @@ case class NewDeploySubCommand(rootDir: FileSystem.Directory, resolvedRepo: Reso
 
   def resolveVersion(appDeploy: AppDeployable): M[ParsedVersion] = {
     val app = appDeploy.resolvedApp
-    appDeploy.resolvedApp.
-    val version = versionBranch.versionOpt.getOrError("must supply version")
+    val version = appDeploy.versionOpt.getOrError("must supply version")
     val javaApp = app.descriptor.install.asInstanceOf[JavaAppInstall]
     version match {
       case "latest" | "current" =>

@@ -21,7 +21,7 @@ import a8.shared.Meta.{CaseClassParm, Generator, Constructors}
 
 object Mxresolvedmodel {
   
-  trait MxLoadedApplicationDescriptor {
+  trait MxLoadedApplicationDescriptor { self: LoadedApplicationDescriptor.type =>
   
     protected def jsonCodecBuilder(builder: a8.shared.json.JsonObjectCodecBuilder[LoadedApplicationDescriptor,parameters.type]): a8.shared.json.JsonObjectCodecBuilder[LoadedApplicationDescriptor,parameters.type] = builder
     
