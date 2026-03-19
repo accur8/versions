@@ -33,6 +33,41 @@ object GenerateJavaLauncherDotNix extends LoggingF {
 
   lazy val isNixos = new java.io.File("/etc/NIXOS").exists()
 
+  /**
+   * Resolves nix binary path using:
+   * 1. PATH lookup via 'which'
+   * 2. Fallback to standard locations
+   */
+  def resolveNixBinary(binaryName: String): String = {
+    import sys.process._
+    import scala.language.postfixOps
+
+    // Try PATH first
+    Try {
+      val path = (s"which ${binaryName}" !!).trim
+      if (path.nonEmpty && new java.io.File(path).canExecute) {
+        return path
+      }
+    }
+
+    // Fallback to standard locations
+    val homeDir = System.getProperty("user.home")
+    val standardLocations = Vector(
+      "/run/current-system/sw/bin",           // NixOS 25.05+
+      "/nix/var/nix/profiles/default/bin",    // NixOS 24.04 and nix-on-other-systems
+      s"${homeDir}/bin",                       // User's local bin directory
+      "/usr/local/bin",                        // Homebrew and manual installs
+      "/usr/bin",                              // Additional fallback
+    )
+
+    standardLocations
+      .map(dir => s"${dir}/${binaryName}")
+      .find(path => new java.io.File(path).canExecute)
+      .getOrElse {
+        // Final fallback: just use the binary name and let PATH handle it
+        binaryName
+      }
+  }
 
   /**
    * correlates to JvmCliLaunchConfig in the a8.launcher.Main.hx
@@ -230,7 +265,8 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
             val sha256HexStr = response.body()
             import sys.process._
             import scala.language.postfixOps
-            val results = (s"nix-hash --to-base32 ${sha256HexStr} --type sha256" !!)
+            val nixHashExec = GenerateJavaLauncherDotNix.resolveNixBinary("nix-hash")
+            val results = (s"${nixHashExec} --to-base32 ${sha256HexStr} --type sha256" !!)
             NixHash(results.trim)
           } else {
             sys.error(s"error downloading ${url} -- ${response.statusCode()}\n${response.body()}")
@@ -251,9 +287,7 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
             .flatMap(auth => auth.passwordOpt.map(p => url.userInfo(auth.user,p)))
             .getOrElse(url)
 
-        val exec =
-          if ( isNixos ) "nix-prefetch-url"
-          else "/nix/var/nix/profiles/default/bin/nix-prefetch-url"
+        val exec = GenerateJavaLauncherDotNix.resolveNixBinary("nix-prefetch-url")
 
         val results = (s"${exec} --print-path ${urlWithAuth}" !!)
         val lines =
@@ -272,9 +306,7 @@ exec _out_/bin/_name_j -cp _out_/lib/*:. _args_ "$@"
 
 
   def runNixBuild(workDir: Directory): N[Symlink] = {
-    val exec =
-      if (isNixos) "nix-build"
-      else "/nix/var/nix/profiles/default/bin/nix-build"
+    val exec = GenerateJavaLauncherDotNix.resolveNixBinary("nix-build")
 
     val symlinkName = "build"
     workDir
