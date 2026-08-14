@@ -24,7 +24,22 @@ val zeroWastePlugin = compilerPlugin("com.github.ghik" % "zerowaste" % zeroWaste
 Global / scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 
 Global / resolvers += "a8-repo" at Common.readRepoUrl()
-Global / publishTo := Some("a8-repo-releases" at Common.readRepoUrl())
+// Publish DESTINATION, not a version suffix — the stamp is IDENTICAL in both repos, only
+// the target URL differs. Default is snapshots (cheap, culled); `publishRelease` is the
+// deliberate act that puts an artifact where prod may resolve it. `resolvers` still reads
+// repo_url, so dependency RESOLUTION is unaffected. A missing repo_snapshots_url fails
+// loudly rather than silently publishing a dev build into releases.
+// See FEATURE-20260719-snapshot-build-id-scheme.
+val publishToReleases = settingKey[Boolean]("publish to the releases repo instead of snapshots")
+Global / publishToReleases := false
+Global / publishTo := Some(
+  if (publishToReleases.value) "a8-repo-releases" at Common.readRepoProperty("repo_releases_url")
+  else "a8-repo-snapshots" at Common.readRepoProperty("repo_snapshots_url")
+)
+addCommandAlias(
+  "publishRelease",
+  ";set Global / publishToReleases := true; publish; set Global / publishToReleases := false",
+)
 Global / credentials += Common.readRepoCredentials()
 
 //Global / publishTo := sonatypePublishToBundle.value

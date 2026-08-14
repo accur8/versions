@@ -259,9 +259,26 @@ Global / publishTo := sonatypePublishToBundle.value
 Global / credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
 """
   } else {
+// Publish DESTINATION, not a version suffix — the version stamp is IDENTICAL in both repos,
+// only the target URL differs. Default is snapshots (cheap, and culled at 60 days);
+// `publishRelease` is the deliberate act. `resolvers` still reads repo_url so dependency
+// RESOLUTION is unaffected. Emitted HERE rather than hand-edited into each build.sbt because
+// build.sbt is machine-generated for every non-public repo — a per-repo edit is wiped by the
+// next `a8-versions build_dot_sbt`.
+// See FEATURE-20260719-snapshot-build-id-scheme.
 s"""
 Global / resolvers += "a8-repo" at Common.readRepoUrl()
-Global / publishTo := Some("a8-repo-releases" at Common.readRepoUrl())
+
+val publishToReleases = settingKey[Boolean]("publish to the releases repo instead of snapshots")
+Global / publishToReleases := false
+Global / publishTo := Some(
+  if (publishToReleases.value) "a8-repo-releases" at Common.readRepoProperty("repo_releases_url")
+  else "a8-repo-snapshots" at Common.readRepoProperty("repo_snapshots_url")
+)
+addCommandAlias(
+  "publishRelease",
+  ";set Global / publishToReleases := true; publish; set Global / publishToReleases := false",
+)
 """
       }
 }
