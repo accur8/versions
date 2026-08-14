@@ -317,6 +317,18 @@ ${
         if ( compositeBuild.resolvedModules.size == 1 ) ""
         else
           s"""
+// PIN THE BUILD-BASE PROJECT NAME. With more than one module, `root` below lives in
+// target/root, so sbt AUTO-CREATES a project for the build base directory and names it
+// after THAT DIRECTORY -- publishing from a `bin/session claim` worktree (<repo>-wt-<slug>)
+// minted a brand-new <repo>-wt-<slug>_3 artifact instead of the real one. Emitting the name
+// moves that dependence from BUILD time (every publish, silent) to GENERATION time, where it
+// is committed and reviewable. Regenerate from the canonical checkout, not a worktree.
+//
+// Only emitted for multi-module builds: in a SINGLE-module build the base project IS the
+// module and already carries its own artifact name, so setting this would RENAME it.
+// See BUG-20260813-checkpoint-worktree-publish-mints-directory-named-artifact.
+name := "${firstRepo.repoRootDir.name}"
+
 lazy val root =
   Common.jvmProject("root", file("target/root"), id = "root")
     .settings( publish := {} )${if (firstRepo.astRepo.public) "\n    .settings( com.jsuereth.sbtpgp.PgpKeys.publishSigned := {} )" else "" }
