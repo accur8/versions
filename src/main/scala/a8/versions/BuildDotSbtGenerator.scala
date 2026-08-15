@@ -259,22 +259,36 @@ Global / publishTo := sonatypePublishToBundle.value
 Global / credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials")
 """
   } else {
-// Publish DESTINATION, not a version suffix — the version stamp is IDENTICAL in both repos,
-// only the target URL differs. Default is snapshots (cheap, and culled at 60 days);
-// `publishRelease` is the deliberate act. `resolvers` still reads repo_url so dependency
-// RESOLUTION is unaffected. Emitted HERE rather than hand-edited into each build.sbt because
-// build.sbt is machine-generated for every non-public repo — a per-repo edit is wiped by the
-// next `a8-versions build_dot_sbt`.
-// See FEATURE-20260719-snapshot-build-id-scheme.
+// The publish block is emitted HERE rather than hand-edited into each build.sbt because
+// build.sbt is machine-generated for every non-public repo — a per-repo edit is wiped by
+// the next `a8-versions build_dot_sbt`. Its rationale is emitted with the code so a reader
+// of the generated file gets the reasoning too.
 s"""
 Global / resolvers += "a8-repo" at Common.readRepoUrl()
 
+// Publish DESTINATION, not a version suffix — the version stamp is IDENTICAL in both
+// repos, only the target URL differs. Default is snapshots (cheap, and culled at 60 days);
+// `publishRelease` is the deliberate act that puts an artifact where prod may resolve it.
+// `resolvers` above still reads repo_url, so dependency RESOLUTION is unaffected.
+//
+// The default target is the `repo` config itself, unchanged — /repos/all routes writes to
+// snapshots (repoForWrites), so the normal publish needs NO new configuration on any
+// machine. Only the release needs a target of its own: sent through repo_url a release
+// would silently land in snapshots and look like the release worked.
+//
+// That target is a SEPARATE repo config under the `releases` prefix — releases_url,
+// releases_realm, releases_user, releases_password — the same self-contained shape as the
+// `repo`, `locus` and `maven` prefixes (a8-versions RepoConfigPrefix). Credentials are not
+// shared across repo configs, so the releases config supplies its own below. releases_url
+// has no fallback to repo_url on purpose: a missing releases config must fail loudly
+// rather than route the release into snapshots.
 val publishToReleases = settingKey[Boolean]("publish to the releases repo instead of snapshots")
 Global / publishToReleases := false
 Global / publishTo := Some(
-  if (publishToReleases.value) "a8-repo-releases" at Common.readRepoProperty("repo_releases_url")
-  else "a8-repo-snapshots" at Common.readRepoProperty("repo_snapshots_url")
+  if (publishToReleases.value) "a8-repo-releases" at Common.readRepoProperty("releases_url")
+  else "a8-repo" at Common.readRepoUrl()
 )
+Global / credentials ++= Common.readRepoCredentialsOpt("releases").toSeq
 addCommandAlias(
   "publishRelease",
   ";set Global / publishToReleases := true; publish; set Global / publishToReleases := false",
@@ -387,6 +401,20 @@ ${if ( includeObject ) "object RepoAssist {" else ""}
       readRepoProperty("repo_password"),
     )
   }
+
+  // A repo config is a self-contained prefixed block -- <prefix>_url, _realm, _user,
+  // _password -- the shape a8-versions RepoConfigPrefix already uses for "repo", "locus"
+  // and "maven". Credentials are NOT shared across repo configs, so each prefix supplies
+  // its own. readRepoCredentials() above is the hardwired "repo" case kept for callers.
+  // Returns None when the block is absent, so a machine that never publishes to that repo
+  // still loads the build.
+  def readRepoCredentialsOpt(prefix: String): Option[Credentials] =
+    for {
+      url <- repoProperties.get(prefix + "_url")
+      realm <- repoProperties.get(prefix + "_realm")
+      user <- repoProperties.get(prefix + "_user")
+      password <- repoProperties.get(prefix + "_password")
+    } yield Credentials(realm, new java.net.URL(url).getHost, user, password)
 
 ${if ( includeObject ) "}" else ""}
   """
