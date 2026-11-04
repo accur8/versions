@@ -12,6 +12,7 @@ package a8.orbitjirasync
 import a8.sync.qubes.QubesApiClient
 import a8.orbitjirasync.model._
 import a8.shared.jdbcf.DatabaseConfig.Password
+import a8.shared.jdbcf.DatabaseConfig
 import sttp.model.Uri
 //====
 
@@ -119,6 +120,7 @@ object Mxmodel {
           .addField(_.jiraSyncs)
           .addField(_.qubes)
           .addField(_.readOnly)
+          .addField(_.billingDatabases)
       )
       .build
     
@@ -128,7 +130,7 @@ object Mxmodel {
     
     
     lazy val generator: Generator[Config,parameters.type] =  {
-      val constructors = Constructors[Config](3, unsafe.iterRawConstruct)
+      val constructors = Constructors[Config](4, unsafe.iterRawConstruct)
       Generator(constructors, parameters)
     }
     
@@ -136,6 +138,7 @@ object Mxmodel {
       lazy val jiraSyncs: CaseClassParm[Config,Vector[JiraSync]] = CaseClassParm[Config,Vector[JiraSync]]("jiraSyncs", _.jiraSyncs, (d,v) => d.copy(jiraSyncs = v), None, 0)
       lazy val qubes: CaseClassParm[Config,QubesApiClient.Config] = CaseClassParm[Config,QubesApiClient.Config]("qubes", _.qubes, (d,v) => d.copy(qubes = v), None, 1)
       lazy val readOnly: CaseClassParm[Config,Boolean] = CaseClassParm[Config,Boolean]("readOnly", _.readOnly, (d,v) => d.copy(readOnly = v), Some(()=> true), 2)
+      lazy val billingDatabases: CaseClassParm[Config,Vector[DatabaseConfig]] = CaseClassParm[Config,Vector[DatabaseConfig]]("billingDatabases", _.billingDatabases, (d,v) => d.copy(billingDatabases = v), Some(()=> Vector.empty), 3)
     }
     
     
@@ -146,6 +149,7 @@ object Mxmodel {
           jiraSyncs = values(0).asInstanceOf[Vector[JiraSync]],
           qubes = values(1).asInstanceOf[QubesApiClient.Config],
           readOnly = values(2).asInstanceOf[Boolean],
+          billingDatabases = values(3).asInstanceOf[Vector[DatabaseConfig]],
         )
       }
       def iterRawConstruct(values: Iterator[Any]): Config = {
@@ -154,13 +158,14 @@ object Mxmodel {
             jiraSyncs = values.next().asInstanceOf[Vector[JiraSync]],
             qubes = values.next().asInstanceOf[QubesApiClient.Config],
             readOnly = values.next().asInstanceOf[Boolean],
+            billingDatabases = values.next().asInstanceOf[Vector[DatabaseConfig]],
           )
         if ( values.hasNext )
            sys.error("")
         value
       }
-      def typedConstruct(jiraSyncs: Vector[JiraSync], qubes: QubesApiClient.Config, readOnly: Boolean): Config =
-        Config(jiraSyncs, qubes, readOnly)
+      def typedConstruct(jiraSyncs: Vector[JiraSync], qubes: QubesApiClient.Config, readOnly: Boolean, billingDatabases: Vector[DatabaseConfig]): Config =
+        Config(jiraSyncs, qubes, readOnly, billingDatabases)
     
     }
     

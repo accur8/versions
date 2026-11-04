@@ -118,8 +118,8 @@ case class OrbitTaskManagerImpl(config: model.Config) extends LoggingF {
             .flatMap(jiraSync =>
               OrbitTaskManager(jiraSync, parallelism).taskActions
             )
-        consumer(stream)
-          .logVoid
+        // the billing mirror runs even when the Jira sync fails, so billing still follows orbit
+        consumer(stream).logVoid *> BillingMirror(config).run.logVoid
       }
     }
   }

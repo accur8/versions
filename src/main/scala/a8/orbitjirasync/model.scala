@@ -11,6 +11,7 @@ import sttp.model.Uri
 import zio.stream.{ZSink, ZStream}
 import a8.shared.SharedImports._
 import a8.shared.jdbcf.DatabaseConfig.Password
+import a8.shared.jdbcf.DatabaseConfig
 
 import java.time.LocalDateTime
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
@@ -112,6 +113,8 @@ object model extends Logging {
     jiraSyncs: Vector[JiraSync],
     qubes: QubesApiClient.Config,
     readOnly: Boolean = true,
+    // continuum databases whose billing.task follows orbit's Jira tasks (BillingMirror)
+    billingDatabases: Vector[DatabaseConfig] = Vector.empty,
   )
 
   object JiraSync extends MxJiraSync
